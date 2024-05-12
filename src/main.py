@@ -20,6 +20,7 @@ while 1:
     # REMOVE IN BUILD
     game.debug_draw.add(
         {
+            "type": "text",
             "layer": 6,
             "x": 0,
             "y": 0,

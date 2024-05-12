@@ -1,5 +1,6 @@
+from typing import TYPE_CHECKING
+
 from constants import NATIVE_SURF
-from constants import TYPE_CHECKING
 
 
 if TYPE_CHECKING:
