@@ -69,6 +69,47 @@ To install and run the project, follow these steps:
 
 Read my docs to read the manual on how to use this, it is still a work in progress.
 
+### Run Immediately
+
+If you want to run this with no hassle I provide docker. Here are the steps to run it without any python setups.
+
+1. Download this if you are using windows: https://sourceforge.net/projects/xming/. Just press next on each part of the installer.
+
+2. If you are using Mac, download XQuartz here https://www.xquartz.org/. Open it, go to Settings > Security > Check “Allow connections from network clients” and quit and re-open the program.
+
+3. Search for and run “XLaunch”
+
+4. IF you are using windows, just hit next through each step.
+
+5. If you are using mac, go into your shell and type “xhost +” which will allow clients to connect from any host.
+
+6. Clone this repo and enter its dir. Then do the following:
+
+```bash
+docker build -t my-python-app .
+```
+
+```bash
+docker run -p 4000:80 my-python-app
+```
+
+If you need to find the id or name from terminal run this.
+
+```bash
+docker ps
+```
+
+Use the id to stop and remove it.
+
+```bash
+docker stop <id>
+
+```
+
+```bash
+docker rm <id>
+```
+
 ## Contributing
 
 Open issue, fork and pr. Thank you for your help.

@@ -12,6 +12,83 @@ https://github.com/pre-commit/pre-commit/issues/1550g
 
 pre-commit sample-config | out-file .pre-commit-config.yaml -encoding utf8
 
+## Docker
+
+1. Download this if you are using windows: https://sourceforge.net/projects/xming/. Just press next on each part of the installer.
+
+2. If you are using Mac, download XQuartz here https://www.xquartz.org/. Open it, go to Settings > Security > Check “Allow connections from network clients” and quit and re-open the program.
+
+3. Search for and run “XLaunch”
+
+4. IF you are using windows, just hit next through each step.
+
+5. If you are using mac, go into your shell and type “xhost +” which will allow clients to connect from any host.
+
+6. Install the Docker Desktop.
+
+7. Setup the Dockerfile.
+
+8. Do the following:
+
+```bash
+docker build -t my-python-app .
+```
+
+```bash
+docker run -p 4000:80 my-python-app
+```
+
+```bash
+docker stop <id>
+
+```
+
+```bash
+docker rm <id>
+```
+
+This is good to know but it does not work properly when you pull and run. Works fine if you are building from a cloned repo.
+
+Create a docker repo
+
+Then tag the local image
+
+```bash
+docker tag python-2d-game-engine cliffordwilliaim/python-2d-game-engine:latest
+```
+
+Then login from local, faster if you login via the docker desktop first. Then do this.
+
+```bash
+docker login
+```
+
+If login is OK then you can push
+
+```bash
+docker push cliffordwilliaim/python-2d-game-engine:latest
+```
+
+Then anyone can pull it
+
+```bash
+docker pull cliffordwilliaim/python-2d-game-engine:latest
+```
+
+And run it with this
+
+```bash
+docker run cliffordwilliaim/python-2d-game-engine:latest
+```
+
+If you need to find the id or name from terminal run this
+
+```bash
+docker ps
+```
+
+Then do the stop and rm as usual to stop it.
+
 ## Before prod
 
 Look for all instances of # REMOVE IN BUILD, then delete all that is not needed for prod.
