@@ -75,4 +75,4 @@ Open issue, fork and pr. Thank you for your help.
 
 ## License
 
-TODO: Explain
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
