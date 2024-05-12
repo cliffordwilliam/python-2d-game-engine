@@ -5,7 +5,7 @@ class SoundManager:
     def __init__(self):
         self.sounds: dict[str, pg.mixer.Sound] = {}
 
-    def load_sound(self, name, path):
+    def load_sound(self, name: str, path: str):
         sound: pg.mixer.Sound = pg.mixer.Sound(path)
         self.sounds[name] = sound
 

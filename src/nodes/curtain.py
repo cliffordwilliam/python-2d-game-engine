@@ -59,7 +59,7 @@ class Curtain:
 
         self.is_done_lerping = False
 
-    def add_event_listener(self, value, event):
+    def add_event_listener(self, value: Callable, event: str):
         if event == "invisible_end":
             self.listener_invisible_ends.append(value)
 
@@ -72,7 +72,7 @@ class Curtain:
 
         NATIVE_SURF.blit(self.surface, (0, 0))
 
-    def update(self, dt):
+    def update(self, dt: int):
         if self.is_done_lerping:
             return
 
