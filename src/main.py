@@ -1,6 +1,4 @@
 # Example file showing a basic pygame "game loop"
-from __future__ import annotations
-
 import pygame
 
 # pygame setup
