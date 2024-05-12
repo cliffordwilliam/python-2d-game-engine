@@ -1,4 +1,4 @@
-# Project Name
+# Python 2D Game Engine
 
 This is my python 2D game engine project. I will work on it while making a game along side of it as a proof of concept. It comes with json editor, level editor and the game engine itself. There is no GUI but there are helpful classes out of the box you can use for common things like animation, saving, key binding, collision, camera and so much more.
 
