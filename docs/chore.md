@@ -27,6 +27,7 @@ All names should be snake case no matter what, this makes it so that the data na
 [ ] - Create the main menu flow, from splash, title, main menu, settings, load and save screen then game.
 [ ] - Be able to save and load at any room in World scene.
 [x] - Find ways to make type safety a thing here. Check below on how I did it.
+[ ] - Update the doc svg, Reason for change is because I cannot import everything at the constants, import when it is needed only. Like Vector and so on.
 [ ] - Always read if there are any more TODO.
 
 ## Typesafety
