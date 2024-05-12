@@ -79,7 +79,7 @@ If you want to run this with no hassle I provide docker. Here are the steps to r
 
 3. Search for and run “XLaunch”
 
-4. IF you are using windows, just hit next through each step.
+4. If you are using windows, just hit next through each step.
 
 5. If you are using mac, go into your shell and type “xhost +” which will allow clients to connect from any host.
 
