@@ -19,6 +19,11 @@ class Curtain:
     Call the go_to_invisible() or opaque to control where it fades into.
     """
 
+    INVISIBLE_END = "invisible_end"
+    OPAQUE_END = "opaque_end"
+    INVISIBLE = "invisible"
+    OPAQUE = "opaque"
+
     def __init__(
         self, duration: float, start: str = "invisible", max_alpha: int = 255
     ):
@@ -36,7 +41,7 @@ class Curtain:
         self.fade_duration: float = duration
         self.fade_timer: float = 0
 
-        if self.start == "opaque":
+        if self.start == self.OPAQUE:
             self.surface.set_alpha(self.max_alpha)
             self.alpha = self.max_alpha
             self.fade_duration = duration
@@ -60,10 +65,10 @@ class Curtain:
         self.is_done_lerping = False
 
     def add_event_listener(self, value: Callable, event: str):
-        if event == "invisible_end":
+        if event == self.INVISIBLE_END:
             self.listener_invisible_ends.append(value)
 
-        elif event == "opaque_end":
+        elif event == self.OPAQUE_END:
             self.listener_opaque_ends.append(value)
 
     def draw(self):

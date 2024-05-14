@@ -13,17 +13,21 @@ class CreatedBySplashScreen:
     def __init__(self, game: "Game"):
         self.game = game
 
-        self.fade_in_duration = 1000
-
-        self.curtain = Curtain(self.fade_in_duration, "opaque", 255)
-        self.curtain.add_event_listener(
-            self.on_curtain_invisible, "invisible_end"
+        self.curtain_duration: float = 1000.0
+        self.curtain_max_alpha: int = 255
+        self.curtain = Curtain(
+            self.curtain_duration,
+            Curtain.OPAQUE, self.curtain_max_alpha
         )
-        self.curtain.add_event_listener(self.on_curtain_opaque, "opaque_end")
+        self.curtain.add_event_listener(
+            self.on_curtain_invisible, Curtain.INVISIBLE_END
+        )
+        self.curtain.add_event_listener(
+            self.on_curtain_opaque, Curtain.OPAQUE_END)
 
         self.fadeout_delay_timer = Timer(1000)
         self.fadeout_delay_timer.add_event_listener(
-            self.on_timer_end, "timer_end"
+            self.on_timer_end, Timer.END
         )
 
     def on_timer_end(self):

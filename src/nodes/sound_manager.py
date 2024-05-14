@@ -9,7 +9,7 @@ class SoundManager:
         sound: pg.mixer.Sound = pg.mixer.Sound(path)
         self.sounds[name] = sound
 
-    def play_sound(self, name: str, loop=0):
+    def play_sound(self, name: str, loop: int = 0):
         if name in self.sounds:
             self.sounds[name].play(loop)
 
