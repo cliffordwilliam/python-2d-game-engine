@@ -10,8 +10,10 @@ from constants import WINDOW_W
 from nodes.debug_draw import DebugDraw
 from nodes.sound_manager import SoundManager
 from scenes.created_by_splash_screen import CreatedBySplashScreen
+from typeguard import typechecked
 
 
+@typechecked
 class Game:
     """
     The `Game` class manages various aspects of the game.

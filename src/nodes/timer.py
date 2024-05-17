@@ -2,7 +2,10 @@
 from typing import Callable
 from typing import List
 
+from typeguard import typechecked
 
+
+@typechecked
 class Timer:
     """
     Set duration in float.

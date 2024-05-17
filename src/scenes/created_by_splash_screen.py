@@ -3,12 +3,14 @@ from typing import TYPE_CHECKING
 from constants import NATIVE_SURF
 from nodes.curtain import Curtain
 from nodes.timer import Timer
+from typeguard import typechecked
 
 
 if TYPE_CHECKING:
     from nodes.game import Game
 
 
+@typechecked
 class CreatedBySplashScreen:
     def __init__(self, game: "Game"):
         self.game = game
@@ -16,14 +18,14 @@ class CreatedBySplashScreen:
         self.curtain_duration: float = 1000.0
         self.curtain_max_alpha: int = 255
         self.curtain = Curtain(
-            self.curtain_duration,
-            Curtain.OPAQUE, self.curtain_max_alpha
+            self.curtain_duration, Curtain.OPAQUE, self.curtain_max_alpha
         )
         self.curtain.add_event_listener(
             self.on_curtain_invisible, Curtain.INVISIBLE_END
         )
         self.curtain.add_event_listener(
-            self.on_curtain_opaque, Curtain.OPAQUE_END)
+            self.on_curtain_opaque, Curtain.OPAQUE_END
+        )
 
         self.fadeout_delay_timer = Timer(1000)
         self.fadeout_delay_timer.add_event_listener(

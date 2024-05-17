@@ -5,8 +5,10 @@ from typing import List
 from constants import FONT
 from constants import NATIVE_SURF
 from constants import pg
+from typeguard import typechecked
 
 
+@typechecked
 class DebugDraw:
     def __init__(self) -> None:
         self.layers: List[List[Any]] = [

@@ -22,6 +22,14 @@ Refs:
 
 When it is done you can use the shift+alt+r
 
+## After Pip Install
+
+Always update the req txt every after installation.
+
+```bash
+pip freeze > requirements.txt
+```
+
 ## Before Commiting
 
 Run this mypy, this tpye checks everything:

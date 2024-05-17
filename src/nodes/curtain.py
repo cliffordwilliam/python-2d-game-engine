@@ -7,8 +7,10 @@ from constants import NATIVE_W
 from constants import pg
 from pygame.math import clamp
 from pygame.math import lerp
+from typeguard import typechecked
 
 
+@typechecked
 class Curtain:
     """
     Set duration in float.

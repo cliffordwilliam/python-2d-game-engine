@@ -1,6 +1,8 @@
 from constants import pg
+from typeguard import typechecked
 
 
+@typechecked
 class SoundManager:
     def __init__(self) -> None:
         self.sounds: dict[str, pg.mixer.Sound] = {}
