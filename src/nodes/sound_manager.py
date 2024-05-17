@@ -2,7 +2,7 @@ from constants import pg
 
 
 class SoundManager:
-    def __init__(self):
+    def __init__(self) -> None:
         self.sounds: dict[str, pg.mixer.Sound] = {}
 
     def load_sound(self, name: str, path: str):

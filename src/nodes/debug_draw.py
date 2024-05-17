@@ -1,7 +1,6 @@
 from typing import Any
 from typing import Dict
 from typing import List
-from typing import Union
 
 from constants import FONT
 from constants import NATIVE_SURF
@@ -9,7 +8,7 @@ from constants import pg
 
 
 class DebugDraw:
-    def __init__(self):
+    def __init__(self) -> None:
         self.layers: List[List[Any]] = [
             [],
             [],
@@ -20,7 +19,7 @@ class DebugDraw:
             [],
         ]
 
-    def add(self, obj: Dict[str, Union[int, str]]):
+    def add(self, obj: Dict[str, Any]):
         layer = obj["layer"]
         self.layers[layer].append(obj)
 

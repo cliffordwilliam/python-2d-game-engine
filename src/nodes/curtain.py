@@ -91,7 +91,7 @@ class Curtain:
 
         lerp_alpha += self.remainder
 
-        self.alpha = clamp(round(lerp_alpha), 0, self.max_alpha)
+        self.alpha = int(clamp(round(lerp_alpha), 0, self.max_alpha))
 
         self.remainder = lerp_alpha - self.alpha
 

@@ -12,6 +12,26 @@ https://github.com/pre-commit/pre-commit/issues/1550g
 
 pre-commit sample-config | out-file .pre-commit-config.yaml -encoding utf8
 
+## Removed Unused Imports Hotkey
+
+Refs:
+
+- https://stackoverflow.com/questions/53352135/is-there-a-way-to-remove-unused-imports-for-python-in-vs-code
+- https://codewithsusan.com/notes/vscode-keyboard-shortcuts#:~:text=All%20of%20your%20keybinding%20customizations,json%20.
+- https://stackoverflow.com/questions/56798514/visual-studio-code-unable-to-edit-keybingings-json-cannot-edit-in-read-only-ed
+
+When it is done you can use the shift+alt+r
+
+## Before Commiting
+
+Run this mypy, this tpye checks everything:
+
+```bash
+mypy src
+```
+
+Before commiting, I cannot add it to prehook, it is a hassle.
+
 ## Docker
 
 1. Download this if you are using windows: https://sourceforge.net/projects/xming/. Just press next on each part of the installer.
