@@ -22,6 +22,10 @@ Refs:
 
 When it is done you can use the shift+alt+r
 
+## Custom VS Code File Icons Using Material Icons
+
+https://gist.github.com/rupeshtiwari/6860fbc1b3e2f6711c780070d6f59748
+
 ## After Pip Install
 
 Always update the req txt every after installation.
