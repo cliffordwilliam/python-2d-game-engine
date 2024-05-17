@@ -30,7 +30,7 @@ class Game:
         # REMOVE IN BUILD
         self.debug_draw: DebugDraw = DebugDraw()
 
-        self.resolution: int = 6
+        self.resolution: int = 4
         self.window_w: int = WINDOW_W * self.resolution
         self.window_h: int = WINDOW_H * self.resolution
         self.window_surf: pg.Surface = pg.display.set_mode(
