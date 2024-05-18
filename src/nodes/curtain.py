@@ -21,15 +21,13 @@ class Curtain:
     Call the go_to_invisible() or opaque to control where it fades into.
     """
 
-    INVISIBLE_END = "invisible_end"
-    OPAQUE_END = "opaque_end"
-    INVISIBLE = "invisible"
-    OPAQUE = "opaque"
+    INVISIBLE_END = 0
+    OPAQUE_END = 1
+    INVISIBLE = 2
+    OPAQUE = 3
 
-    def __init__(
-        self, duration: float, start: str = "invisible", max_alpha: int = 255
-    ):
-        self.start: str = start
+    def __init__(self, duration: float, start: int = 2, max_alpha: int = 255):
+        self.start: int = start
 
         self.max_alpha: int = max_alpha
 
@@ -57,16 +55,25 @@ class Curtain:
         self.is_done_lerping: bool = True
 
     def go_to_opaque(self):
+        """
+        Lerp the curtain to my max alpha.
+        """
         self.direction = 1
 
         self.is_done_lerping = False
 
     def go_to_invisible(self):
+        """
+        Lerp the curtain to alpha 0.
+        """
         self.direction = -1
 
         self.is_done_lerping = False
 
-    def add_event_listener(self, value: Callable, event: str):
+    def add_event_listener(self, value: Callable, event: int):
+        """
+        Subscribe to my events.
+        """
         if event == self.INVISIBLE_END:
             self.listener_invisible_ends.append(value)
 
@@ -74,12 +81,18 @@ class Curtain:
             self.listener_opaque_ends.append(value)
 
     def draw(self):
+        """
+        Blit myself to native surface.
+        """
         if self.alpha == 0:
             return
 
         NATIVE_SURF.blit(self.surface, (0, 0))
 
     def update(self, dt: int):
+        """
+        Update to lerp my curtain.
+        """
         if self.is_done_lerping:
             return
 

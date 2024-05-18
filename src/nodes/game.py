@@ -135,6 +135,13 @@ class Game:
         """
         self.current_scene = self.scenes[value](self)
 
+    def quit(self):
+        """
+        Exit the game.
+        """
+        pg.quit()
+        exit()
+
     def event(self, event: pg.Event):
         """
         Handles events that occur during the game.
