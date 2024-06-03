@@ -30,6 +30,9 @@ class Game:
         # REMOVE IN BUILD
         self.debug_draw: DebugDraw = DebugDraw()
 
+        # REMOVE IN BUILD
+        self.is_per_frame: bool = False
+
         self.resolution: int = 4
         self.window_w: int = WINDOW_W * self.resolution
         self.window_h: int = WINDOW_H * self.resolution
@@ -207,6 +210,8 @@ class Game:
             # REMOVE IN BUILD
             if event.key == pg.K_0:
                 self.is_debug = not self.is_debug
+            if event.key == pg.K_9:
+                self.is_per_frame = not self.is_per_frame
 
         # REMOVE IN BUILD
         if event.type == pg.MOUSEBUTTONDOWN:
