@@ -1,5 +1,25 @@
 # My Notes
 
+## Commit flow
+
+```bash
+mypy src
+```
+
+Then commit:
+
+```bash
+cz commit
+```
+
+If there are issues you have to commit the fixed files again:
+
+```bash
+cz commit
+```
+
+That's it.
+
 ## Commitizen
 
 https://pypi.org/project/commitizen/
