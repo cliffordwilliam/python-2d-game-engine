@@ -4,6 +4,12 @@
 
 https://pypi.org/project/commitizen/
 
+Run this to commit from now on:
+
+```bash
+cz commit
+```
+
 ## Pre commit
 
 https://medium.com/@0xmatriksh/how-to-setup-git-hooks-pre-commit-commit-msg-in-my-project-11aaec139536
@@ -20,7 +26,7 @@ Refs:
 - https://codewithsusan.com/notes/vscode-keyboard-shortcuts#:~:text=All%20of%20your%20keybinding%20customizations,json%20.
 - https://stackoverflow.com/questions/56798514/visual-studio-code-unable-to-edit-keybingings-json-cannot-edit-in-read-only-ed
 
-When it is done you can use the shift+alt+r
+When it is done you can use the `shift + alt + r`.
 
 ## Custom VS Code File Icons Using Material Icons
 
@@ -42,7 +48,7 @@ Run this mypy, this tpye checks everything:
 mypy src
 ```
 
-Before commiting, I cannot add it to prehook, it is a hassle.
+Before commiting, I cannot add it to prehook, it is a hassle that I have to run each time before commiting.
 
 ## Docker
 

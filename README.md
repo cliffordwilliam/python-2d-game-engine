@@ -35,14 +35,14 @@ To install and run the project, follow these steps:
 
 3. Create a virtual environment (optional but recommended):
 
+   ```bash
+   python3 -m venv venv
+   ```
+
    Or you can use VSCode ctrl + shift + p to select the python intreperter and create venv. Open and close your terminal and wait until you see a popup saying that the venv is activated. If you are a dev you can run the pre-commit install now. Run this again if you update the pre commit yaml file.
 
    ```bash
    pre-commit install
-   ```
-
-   ```bash
-   python3 -m venv venv
    ```
 
 4. Activate the virtual environment:
