@@ -114,3 +114,5 @@ MASK_ID_TO_INDEX: Dict[str, int] = {
     "74": 45,
     "90": 46,
 }
+
+NEXT_FRAME: int = pg.K_8
