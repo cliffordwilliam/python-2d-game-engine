@@ -11,12 +11,11 @@ game: Game = Game("CreatedBySplashScreen")
 while 1:
     # REMOVE IN BUILD
     if game.is_per_frame:
+        dt_2: int = 16
+
+        for event in pg.event.get(EVENTS):
+            game.event(event)
         if pg.key.get_just_pressed()[NEXT_FRAME]:
-            dt_2: int = 16
-
-            for event in pg.event.get(EVENTS):
-                game.event(event)
-
             game.current_scene.draw()
 
             game.current_scene.update(dt_2)
