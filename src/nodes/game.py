@@ -33,7 +33,7 @@ class Game:
         # REMOVE IN BUILD
         self.is_per_frame: bool = False
 
-        self.resolution: int = 4
+        self.resolution: int = 3
         self.window_w: int = WINDOW_W * self.resolution
         self.window_h: int = WINDOW_H * self.resolution
         self.window_surf: pg.Surface = pg.display.set_mode(

@@ -134,7 +134,7 @@ class CreatedBySplashScreen:
             self.entry_delay_timer.update(dt)
 
         elif self.state == self.GOING_TO_INVISIBLE:
-            if self.game.is_enter_just_pressed:
+            if self.game.is_enter_pressed:
                 self.set_state(self.GOING_TO_OPAQUE)
                 return
 
