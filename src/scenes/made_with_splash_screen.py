@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 
 @typechecked
-class CreatedBySplashScreen:
+class MadeWithSplashScreen:
     """
     Fades in and out to show a text that shows my name.
     Player can skip for an early fade out if they input during fade in.
@@ -62,7 +62,7 @@ class CreatedBySplashScreen:
             self.on_screen_time_timer_end, Timer.END
         )
 
-        self.title_text: str = "made by clifford william"
+        self.title_text: str = "made with python"
         self.title_rect: pg.Rect = FONT.get_rect(self.title_text)
         self.title_rect.center = NATIVE_RECT.center
 
@@ -88,7 +88,7 @@ class CreatedBySplashScreen:
         self.set_state(self.GOING_TO_INVISIBLE)
 
     def on_exit_delay_timer_end(self):
-        self.game.set_scene("MadeWithSplashScreen")
+        self.game.quit()
 
     def on_screen_time_timer_end(self):
         self.set_state(self.GOING_TO_OPAQUE)
