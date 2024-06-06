@@ -153,8 +153,7 @@ class MadeWithSplashScreen:
             if self.state == self.GOING_TO_OPAQUE:
                 self.curtain.go_to_opaque()
 
-        elif old_state == self.GOING_TO_INVISIBLE:
-            if self.state == self.REACHED_INVISIBLE:
+            elif self.state == self.REACHED_INVISIBLE:
                 pass
 
         elif old_state == self.REACHED_INVISIBLE:
