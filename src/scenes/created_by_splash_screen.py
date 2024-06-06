@@ -110,14 +110,6 @@ class CreatedBySplashScreen:
             )
             self.curtain.draw()
 
-        elif self.state == self.REACHED_INVISIBLE:
-            FONT.render_to(
-                NATIVE_SURF, self.title_rect, self.title_text, self.font_color
-            )
-            FONT.render_to(
-                NATIVE_SURF, self.tips_rect, self.tips_text, self.font_color
-            )
-
     def update(self, dt: int):
         # REMOVE IN BUILD
         self.game.debug_draw.add(
