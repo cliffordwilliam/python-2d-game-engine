@@ -26,13 +26,26 @@ class Curtain:
     INVISIBLE = 2
     OPAQUE = 3
 
-    def __init__(self, duration: float, start: int = 2, max_alpha: int = 255):
+    def __init__(
+        self,
+        duration: float,
+        start: int = 2,
+        max_alpha: int = 255,
+        surface: pg.Surface = pg.Surface((NATIVE_W, NATIVE_H)),
+        is_invisible=False,
+    ):
         self.start: int = start
 
         self.max_alpha: int = max_alpha
 
-        self.surface: pg.Surface = pg.Surface((NATIVE_W, NATIVE_H))
+        self.surface: pg.Surface = surface
+
+        if is_invisible:
+            self.surface.set_colorkey("black")
+
         self.surface.fill("black")
+
+        self.rect: pg.Rect = self.surface.get_rect()
 
         self.direction: int = 0
 
@@ -87,7 +100,7 @@ class Curtain:
         if self.alpha == 0:
             return
 
-        NATIVE_SURF.blit(self.surface, (0, 0))
+        NATIVE_SURF.blit(self.surface, self.rect)
 
     def update(self, dt: int):
         """
