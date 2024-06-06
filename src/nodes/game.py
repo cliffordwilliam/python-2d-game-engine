@@ -11,6 +11,7 @@ from nodes.debug_draw import DebugDraw
 from nodes.sound_manager import SoundManager
 from scenes.created_by_splash_screen import CreatedBySplashScreen
 from scenes.made_with_splash_screen import MadeWithSplashScreen
+from scenes.title_screen import TitleScreen
 from typeguard import typechecked
 
 
@@ -106,6 +107,7 @@ class Game:
         self.scenes: Dict[str, Type[Any]] = {
             "CreatedBySplashScreen": CreatedBySplashScreen,
             "MadeWithSplashScreen": MadeWithSplashScreen,
+            "TitleScreen": TitleScreen,
         }
 
         self.sound_manager: SoundManager = SoundManager()

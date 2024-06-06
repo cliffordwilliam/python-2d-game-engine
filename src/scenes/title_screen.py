@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 
 @typechecked
-class MadeWithSplashScreen:
+class TitleScreen:
     """
     Fades in and out to show a text that shows my name.
     Player can skip for an early fade out if they input during fade in.
@@ -62,17 +62,16 @@ class MadeWithSplashScreen:
             self.on_screen_time_timer_end, Timer.END
         )
 
-        self.title_text: str = "made with python"
+        self.title_text: str = "gestalt illusion"
         self.title_rect: pg.Rect = FONT.get_rect(self.title_text)
         self.title_rect.center = NATIVE_RECT.center
 
-        self.tips_text: str = (
-            f"press {pg.key.name(self.game.key_bindings['enter'])} to skip"
+        self.prompt: str = (
+            f"press {pg.key.name(self.game.key_bindings['enter'])}"
         )
-        self.tips_rect: pg.Rect = FONT.get_rect(self.tips_text)
-        self.tips_rect.bottomright = NATIVE_RECT.bottomright
-        self.tips_rect.x -= TILE_S
-        self.tips_rect.y -= TILE_S
+        self.prompt_rect: pg.Rect = FONT.get_rect(self.prompt)
+        self.prompt_rect.center = NATIVE_RECT.center
+        self.prompt_rect.y += TILE_S
 
         self.state: int = self.initial_state
 
@@ -88,7 +87,7 @@ class MadeWithSplashScreen:
         self.set_state(self.GOING_TO_INVISIBLE)
 
     def on_exit_delay_timer_end(self):
-        self.game.set_scene("TitleScreen")
+        self.game.quit()
 
     def on_screen_time_timer_end(self):
         self.set_state(self.GOING_TO_OPAQUE)
@@ -105,17 +104,15 @@ class MadeWithSplashScreen:
             FONT.render_to(
                 NATIVE_SURF, self.title_rect, self.title_text, self.font_color
             )
-            FONT.render_to(
-                NATIVE_SURF, self.tips_rect, self.tips_text, self.font_color
-            )
             self.curtain.draw()
 
         elif self.state == self.REACHED_INVISIBLE:
+            # TODO: Clear screen on blinks
             FONT.render_to(
                 NATIVE_SURF, self.title_rect, self.title_text, self.font_color
             )
             FONT.render_to(
-                NATIVE_SURF, self.tips_rect, self.tips_text, self.font_color
+                NATIVE_SURF, self.prompt_rect, self.prompt, self.font_color
             )
 
     def update(self, dt: int):
@@ -134,14 +131,13 @@ class MadeWithSplashScreen:
             self.entry_delay_timer.update(dt)
 
         elif self.state == self.GOING_TO_INVISIBLE:
-            if self.game.is_enter_just_pressed:
-                self.set_state(self.GOING_TO_OPAQUE)
-                return
-
             self.curtain.update(dt)
 
         elif self.state == self.REACHED_INVISIBLE:
-            self.screen_time_timer.update(dt)
+            # TODO: start to blink prompt.
+            # Use curtain and set font as curtain surf.
+            pass
+            # self.screen_time_timer.update(dt)
 
         elif self.state == self.GOING_TO_OPAQUE:
             self.curtain.update(dt)
