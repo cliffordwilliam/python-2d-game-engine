@@ -11,14 +11,12 @@ game: Game = Game("CreatedBySplashScreen")
 while 1:
     # REMOVE IN BUILD
     if game.is_per_frame:
-        dt_2: int = 16
-
         for event in pg.event.get(EVENTS):
             game.event(event)
         if pg.key.get_just_pressed()[NEXT_FRAME]:
             game.current_scene.draw()
 
-            game.current_scene.update(dt_2)
+            game.current_scene.update(16)
 
             # REMOVE IN BUILD
             game.debug_draw.add(
@@ -35,16 +33,22 @@ while 1:
             if game.is_debug:
                 game.debug_draw.draw()
 
-            scaled_native_surf_2: pg.Surface = pg.transform.scale_by(
-                NATIVE_SURF, game.resolution
+            game.window_surf.blit(
+                pg.transform.scale_by(NATIVE_SURF, game.resolution),
+                (0, game.y_offset),
             )
-            game.window_surf.blit(scaled_native_surf_2, (0, game.y_offset))
             pg.display.update()
 
             game.reset_just_events()
 
     else:
         dt: int = CLOCK.tick(FPS)
+
+        # REMOVE IN BUILD
+        # Quick hacky solution to prevent dt build up in frame by frame debug
+        # Most def I will debug more than 1s anyways
+        if dt > 1000:
+            dt = 16
 
         for event in pg.event.get(EVENTS):
             game.event(event)

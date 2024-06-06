@@ -167,10 +167,6 @@ class TitleScreen:
 
         elif self.state == self.REACHED_INVISIBLE:
             self.prompt_curtain.update(dt)
-            # TODO: start to blink prompt.
-            # Use curtain and set font as curtain surf.
-            pass
-            # self.screen_time_timer.update(dt)
 
         elif self.state == self.GOING_TO_OPAQUE:
             self.curtain.update(dt)
