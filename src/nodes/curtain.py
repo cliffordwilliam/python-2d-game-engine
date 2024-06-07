@@ -93,6 +93,14 @@ class Curtain:
         elif event == self.OPAQUE_END:
             self.listener_opaque_ends.append(value)
 
+    def jump_to_opaque(self) -> None:
+        self.alpha = self.max_alpha
+        self.remainder = 0
+        self.fade_timer = self.fade_duration
+
+    def set_max_alpha(self, value: int) -> None:
+        self.max_alpha = value
+
     def draw(self):
         """
         Blit myself to native surface.

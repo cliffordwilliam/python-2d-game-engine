@@ -24,8 +24,9 @@ class TitleScreen:
     JUST_ENTERED = 0
     GOING_TO_INVISIBLE = 1
     REACHED_INVISIBLE = 2
-    GOING_TO_OPAQUE = 3
-    REACHED_OPAQUE = 4
+    LEAVE_FADE_PROMPT = 3
+    GOING_TO_OPAQUE = 4
+    REACHED_OPAQUE = 5
 
     def __init__(self, game: "Game"):
         self.game = game
@@ -127,6 +128,10 @@ class TitleScreen:
         self.set_state(self.REACHED_OPAQUE)
 
     def on_prompt_curtain_invisible(self):
+        if self.state == self.LEAVE_FADE_PROMPT:
+            self.set_state(self.GOING_TO_OPAQUE)
+            return
+
         self.prompt_curtain.go_to_opaque()
 
     def on_prompt_curtain_opaque(self):
@@ -140,7 +145,7 @@ class TitleScreen:
             )
             self.curtain.draw()
 
-        elif self.state == self.REACHED_INVISIBLE:
+        elif self.state in [self.REACHED_INVISIBLE, self.LEAVE_FADE_PROMPT]:
             NATIVE_SURF.fill(self.native_clear_color)
             FONT.render_to(
                 NATIVE_SURF, self.title_rect, self.title_text, self.font_color
@@ -166,6 +171,13 @@ class TitleScreen:
             self.curtain.update(dt)
 
         elif self.state == self.REACHED_INVISIBLE:
+            if self.game.is_enter_just_pressed:
+                self.set_state(self.LEAVE_FADE_PROMPT)
+                return
+
+            self.prompt_curtain.update(dt)
+
+        elif self.state == self.LEAVE_FADE_PROMPT:
             self.prompt_curtain.update(dt)
 
         elif self.state == self.GOING_TO_OPAQUE:
@@ -189,6 +201,12 @@ class TitleScreen:
                 self.prompt_curtain.go_to_opaque()
 
         elif old_state == self.REACHED_INVISIBLE:
+            if self.state == self.LEAVE_FADE_PROMPT:
+                self.prompt_curtain.set_max_alpha(255)
+                self.prompt_curtain.jump_to_opaque()
+                self.prompt_curtain.go_to_invisible()
+
+        elif old_state == self.LEAVE_FADE_PROMPT:
             if self.state == self.GOING_TO_OPAQUE:
                 self.curtain.go_to_opaque()
 
