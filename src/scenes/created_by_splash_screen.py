@@ -160,6 +160,6 @@ class CreatedBySplashScreen:
             if self.state == self.GOING_TO_OPAQUE:
                 self.curtain.go_to_opaque()
 
-        # elif old_state == self.GOING_TO_OPAQUE:
-        #     if self.state == self.REACHED_OPAQUE:
-        #         print("end delay start")
+        elif old_state == self.GOING_TO_OPAQUE:
+            if self.state == self.REACHED_OPAQUE:
+                NATIVE_SURF.fill("black")
