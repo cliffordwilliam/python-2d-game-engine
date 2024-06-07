@@ -114,7 +114,7 @@ class Game:
 
         self.current_scene: Any = self.scenes[initial_scene](self)
 
-    def set_resolution(self, value: int):
+    def set_resolution(self, value: int) -> None:
         """
         Sets the resolution of the game window.
         """
@@ -136,20 +136,20 @@ class Game:
             self.window_h = WINDOW_H * self.resolution
             self.y_offset = ((WINDOW_H - NATIVE_H) // 2) * self.resolution
 
-    def set_scene(self, value: str):
+    def set_scene(self, value: str) -> None:
         """
         Sets the current scene of the game.
         """
         self.current_scene = self.scenes[value](self)
 
-    def quit(self):
+    def quit(self) -> None:
         """
         Exit the game.
         """
         pg.quit()
         exit()
 
-    def event(self, event: pg.Event):
+    def event(self, event: pg.Event) -> None:
         """
         Handles events that occur during the game.
         Updates the flag every frame.
@@ -241,7 +241,7 @@ class Game:
                 self.is_rmb_pressed = False
                 self.is_rmb_just_released = True
 
-    def reset_just_events(self):
+    def reset_just_events(self) -> None:
         """
         Resets the flags for just-pressed and just-released events.
         Called by main.py.

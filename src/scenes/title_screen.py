@@ -21,17 +21,17 @@ class TitleScreen:
     Player can skip for an early fade out if they input during fade in.
     """
 
-    JUST_ENTERED = 0
-    GOING_TO_INVISIBLE = 1
-    REACHED_INVISIBLE = 2
-    LEAVE_FADE_PROMPT = 3
-    GOING_TO_OPAQUE = 4
-    REACHED_OPAQUE = 5
+    JUST_ENTERED: int = 0
+    GOING_TO_INVISIBLE: int = 1
+    REACHED_INVISIBLE: int = 2
+    LEAVE_FADE_PROMPT: int = 3
+    GOING_TO_OPAQUE: int = 4
+    REACHED_OPAQUE: int = 5
 
     def __init__(self, game: "Game"):
         self.game = game
 
-        self.initial_state = self.JUST_ENTERED
+        self.initial_state: int = self.JUST_ENTERED
 
         self.native_clear_color: str = "#191919"
         self.font_color: str = "#fcfcfc"
@@ -106,38 +106,38 @@ class TitleScreen:
 
         self.init_state()
 
-    def init_state(self):
+    def init_state(self) -> None:
         """
         This is set state for none to initial state.
         """
         self.curtain.draw()
 
-    def on_entry_delay_timer_end(self):
+    def on_entry_delay_timer_end(self) -> None:
         self.set_state(self.GOING_TO_INVISIBLE)
 
-    def on_exit_delay_timer_end(self):
+    def on_exit_delay_timer_end(self) -> None:
         self.game.quit()
 
-    def on_screen_time_timer_end(self):
+    def on_screen_time_timer_end(self) -> None:
         self.set_state(self.GOING_TO_OPAQUE)
 
-    def on_curtain_invisible(self):
+    def on_curtain_invisible(self) -> None:
         self.set_state(self.REACHED_INVISIBLE)
 
-    def on_curtain_opaque(self):
+    def on_curtain_opaque(self) -> None:
         self.set_state(self.REACHED_OPAQUE)
 
-    def on_prompt_curtain_invisible(self):
+    def on_prompt_curtain_invisible(self) -> None:
         if self.state == self.LEAVE_FADE_PROMPT:
             self.set_state(self.GOING_TO_OPAQUE)
             return
 
         self.prompt_curtain.go_to_opaque()
 
-    def on_prompt_curtain_opaque(self):
+    def on_prompt_curtain_opaque(self) -> None:
         self.prompt_curtain.go_to_invisible()
 
-    def draw(self):
+    def draw(self) -> None:
         if self.state in [self.GOING_TO_OPAQUE, self.GOING_TO_INVISIBLE]:
             NATIVE_SURF.fill(self.native_clear_color)
             FONT.render_to(
@@ -152,7 +152,7 @@ class TitleScreen:
             )
             self.prompt_curtain.draw()
 
-    def update(self, dt: int):
+    def update(self, dt: int) -> None:
         # REMOVE IN BUILD
         self.game.debug_draw.add(
             {
@@ -186,7 +186,7 @@ class TitleScreen:
         elif self.state == self.REACHED_OPAQUE:
             self.exit_delay_timer.update(dt)
 
-    def set_state(self, value: int):
+    def set_state(self, value: int) -> None:
         old_state: int = self.state
         self.state = value
 

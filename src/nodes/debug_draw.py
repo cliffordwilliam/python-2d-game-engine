@@ -21,11 +21,11 @@ class DebugDraw:
             [],
         ]
 
-    def add(self, obj: Dict[str, Any]):
-        layer = obj["layer"]
+    def add(self, obj: Dict[str, Any]) -> None:
+        layer: int = obj["layer"]
         self.layers[layer].append(obj)
 
-    def draw(self):
+    def draw(self) -> None:
         for layer in self.layers:
             for obj in layer:
                 if obj["type"] == "text":

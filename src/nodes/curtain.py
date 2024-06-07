@@ -21,10 +21,10 @@ class Curtain:
     Call the go_to_invisible() or opaque to control where it fades into.
     """
 
-    INVISIBLE_END = 0
-    OPAQUE_END = 1
-    INVISIBLE = 2
-    OPAQUE = 3
+    INVISIBLE_END: int = 0
+    OPAQUE_END: int = 1
+    INVISIBLE: int = 2
+    OPAQUE: int = 3
 
     def __init__(
         self,
@@ -32,7 +32,7 @@ class Curtain:
         start: int = 2,
         max_alpha: int = 255,
         surface: pg.Surface = pg.Surface((NATIVE_W, NATIVE_H)),
-        is_invisible=False,
+        is_invisible: bool = False,
     ):
         self.start: int = start
 
@@ -67,7 +67,7 @@ class Curtain:
 
         self.is_done_lerping: bool = True
 
-    def go_to_opaque(self):
+    def go_to_opaque(self) -> None:
         """
         Lerp the curtain to my max alpha.
         """
@@ -75,7 +75,7 @@ class Curtain:
 
         self.is_done_lerping = False
 
-    def go_to_invisible(self):
+    def go_to_invisible(self) -> None:
         """
         Lerp the curtain to alpha 0.
         """
@@ -83,7 +83,7 @@ class Curtain:
 
         self.is_done_lerping = False
 
-    def add_event_listener(self, value: Callable, event: int):
+    def add_event_listener(self, value: Callable, event: int) -> None:
         """
         Subscribe to my events.
         """
@@ -101,7 +101,7 @@ class Curtain:
     def set_max_alpha(self, value: int) -> None:
         self.max_alpha = value
 
-    def draw(self):
+    def draw(self) -> None:
         """
         Blit myself to native surface.
         """
@@ -110,7 +110,7 @@ class Curtain:
 
         NATIVE_SURF.blit(self.surface, self.rect)
 
-    def update(self, dt: int):
+    def update(self, dt: int) -> None:
         """
         Update to lerp my curtain.
         """
@@ -121,9 +121,9 @@ class Curtain:
 
         self.fade_timer = clamp(self.fade_timer, 0, self.fade_duration)
 
-        fraction = self.fade_timer / self.fade_duration
+        fraction: float = self.fade_timer / self.fade_duration
 
-        lerp_alpha = lerp(0, self.max_alpha, fraction)
+        lerp_alpha: float = lerp(0, self.max_alpha, fraction)
 
         lerp_alpha += self.remainder
 

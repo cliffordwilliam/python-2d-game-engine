@@ -13,7 +13,7 @@ class Timer:
     Call the reset before counting again.
     """
 
-    END = 0
+    END: int = 0
 
     def __init__(self, duration: float):
         self.timer: int = 0
@@ -24,16 +24,16 @@ class Timer:
 
         self.is_done: bool = False
 
-    def add_event_listener(self, value: Callable, event: int):
+    def add_event_listener(self, value: Callable, event: int) -> None:
         if event == self.END:
             self.listener_end.append(value)
 
-    def reset(self):
+    def reset(self) -> None:
         self.timer = 0
 
         self.is_done = False
 
-    def update(self, dt: int):
+    def update(self, dt: int) -> None:
         """
         Update my counting until duration.
         """
