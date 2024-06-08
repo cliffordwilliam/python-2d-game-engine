@@ -4,7 +4,6 @@ from constants import FONT
 from constants import NATIVE_RECT
 from constants import NATIVE_SURF
 from constants import pg
-from constants import TILE_S
 from nodes.curtain import Curtain
 from nodes.timer import Timer
 from typeguard import typechecked
@@ -32,8 +31,8 @@ class MadeWithSplashScreen:
 
         self.initial_state: int = self.JUST_ENTERED
 
-        self.native_clear_color: str = "#191919"
-        self.font_color: str = "#fcfcfc"
+        self.native_clear_color: str = "#000000"
+        self.font_color: str = "#ffffff"
 
         self.curtain_duration: float = 1000.0
         self.curtain_max_alpha: int = 255
@@ -71,8 +70,8 @@ class MadeWithSplashScreen:
         )
         self.tips_rect: pg.Rect = FONT.get_rect(self.tips_text)
         self.tips_rect.bottomright = NATIVE_RECT.bottomright
-        self.tips_rect.x -= TILE_S
-        self.tips_rect.y -= TILE_S
+        self.tips_rect.x -= 1
+        self.tips_rect.y -= 1
 
         self.state: int = self.initial_state
 

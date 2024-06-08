@@ -33,8 +33,8 @@ class MainMenu:
 
         self.initial_state: int = self.JUST_ENTERED
 
-        self.native_clear_color: str = "#191919"
-        self.font_color: str = "#fcfcfc"
+        self.native_clear_color: str = "#000000"
+        self.font_color: str = "#ffffff"
 
         self.curtain_duration: float = 1000.0
         self.curtain_max_alpha: int = 255

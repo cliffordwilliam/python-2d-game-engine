@@ -4,7 +4,7 @@ from constants import FONT
 from constants import NATIVE_RECT
 from constants import NATIVE_SURF
 from constants import pg
-from constants import TILE_S
+from constants import PNGS_PATHS
 from nodes.curtain import Curtain
 from nodes.timer import Timer
 from typeguard import typechecked
@@ -33,8 +33,8 @@ class TitleScreen:
 
         self.initial_state: int = self.JUST_ENTERED
 
-        self.native_clear_color: str = "#191919"
-        self.font_color: str = "#fcfcfc"
+        self.native_clear_color: str = "#000000"
+        self.font_color: str = "#ffffff"
 
         self.curtain_duration: float = 1000.0
         self.curtain_max_alpha: int = 255
@@ -63,16 +63,26 @@ class TitleScreen:
             self.on_screen_time_timer_end, Timer.END
         )
 
-        self.title_text: str = "gestalt illusion"
-        self.title_rect: pg.Rect = FONT.get_rect(self.title_text)
-        self.title_rect.center = NATIVE_RECT.center
+        self.gestalt_illusion_logo_surf: pg.Surface = pg.image.load(
+            PNGS_PATHS["gestalt_illusion_logo.png"]
+        )
+        self.gestalt_illusion_logo_rect: pg.Rect = (
+            self.gestalt_illusion_logo_surf.get_rect()
+        )
+        self.gestalt_illusion_logo_rect.topleft = (77, 74)
 
         self.prompt_text: str = (
             f"press {pg.key.name(self.game.key_bindings['enter'])}"
         )
         self.prompt_rect: pg.Rect = FONT.get_rect(self.prompt_text)
         self.prompt_rect.center = NATIVE_RECT.center
-        self.prompt_rect.y += TILE_S
+        self.prompt_rect.y = 120
+
+        self.version_text: str = "0.x.x"
+        self.version_rect: pg.Rect = FONT.get_rect(self.version_text)
+        self.version_rect.bottomright = NATIVE_RECT.bottomright
+        self.version_rect.x -= 1
+        self.version_rect.y -= 1
 
         self.prompt_surface: pg.Surface = pg.Surface(
             (self.prompt_rect.width, self.prompt_rect.height)
@@ -140,15 +150,29 @@ class TitleScreen:
     def draw(self) -> None:
         if self.state in [self.GOING_TO_OPAQUE, self.GOING_TO_INVISIBLE]:
             NATIVE_SURF.fill(self.native_clear_color)
+            NATIVE_SURF.blit(
+                self.gestalt_illusion_logo_surf,
+                self.gestalt_illusion_logo_rect,
+            )
             FONT.render_to(
-                NATIVE_SURF, self.title_rect, self.title_text, self.font_color
+                NATIVE_SURF,
+                self.version_rect,
+                self.version_text,
+                self.font_color,
             )
             self.curtain.draw()
 
         elif self.state in [self.REACHED_INVISIBLE, self.LEAVE_FADE_PROMPT]:
             NATIVE_SURF.fill(self.native_clear_color)
+            NATIVE_SURF.blit(
+                self.gestalt_illusion_logo_surf,
+                self.gestalt_illusion_logo_rect,
+            )
             FONT.render_to(
-                NATIVE_SURF, self.title_rect, self.title_text, self.font_color
+                NATIVE_SURF,
+                self.version_rect,
+                self.version_text,
+                self.font_color,
             )
             self.prompt_curtain.draw()
 

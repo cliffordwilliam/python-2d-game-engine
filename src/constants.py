@@ -12,6 +12,9 @@ PNGS_PATHS: Dict[str, str] = {
     "main_menu_background.png": join(
         PNGS_DIR_PATH, "main_menu_background.png"
     ),
+    "gestalt_illusion_logo.png": join(
+        PNGS_DIR_PATH, "gestalt_illusion_logo.png"
+    ),
 }
 
 JSONS_DIR_PATH: str = "jsons"
