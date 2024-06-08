@@ -9,8 +9,9 @@ pg.init()
 
 PNGS_DIR_PATH: str = "pngs"
 PNGS_PATHS: Dict[str, str] = {
-    # "player_flip_sprite_sheet.png":
-    # join(PNGS_DIR_PATH, "player_flip_sprite_sheet.png"),
+    "main_menu_background.png": join(
+        PNGS_DIR_PATH, "main_menu_background.png"
+    ),
 }
 
 JSONS_DIR_PATH: str = "jsons"

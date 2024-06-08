@@ -31,31 +31,31 @@ class Curtain:
         duration: float,
         start: int = 2,
         max_alpha: int = 255,
-        surface: pg.Surface = pg.Surface((NATIVE_W, NATIVE_H)),
+        surf: pg.Surface = pg.Surface((NATIVE_W, NATIVE_H)),
         is_invisible: bool = False,
     ):
         self.start: int = start
 
         self.max_alpha: int = max_alpha
 
-        self.surface: pg.Surface = surface
+        self.surf: pg.Surface = surf
 
         if is_invisible:
-            self.surface.set_colorkey("black")
+            self.surf.set_colorkey("black")
 
-        self.surface.fill("black")
+        self.surf.fill("black")
 
-        self.rect: pg.Rect = self.surface.get_rect()
+        self.rect: pg.Rect = self.surf.get_rect()
 
         self.direction: int = 0
 
-        self.surface.set_alpha(0)
+        self.surf.set_alpha(0)
         self.alpha: int = 0
         self.fade_duration: float = duration
         self.fade_timer: float = 0
 
         if self.start == self.OPAQUE:
-            self.surface.set_alpha(self.max_alpha)
+            self.surf.set_alpha(self.max_alpha)
             self.alpha = self.max_alpha
             self.fade_duration = duration
             self.fade_timer = self.fade_duration
@@ -103,12 +103,12 @@ class Curtain:
 
     def draw(self) -> None:
         """
-        Blit myself to native surface.
+        Blit myself to native surf.
         """
         if self.alpha == 0:
             return
 
-        NATIVE_SURF.blit(self.surface, self.rect)
+        NATIVE_SURF.blit(self.surf, self.rect)
 
     def update(self, dt: int) -> None:
         """
@@ -131,7 +131,7 @@ class Curtain:
 
         self.remainder = lerp_alpha - self.alpha
 
-        self.surface.set_alpha(self.alpha)
+        self.surf.set_alpha(self.alpha)
 
         if self.fade_timer == 0:
             self.is_done_lerping = True

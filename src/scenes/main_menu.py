@@ -4,7 +4,7 @@ from constants import FONT
 from constants import NATIVE_RECT
 from constants import NATIVE_SURF
 from constants import pg
-from constants import TILE_S
+from constants import PNGS_PATHS
 from nodes.curtain import Curtain
 from nodes.timer import Timer
 from typeguard import typechecked
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 
 @typechecked
-class TitleScreen:
+class MainMenu:
     """
     Fades in and out to show a text that shows my name.
     Player can skip for an early fade out if they input during fade in.
@@ -58,49 +58,13 @@ class TitleScreen:
             self.on_exit_delay_timer_end, Timer.END
         )
 
-        self.screen_time_timer: Timer = Timer(1000)
-        self.screen_time_timer.add_event_listener(
-            self.on_screen_time_timer_end, Timer.END
+        self.background_surf: pg.Surface = pg.image.load(
+            PNGS_PATHS["main_menu_background.png"]
         )
 
-        self.title_text: str = "gestalt illusion"
+        self.title_text: str = "main menu"
         self.title_rect: pg.Rect = FONT.get_rect(self.title_text)
         self.title_rect.center = NATIVE_RECT.center
-
-        self.prompt_text: str = (
-            f"press {pg.key.name(self.game.key_bindings['enter'])}"
-        )
-        self.prompt_rect: pg.Rect = FONT.get_rect(self.prompt_text)
-        self.prompt_rect.center = NATIVE_RECT.center
-        self.prompt_rect.y += TILE_S
-
-        self.prompt_surface: pg.Surface = pg.Surface(
-            (self.prompt_rect.width, self.prompt_rect.height)
-        )
-
-        self.prompt_curtain_duration: float = 1000.0
-        self.prompt_curtain_max_alpha: int = 125
-        self.prompt_curtain: Curtain = Curtain(
-            self.prompt_curtain_duration,
-            Curtain.INVISIBLE,
-            self.prompt_curtain_max_alpha,
-            self.prompt_surface,
-            is_invisible=True,
-        )
-        self.prompt_curtain.add_event_listener(
-            self.on_prompt_curtain_invisible, Curtain.INVISIBLE_END
-        )
-        self.prompt_curtain.add_event_listener(
-            self.on_prompt_curtain_opaque, Curtain.OPAQUE_END
-        )
-        self.prompt_curtain.rect.center = self.prompt_rect.center
-
-        FONT.render_to(
-            self.prompt_curtain.surf,
-            (0, 0),
-            self.prompt_text,
-            self.font_color,
-        )
 
         self.state: int = self.initial_state
 
@@ -116,10 +80,7 @@ class TitleScreen:
         self.set_state(self.GOING_TO_INVISIBLE)
 
     def on_exit_delay_timer_end(self) -> None:
-        self.game.set_scene("MainMenu")
-
-    def on_screen_time_timer_end(self) -> None:
-        self.set_state(self.GOING_TO_OPAQUE)
+        self.game.quit()
 
     def on_curtain_invisible(self) -> None:
         self.set_state(self.REACHED_INVISIBLE)
@@ -127,30 +88,13 @@ class TitleScreen:
     def on_curtain_opaque(self) -> None:
         self.set_state(self.REACHED_OPAQUE)
 
-    def on_prompt_curtain_invisible(self) -> None:
-        if self.state == self.LEAVE_FADE_PROMPT:
-            self.set_state(self.GOING_TO_OPAQUE)
-            return
-
-        self.prompt_curtain.go_to_opaque()
-
-    def on_prompt_curtain_opaque(self) -> None:
-        self.prompt_curtain.go_to_invisible()
-
     def draw(self) -> None:
         if self.state in [self.GOING_TO_OPAQUE, self.GOING_TO_INVISIBLE]:
-            NATIVE_SURF.fill(self.native_clear_color)
+            NATIVE_SURF.blit(self.background_surf, (0, 0))
             FONT.render_to(
                 NATIVE_SURF, self.title_rect, self.title_text, self.font_color
             )
             self.curtain.draw()
-
-        elif self.state in [self.REACHED_INVISIBLE, self.LEAVE_FADE_PROMPT]:
-            NATIVE_SURF.fill(self.native_clear_color)
-            FONT.render_to(
-                NATIVE_SURF, self.title_rect, self.title_text, self.font_color
-            )
-            self.prompt_curtain.draw()
 
     def update(self, dt: int) -> None:
         # REMOVE IN BUILD
@@ -171,14 +115,7 @@ class TitleScreen:
             self.curtain.update(dt)
 
         elif self.state == self.REACHED_INVISIBLE:
-            if self.game.is_enter_just_pressed:
-                self.set_state(self.LEAVE_FADE_PROMPT)
-                return
-
-            self.prompt_curtain.update(dt)
-
-        elif self.state == self.LEAVE_FADE_PROMPT:
-            self.prompt_curtain.update(dt)
+            pass
 
         elif self.state == self.GOING_TO_OPAQUE:
             self.curtain.update(dt)
@@ -195,18 +132,16 @@ class TitleScreen:
                 self.curtain.go_to_invisible()
 
         elif old_state == self.GOING_TO_INVISIBLE:
-            if self.state == self.GOING_TO_OPAQUE:
-                self.curtain.go_to_opaque()
-            elif self.state == self.REACHED_INVISIBLE:
-                self.prompt_curtain.go_to_opaque()
+            if self.state == self.REACHED_INVISIBLE:
+                NATIVE_SURF.blit(self.background_surf, (0, 0))
+                FONT.render_to(
+                    NATIVE_SURF,
+                    self.title_rect,
+                    self.title_text,
+                    self.font_color,
+                )
 
         elif old_state == self.REACHED_INVISIBLE:
-            if self.state == self.LEAVE_FADE_PROMPT:
-                self.prompt_curtain.set_max_alpha(255)
-                self.prompt_curtain.jump_to_opaque()
-                self.prompt_curtain.go_to_invisible()
-
-        elif old_state == self.LEAVE_FADE_PROMPT:
             if self.state == self.GOING_TO_OPAQUE:
                 self.curtain.go_to_opaque()
 

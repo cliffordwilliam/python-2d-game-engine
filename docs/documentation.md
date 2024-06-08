@@ -87,7 +87,7 @@ This script is responsible for instancing the game. It is responsible for having
 - Update the game current scene.
 - Draw the FPS on top left using the debug draw of the game property.
 - Calling the game debug draw prop.
-- Scale the small native surface to the window.
+- Scale the small native surf to the window.
 - Update the display.
 - Reset the game just related events.
 
