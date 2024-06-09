@@ -1,7 +1,6 @@
 from typing import TYPE_CHECKING
 
 from constants import FONT
-from constants import NATIVE_RECT
 from constants import NATIVE_SURF
 from constants import pg
 from constants import PNGS_PATHS
@@ -62,9 +61,20 @@ class MainMenu:
             PNGS_PATHS["main_menu_background.png"]
         )
 
-        self.title_text: str = "main menu"
-        self.title_rect: pg.Rect = FONT.get_rect(self.title_text)
-        self.title_rect.center = NATIVE_RECT.center
+        # Mock button
+        self.button_surf: pg.Surface = pg.Surface((48, 9))
+        self.button_surf.fill("#000f28")
+        pg.draw.line(self.button_surf, "#004a89", (0, 0), (0, 9))
+        self.button_rect: pg.Rect = self.button_surf.get_rect()
+        self.button_rect.topleft = (30, 94)
+        self.button_text: str = "new game"
+        self.button_text_inactive_color: str = "#bac3d2"
+        FONT.render_to(
+            self.button_surf,
+            (4, 2),
+            self.button_text,
+            self.button_text_inactive_color,
+        )
 
         self.state: int = self.initial_state
 
@@ -91,9 +101,8 @@ class MainMenu:
     def draw(self) -> None:
         if self.state in [self.GOING_TO_OPAQUE, self.GOING_TO_INVISIBLE]:
             NATIVE_SURF.blit(self.background_surf, (0, 0))
-            FONT.render_to(
-                NATIVE_SURF, self.title_rect, self.title_text, self.font_color
-            )
+            # Mock button
+            NATIVE_SURF.blit(self.button_surf, self.button_rect)
             self.curtain.draw()
 
     def update(self, dt: int) -> None:
@@ -134,12 +143,9 @@ class MainMenu:
         elif old_state == self.GOING_TO_INVISIBLE:
             if self.state == self.REACHED_INVISIBLE:
                 NATIVE_SURF.blit(self.background_surf, (0, 0))
-                FONT.render_to(
-                    NATIVE_SURF,
-                    self.title_rect,
-                    self.title_text,
-                    self.font_color,
-                )
+                # Mock button
+                NATIVE_SURF.blit(self.button_surf, self.button_rect)
+                self.curtain.draw()
 
         elif old_state == self.REACHED_INVISIBLE:
             if self.state == self.GOING_TO_OPAQUE:
