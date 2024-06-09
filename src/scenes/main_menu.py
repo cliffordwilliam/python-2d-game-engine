@@ -1,9 +1,10 @@
 from typing import TYPE_CHECKING
 
-from constants import FONT
 from constants import NATIVE_SURF
 from constants import pg
 from constants import PNGS_PATHS
+from nodes.button import Button
+from nodes.button_container import ButtonContainer
 from nodes.curtain import Curtain
 from nodes.timer import Timer
 from typeguard import typechecked
@@ -62,18 +63,17 @@ class MainMenu:
         )
 
         # Mock button
-        self.button_surf: pg.Surface = pg.Surface((48, 9))
-        self.button_surf.fill("#000f28")
-        pg.draw.line(self.button_surf, "#004a89", (0, 0), (0, 9))
-        self.button_rect: pg.Rect = self.button_surf.get_rect()
-        self.button_rect.topleft = (30, 94)
-        self.button_text: str = "new game"
-        self.button_text_inactive_color: str = "#bac3d2"
-        FONT.render_to(
-            self.button_surf,
-            (4, 2),
-            self.button_text,
-            self.button_text_inactive_color,
+        self.new_game_button: Button = Button(
+            48, 9, (30, 94), "new game", (4, 2)
+        )
+        self.continue_button: Button = Button(
+            48, 9, (30, 104), "continue", (4, 2)
+        )
+        self.load_game_button: Button = Button(
+            48, 9, (30, 114), "load game", (4, 2)
+        )
+        self.button_container: ButtonContainer = ButtonContainer(
+            [self.new_game_button, self.continue_button, self.load_game_button]
         )
 
         self.state: int = self.initial_state
@@ -102,8 +102,15 @@ class MainMenu:
         if self.state in [self.GOING_TO_OPAQUE, self.GOING_TO_INVISIBLE]:
             NATIVE_SURF.blit(self.background_surf, (0, 0))
             # Mock button
-            NATIVE_SURF.blit(self.button_surf, self.button_rect)
+            self.new_game_button.draw()
+            self.continue_button.draw()
+            self.load_game_button.draw()
             self.curtain.draw()
+        elif self.state in [self.REACHED_INVISIBLE]:
+            # TODO: Draw only when they are lerping color
+            self.new_game_button.draw()
+            self.continue_button.draw()
+            self.load_game_button.draw()
 
     def update(self, dt: int) -> None:
         # REMOVE IN BUILD
@@ -124,7 +131,7 @@ class MainMenu:
             self.curtain.update(dt)
 
         elif self.state == self.REACHED_INVISIBLE:
-            pass
+            self.button_container.event(self.game)
 
         elif self.state == self.GOING_TO_OPAQUE:
             self.curtain.update(dt)
@@ -144,7 +151,9 @@ class MainMenu:
             if self.state == self.REACHED_INVISIBLE:
                 NATIVE_SURF.blit(self.background_surf, (0, 0))
                 # Mock button
-                NATIVE_SURF.blit(self.button_surf, self.button_rect)
+                self.new_game_button.draw()
+                self.continue_button.draw()
+                self.load_game_button.draw()
                 self.curtain.draw()
 
         elif old_state == self.REACHED_INVISIBLE:
