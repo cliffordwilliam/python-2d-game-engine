@@ -84,7 +84,7 @@ class TitleScreen:
         self.version_rect.x -= 1
         self.version_rect.y -= 1
 
-        self.prompt_surface: pg.Surface = pg.Surface(
+        self.prompt_surf: pg.Surface = pg.Surface(
             (self.prompt_rect.width, self.prompt_rect.height)
         )
 
@@ -94,7 +94,7 @@ class TitleScreen:
             self.prompt_curtain_duration,
             Curtain.INVISIBLE,
             self.prompt_curtain_max_alpha,
-            self.prompt_surface,
+            self.prompt_surf,
             is_invisible=True,
         )
         self.prompt_curtain.add_event_listener(

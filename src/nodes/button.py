@@ -2,6 +2,7 @@
 from constants import FONT
 from constants import NATIVE_SURF
 from constants import pg
+from nodes.curtain import Curtain
 from typeguard import typechecked
 
 
@@ -54,26 +55,6 @@ class Button:
 
         self.text_top_left: tuple[int, int] = text_topleft
 
-        FONT.render_to(
-            self.surf,
-            self.text_top_left,
-            self.text,
-            self.BUTTON_INACTIVE_TEXT_COLOR,
-        )
-
-        self.initial_state: int = self.INACTIVE
-
-        self.state: int = self.initial_state
-
-        self.init_state()
-
-    def init_state(self) -> None:
-        """
-        This is set state for none to initial state.
-        """
-
-        self.surf.fill(self.BUTTON_INACTIVE_BODY_COLOR)
-
         pg.draw.line(
             self.surf,
             self.BUTTON_INACTIVE_LINE_COLOR,
@@ -88,8 +69,84 @@ class Button:
             self.BUTTON_INACTIVE_TEXT_COLOR,
         )
 
-    def draw(self) -> None:
+        self.active_curtain_surf: pg.Surface = pg.Surface(
+            (self.width, self.height)
+        )
+
+        self.active_curtain_duration: float = 300.0
+        self.active_curtain_max_alpha: int = 225
+        self.active_curtain: Curtain = Curtain(
+            self.active_curtain_duration,
+            Curtain.INVISIBLE,
+            self.active_curtain_max_alpha,
+            self.active_curtain_surf,
+            is_invisible=True,
+        )
+        self.active_curtain.rect.center = self.rect.center
+
+        self.active_curtain.add_event_listener(
+            self.on_active_curtain_invisible, Curtain.INVISIBLE_END
+        )
+
+        self.active_surf: pg.Surface = pg.Surface((self.width, self.height))
+
+        self.active_surf.fill(self.BUTTON_ACTIVE_BODY_COLOR)
+
+        pg.draw.line(
+            self.active_surf,
+            self.BUTTON_ACTIVE_TEXT_COLOR,
+            (0, 0),
+            (0, self.height),
+        )
+
+        pg.draw.line(
+            self.active_surf,
+            self.BUTTON_ACTIVE_LINE_COLOR,
+            (1, 0),
+            (1, self.height),
+        )
+
+        FONT.render_to(
+            self.active_surf,
+            self.text_top_left,
+            self.text,
+            self.BUTTON_ACTIVE_TEXT_COLOR,
+        )
+
+        self.active_curtain.surf.blit(self.active_surf, (0, 0))
+
+        self.initial_state: int = self.INACTIVE
+
+        self.state: int = self.initial_state
+
+        self.init_state()
+
+    def on_active_curtain_invisible(self) -> None:
         NATIVE_SURF.blit(self.surf, self.rect)
+
+    def init_state(self) -> None:
+        """
+        This is set state for none to initial state.
+        """
+        NATIVE_SURF.blit(self.surf, self.rect)
+
+    def update(self, dt: int) -> None:
+        if self.active_curtain.is_done_lerping:
+            return
+
+        self.active_curtain.update(dt)
+
+    def draw_inactive(self) -> None:
+        # Default draw only draws when they are lerping
+        # Unique method to bypass that once
+        NATIVE_SURF.blit(self.surf, self.rect)
+
+    def draw(self) -> None:
+        if self.active_curtain.is_done_lerping:
+            return
+
+        NATIVE_SURF.blit(self.surf, self.rect)
+        self.active_curtain.draw()
 
     def set_state(self, value: int) -> None:
         old_state: int = self.state
@@ -97,39 +154,11 @@ class Button:
 
         if old_state == self.INACTIVE:
             if self.state == self.ACTIVE:
-                self.surf.fill(self.BUTTON_ACTIVE_BODY_COLOR)
-
-                pg.draw.line(
-                    self.surf,
-                    self.BUTTON_ACTIVE_LINE_COLOR,
-                    (0, 0),
-                    (0, self.height),
-                )
-
-                FONT.render_to(
-                    self.surf,
-                    self.text_top_left,
-                    self.text,
-                    self.BUTTON_ACTIVE_TEXT_COLOR,
-                )
+                self.active_curtain.go_to_opaque()
 
         elif old_state == self.ACTIVE:
             if self.state == self.INACTIVE:
-                self.surf.fill(self.BUTTON_INACTIVE_BODY_COLOR)
-
-                pg.draw.line(
-                    self.surf,
-                    self.BUTTON_INACTIVE_LINE_COLOR,
-                    (0, 0),
-                    (0, self.height),
-                )
-
-                FONT.render_to(
-                    self.surf,
-                    self.text_top_left,
-                    self.text,
-                    self.BUTTON_INACTIVE_TEXT_COLOR,
-                )
+                self.active_curtain.go_to_invisible()
 
     # def add_event_listener(self, value: Callable, event: int) -> None:
     #     if event == self.END:

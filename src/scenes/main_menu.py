@@ -101,13 +101,14 @@ class MainMenu:
     def draw(self) -> None:
         if self.state in [self.GOING_TO_OPAQUE, self.GOING_TO_INVISIBLE]:
             NATIVE_SURF.blit(self.background_surf, (0, 0))
-            # Mock button
-            self.new_game_button.draw()
-            self.continue_button.draw()
-            self.load_game_button.draw()
+            # Default draw only draws when they are lerping
+            # Unique method to bypass that once
+            self.new_game_button.draw_inactive()
+            self.continue_button.draw_inactive()
+            self.load_game_button.draw_inactive()
             self.curtain.draw()
         elif self.state in [self.REACHED_INVISIBLE]:
-            # TODO: Draw only when they are lerping color
+            # This only draws when they are lerping
             self.new_game_button.draw()
             self.continue_button.draw()
             self.load_game_button.draw()
@@ -133,6 +134,11 @@ class MainMenu:
         elif self.state == self.REACHED_INVISIBLE:
             self.button_container.event(self.game)
 
+            # This only updates when they are lerping
+            self.new_game_button.update(dt)
+            self.continue_button.update(dt)
+            self.load_game_button.update(dt)
+
         elif self.state == self.GOING_TO_OPAQUE:
             self.curtain.update(dt)
 
@@ -150,11 +156,14 @@ class MainMenu:
         elif old_state == self.GOING_TO_INVISIBLE:
             if self.state == self.REACHED_INVISIBLE:
                 NATIVE_SURF.blit(self.background_surf, (0, 0))
-                # Mock button
-                self.new_game_button.draw()
-                self.continue_button.draw()
-                self.load_game_button.draw()
+                # Default draw only draws when they are lerping
+                # Unique method to bypass that once
+                self.new_game_button.draw_inactive()
+                self.continue_button.draw_inactive()
+                self.load_game_button.draw_inactive()
                 self.curtain.draw()
+
+                self.button_container.set_is_input_allowed(True)
 
         elif old_state == self.REACHED_INVISIBLE:
             if self.state == self.GOING_TO_OPAQUE:

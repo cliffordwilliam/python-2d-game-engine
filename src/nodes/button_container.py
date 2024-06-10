@@ -30,6 +30,7 @@ class ButtonContainer:
         self.listener_index_changed: List[Callable] = []
 
         # TODO: When do I activate first button?
+        self.is_input_allowed: bool = False
 
     def add_event_listener(self, value: Callable, event: int) -> None:
         if event == self.INDEX_CHANGED:
@@ -39,6 +40,9 @@ class ButtonContainer:
         """
         Uses event to update index and notify my subscribers.
         """
+
+        if not self.is_input_allowed:
+            return
 
         # Remember old index to set old button inactive
         old_index: int = self.index
@@ -59,6 +63,17 @@ class ButtonContainer:
                 new_button: Button = self.buttons[self.index]
                 old_button.set_state(Button.INACTIVE)
                 new_button.set_state(Button.ACTIVE)
+
+    def set_is_input_allowed(self, value: bool) -> None:
+        self.is_input_allowed = value
+
+        current_button: Button = self.buttons[self.index]
+
+        if self.is_input_allowed:
+            current_button.set_state(Button.ACTIVE)
+
+        if not self.is_input_allowed:
+            current_button.set_state(Button.INACTIVE)
 
     # def update(self, dt: int) -> None:
     #     """
