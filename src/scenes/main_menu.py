@@ -71,8 +71,16 @@ class MainMenu:
         self.load_game_button: Button = Button(
             48, 9, (30, 114), "load game", (4, 2), "select a save slot to load"
         )
+        self.options_button: Button = Button(
+            48, 9, (30, 124), "options", (4, 2), "adjust game settings"
+        )
         self.button_container: ButtonContainer = ButtonContainer(
-            [self.new_game_button, self.continue_button, self.load_game_button]
+            [
+                self.new_game_button,
+                self.continue_button,
+                self.load_game_button,
+                self.options_button,
+            ]
         )
 
         self.state: int = self.initial_state

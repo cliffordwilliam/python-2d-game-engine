@@ -76,7 +76,7 @@ class Button:
         )
 
         self.active_curtain_surf: pg.Surface = pg.Surface(
-            (self.width, self.height)
+            (self.width + 1, self.height)  # shift to left
         )
 
         self.active_curtain_duration: float = 300.0
@@ -89,12 +89,15 @@ class Button:
             is_invisible=True,
         )
         self.active_curtain.rect.center = self.rect.center
+        self.active_curtain.rect.x -= 1  # shift to left
 
         self.active_curtain.add_event_listener(
             self.on_active_curtain_invisible, Curtain.INVISIBLE_END
         )
 
-        self.active_surf: pg.Surface = pg.Surface((self.width, self.height))
+        self.active_surf: pg.Surface = pg.Surface(
+            (self.width + 1, self.height)
+        )  # shift to left
 
         self.active_surf.fill(self.BUTTON_ACTIVE_BODY_COLOR)
 
