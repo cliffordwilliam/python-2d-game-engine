@@ -62,7 +62,6 @@ class MainMenu:
             PNGS_PATHS["main_menu_background.png"]
         )
 
-        # Mock button
         self.new_game_button: Button = Button(
             48, 9, (30, 94), "new game", (4, 2), "start a new game"
         )
@@ -100,9 +99,7 @@ class MainMenu:
 
     def draw(self) -> None:
         NATIVE_SURF.blit(self.background_surf, (0, 0))
-        self.new_game_button.draw()
-        self.continue_button.draw()
-        self.load_game_button.draw()
+        self.button_container.draw()
         self.curtain.draw()
 
     def update(self, dt: int) -> None:
@@ -125,11 +122,7 @@ class MainMenu:
 
         elif self.state == self.REACHED_INVISIBLE:
             self.button_container.event(self.game)
-
-            # This only updates when they are lerping
-            self.new_game_button.update(dt)
-            self.continue_button.update(dt)
-            self.load_game_button.update(dt)
+            self.button_container.update(dt)
 
         elif self.state == self.GOING_TO_OPAQUE:
             self.curtain.update(dt)

@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 class ButtonContainer:
     """
     This thing only job is to listen to input.
-    Toggle button active states.
+    Toggle button active states (draw and update too).
     Fire events on index change and clicks.
     """
 
@@ -74,6 +74,14 @@ class ButtonContainer:
 
         if not self.is_input_allowed:
             current_button.set_state(Button.INACTIVE)
+
+    def draw(self) -> None:
+        for button in self.buttons:
+            button.draw()
+
+    def update(self, dt: int) -> None:
+        for button in self.buttons:
+            button.update(dt)
 
     # def update(self, dt: int) -> None:
     #     """
