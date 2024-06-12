@@ -64,13 +64,13 @@ class MainMenu:
 
         # Mock button
         self.new_game_button: Button = Button(
-            48, 9, (30, 94), "new game", (4, 2)
+            48, 9, (30, 94), "new game", (4, 2), "start a new game"
         )
         self.continue_button: Button = Button(
-            48, 9, (30, 104), "continue", (4, 2)
+            48, 9, (30, 104), "continue", (4, 2), "continue from last save"
         )
         self.load_game_button: Button = Button(
-            48, 9, (30, 114), "load game", (4, 2)
+            48, 9, (30, 114), "load game", (4, 2), "select a save slot to load"
         )
         self.button_container: ButtonContainer = ButtonContainer(
             [self.new_game_button, self.continue_button, self.load_game_button]
