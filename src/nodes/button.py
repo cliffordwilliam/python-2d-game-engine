@@ -1,5 +1,6 @@
 # from typing import Callable
 from constants import FONT
+from constants import NATIVE_RECT
 from constants import NATIVE_SURF
 from constants import pg
 from nodes.curtain import Curtain
@@ -9,7 +10,9 @@ from typeguard import typechecked
 @typechecked
 class Button:
     """
-    asd
+    Needs to be inside a button container
+
+    Always need a description
     """
 
     BUTTON_INACTIVE_BODY_COLOR: str = "#000f28"
@@ -21,10 +24,7 @@ class Button:
     BUTTON_ACTIVE_LINE_COLOR: str = "#1896ea"
     BUTTON_ACTIVE_TEXT_COLOR: str = "#feffff"
 
-    DESCRIPTION_SURF_WIDTH: int = 320
-    DESCRIPTION_SURF_HEIGHT: int = 9
-    DESCRIPTION_RECT_TOP_LEFT: tuple = (0, 151)
-    DESCRIPTION_TEXT_Y: int = 2  # Relative from description surface
+    DESCRIPTION_TEXT_BOTTOM_PADDING: int = 2
 
     INACTIVE: int = 0
     ACTIVE: int = 1
@@ -36,7 +36,7 @@ class Button:
         topleft: tuple[int, int],
         text: str,
         text_topleft: tuple[int, int],
-        description_text: str = "",
+        description_text: str,
     ):
         self.width: int = width
 
@@ -124,30 +124,14 @@ class Button:
 
         self.active_curtain.surf.blit(self.active_surf, (0, 0))
 
-        self.description_surf: pg.Surface = pg.Surface(
-            (self.DESCRIPTION_SURF_WIDTH, self.DESCRIPTION_SURF_HEIGHT)
-        )
-
-        self.description_surf.fill(self.BUTTON_INACTIVE_BODY_COLOR)
-
-        self.description_rect: pg.Rect = self.description_surf.get_rect()
-
-        self.description_rect.topleft = self.DESCRIPTION_RECT_TOP_LEFT
-
         self.description_text: str = description_text
 
         self.description_text_rect: pg.Rect = FONT.get_rect(
             self.description_text
         )
-        self.description_text_rect.center = self.description_rect.center
-        self.description_text_rect.y = self.DESCRIPTION_TEXT_Y
-
-        FONT.render_to(
-            self.description_surf,
-            self.description_text_rect,
-            self.description_text,
-            self.BUTTON_ACTIVE_TEXT_COLOR,
-        )
+        self.description_text_rect.center = NATIVE_RECT.center
+        self.description_text_rect.bottom = NATIVE_RECT.bottom
+        self.description_text_rect.y -= self.DESCRIPTION_TEXT_BOTTOM_PADDING
 
         self.initial_state: int = self.INACTIVE
 
@@ -173,7 +157,12 @@ class Button:
     def draw(self) -> None:
         # Draw my description if I am active
         if self.state == self.ACTIVE:
-            NATIVE_SURF.blit(self.description_surf, self.description_rect)
+            FONT.render_to(
+                NATIVE_SURF,
+                self.description_text_rect,
+                self.description_text,
+                self.BUTTON_ACTIVE_TEXT_COLOR,
+            )
 
         NATIVE_SURF.blit(self.surf, self.rect)
         self.active_curtain.draw()
