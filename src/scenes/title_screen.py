@@ -148,33 +148,19 @@ class TitleScreen:
         self.prompt_curtain.go_to_invisible()
 
     def draw(self) -> None:
-        if self.state in [self.GOING_TO_OPAQUE, self.GOING_TO_INVISIBLE]:
-            NATIVE_SURF.fill(self.native_clear_color)
-            NATIVE_SURF.blit(
-                self.gestalt_illusion_logo_surf,
-                self.gestalt_illusion_logo_rect,
-            )
-            FONT.render_to(
-                NATIVE_SURF,
-                self.version_rect,
-                self.version_text,
-                self.font_color,
-            )
-            self.curtain.draw()
-
-        elif self.state in [self.REACHED_INVISIBLE, self.LEAVE_FADE_PROMPT]:
-            NATIVE_SURF.fill(self.native_clear_color)
-            NATIVE_SURF.blit(
-                self.gestalt_illusion_logo_surf,
-                self.gestalt_illusion_logo_rect,
-            )
-            FONT.render_to(
-                NATIVE_SURF,
-                self.version_rect,
-                self.version_text,
-                self.font_color,
-            )
-            self.prompt_curtain.draw()
+        NATIVE_SURF.fill(self.native_clear_color)
+        NATIVE_SURF.blit(
+            self.gestalt_illusion_logo_surf,
+            self.gestalt_illusion_logo_rect,
+        )
+        FONT.render_to(
+            NATIVE_SURF,
+            self.version_rect,
+            self.version_text,
+            self.font_color,
+        )
+        self.prompt_curtain.draw()
+        self.curtain.draw()
 
     def update(self, dt: int) -> None:
         # REMOVE IN BUILD

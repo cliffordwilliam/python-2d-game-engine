@@ -136,15 +136,7 @@ class Button:
 
         self.active_curtain.update(dt)
 
-    def draw_inactive(self) -> None:
-        # Default draw only draws when they are lerping
-        # Unique method to bypass that once
-        NATIVE_SURF.blit(self.surf, self.rect)
-
     def draw(self) -> None:
-        if self.active_curtain.is_done_lerping:
-            return
-
         NATIVE_SURF.blit(self.surf, self.rect)
         self.active_curtain.draw()
 

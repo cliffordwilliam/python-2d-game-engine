@@ -99,15 +99,14 @@ class MadeWithSplashScreen:
         self.set_state(self.REACHED_OPAQUE)
 
     def draw(self) -> None:
-        if self.state in [self.GOING_TO_OPAQUE, self.GOING_TO_INVISIBLE]:
-            NATIVE_SURF.fill(self.native_clear_color)
-            FONT.render_to(
-                NATIVE_SURF, self.title_rect, self.title_text, self.font_color
-            )
-            FONT.render_to(
-                NATIVE_SURF, self.tips_rect, self.tips_text, self.font_color
-            )
-            self.curtain.draw()
+        NATIVE_SURF.fill(self.native_clear_color)
+        FONT.render_to(
+            NATIVE_SURF, self.title_rect, self.title_text, self.font_color
+        )
+        FONT.render_to(
+            NATIVE_SURF, self.tips_rect, self.tips_text, self.font_color
+        )
+        self.curtain.draw()
 
     def update(self, dt: int) -> None:
         # REMOVE IN BUILD

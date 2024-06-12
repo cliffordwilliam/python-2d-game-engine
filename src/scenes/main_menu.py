@@ -99,19 +99,11 @@ class MainMenu:
         self.set_state(self.REACHED_OPAQUE)
 
     def draw(self) -> None:
-        if self.state in [self.GOING_TO_OPAQUE, self.GOING_TO_INVISIBLE]:
-            NATIVE_SURF.blit(self.background_surf, (0, 0))
-            # Default draw only draws when they are lerping
-            # Unique method to bypass that once
-            self.new_game_button.draw_inactive()
-            self.continue_button.draw_inactive()
-            self.load_game_button.draw_inactive()
-            self.curtain.draw()
-        elif self.state in [self.REACHED_INVISIBLE]:
-            # This only draws when they are lerping
-            self.new_game_button.draw()
-            self.continue_button.draw()
-            self.load_game_button.draw()
+        NATIVE_SURF.blit(self.background_surf, (0, 0))
+        self.new_game_button.draw()
+        self.continue_button.draw()
+        self.load_game_button.draw()
+        self.curtain.draw()
 
     def update(self, dt: int) -> None:
         # REMOVE IN BUILD
@@ -155,14 +147,6 @@ class MainMenu:
 
         elif old_state == self.GOING_TO_INVISIBLE:
             if self.state == self.REACHED_INVISIBLE:
-                NATIVE_SURF.blit(self.background_surf, (0, 0))
-                # Default draw only draws when they are lerping
-                # Unique method to bypass that once
-                self.new_game_button.draw_inactive()
-                self.continue_button.draw_inactive()
-                self.load_game_button.draw_inactive()
-                self.curtain.draw()
-
                 self.button_container.set_is_input_allowed(True)
 
         elif old_state == self.REACHED_INVISIBLE:
