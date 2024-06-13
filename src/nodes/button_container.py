@@ -24,6 +24,7 @@ class ButtonContainer:
     """
 
     INDEX_CHANGED: int = 0
+    BUTTON_SELECTED: int = 1
 
     DESCRIPTION_SURF_WIDTH: int = 320
     DESCRIPTION_SURF_HEIGHT: int = 9
@@ -38,6 +39,7 @@ class ButtonContainer:
         self.index: int = 0
 
         self.listener_index_changed: List[Callable] = []
+        self.listener_button_selected: List[Callable] = []
 
         # TODO: When do I activate first button?
         self.is_input_allowed: bool = False
@@ -50,8 +52,14 @@ class ButtonContainer:
         self.description_rect.bottomleft = NATIVE_RECT.bottomleft
 
     def add_event_listener(self, value: Callable, event: int) -> None:
+        """
+        Subscribe to my events.
+        """
         if event == self.INDEX_CHANGED:
             self.listener_index_changed.append(value)
+
+        elif event == self.BUTTON_SELECTED:
+            self.listener_button_selected.append(value)
 
     def event(self, game: "Game") -> None:
         """
@@ -63,23 +71,29 @@ class ButtonContainer:
 
         # Remember old index to set old button inactive
         old_index: int = self.index
-        is_pressed: bool = False
+        is_pressed_up_or_down: bool = False
 
         # So that if both are just pressed in 1 frame, index is 0
         if game.is_up_just_pressed:
-            is_pressed = True
+            is_pressed_up_or_down = True
             self.index -= 1
         if game.is_down_just_pressed:
-            is_pressed = True
+            is_pressed_up_or_down = True
             self.index += 1
 
-        if is_pressed:
+        if is_pressed_up_or_down:
             self.index = self.index % self.buttons_len
             if old_index != self.index:
                 old_button: Button = self.buttons[old_index]
                 new_button: Button = self.buttons[self.index]
                 old_button.set_state(Button.INACTIVE)
                 new_button.set_state(Button.ACTIVE)
+
+        # Selected button
+        if game.is_enter_just_pressed:
+            selected_button: Button = self.buttons[self.index]
+            for callback in self.listener_button_selected:
+                callback(selected_button)
 
     def set_is_input_allowed(self, value: bool) -> None:
         self.is_input_allowed = value
@@ -99,6 +113,7 @@ class ButtonContainer:
             button.draw()
 
     def update(self, dt: int) -> None:
+        # Active animation lerp
         for button in self.buttons:
             button.update(dt)
 

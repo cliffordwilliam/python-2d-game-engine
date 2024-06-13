@@ -71,17 +71,23 @@ class MainMenu:
         self.load_game_button: Button = Button(
             48, 9, (30, 114), "load game", (4, 2), "select a save slot to load"
         )
-        self.options_button: Button = Button(
-            48, 9, (30, 124), "options", (4, 2), "adjust game settings"
+        self.exit_button: Button = Button(
+            48, 9, (30, 124), "exit", (4, 2), "exit game"
         )
         self.button_container: ButtonContainer = ButtonContainer(
             [
                 self.new_game_button,
                 self.continue_button,
                 self.load_game_button,
-                self.options_button,
+                self.exit_button,
             ]
         )
+
+        self.button_container.add_event_listener(
+            self.on_button_selected, ButtonContainer.BUTTON_SELECTED
+        )
+
+        self.selected_button: Button = self.new_game_button
 
         self.state: int = self.initial_state
 
@@ -97,13 +103,30 @@ class MainMenu:
         self.set_state(self.GOING_TO_INVISIBLE)
 
     def on_exit_delay_timer_end(self) -> None:
-        self.game.quit()
+        if self.selected_button == self.exit_button:
+            self.game.quit()
 
     def on_curtain_invisible(self) -> None:
         self.set_state(self.REACHED_INVISIBLE)
 
     def on_curtain_opaque(self) -> None:
         self.set_state(self.REACHED_OPAQUE)
+
+    def on_button_selected(self, selected_button: Button) -> None:
+        # Remember selected, to do things after fade to opaque done
+        self.selected_button = selected_button
+
+        if self.new_game_button == self.selected_button:
+            pass
+
+        elif self.new_game_button == self.selected_button:
+            pass
+
+        elif self.load_game_button == self.selected_button:
+            pass
+
+        elif self.exit_button == self.selected_button:
+            self.set_state(self.GOING_TO_OPAQUE)
 
     def draw(self) -> None:
         NATIVE_SURF.blit(self.background_surf, (0, 0))
@@ -134,6 +157,7 @@ class MainMenu:
 
         elif self.state == self.GOING_TO_OPAQUE:
             self.curtain.update(dt)
+            self.button_container.update(dt)
 
         elif self.state == self.REACHED_OPAQUE:
             self.exit_delay_timer.update(dt)
@@ -152,6 +176,7 @@ class MainMenu:
 
         elif old_state == self.REACHED_INVISIBLE:
             if self.state == self.GOING_TO_OPAQUE:
+                self.button_container.set_is_input_allowed(False)
                 self.curtain.go_to_opaque()
 
         elif old_state == self.GOING_TO_OPAQUE:
