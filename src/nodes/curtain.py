@@ -29,8 +29,11 @@ class Curtain:
     def __init__(
         self,
         duration: float,
-        start: int = 2,
+        start: int = INVISIBLE,
         max_alpha: int = 255,
+        # TODO: Remove this defaults, they are shared.
+        # So if mutate one surf in one instance the rest affected
+        # Dont use defaults, they are shared, unless specify explicitly
         surf: pg.Surface = pg.Surface((NATIVE_W, NATIVE_H)),
         is_invisible: bool = False,
     ):

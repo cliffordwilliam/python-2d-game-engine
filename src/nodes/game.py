@@ -1,5 +1,7 @@
 from typing import Any
+from typing import Callable
 from typing import Dict
+from typing import List
 from typing import Type
 
 from constants import NATIVE_H
@@ -23,10 +25,19 @@ class Game:
     Including settings, inputs, and scene management.
     """
 
+    # Global events
+    EXIT_OPTIONS_MENU: int = 0
+
     def __init__(self, initial_scene: str):
         """
         Initializes a new instance of the `Game` class.
         """
+
+        # Options menu flag
+        self.is_options_menu_active: bool = False
+
+        self.listener_exit_options_menu: List[Callable] = []
+
         # REMOVE IN BUILD
         self.is_debug: bool = False
 
@@ -115,6 +126,23 @@ class Game:
         self.sound_manager: SoundManager = SoundManager()
 
         self.current_scene: Any = self.scenes[initial_scene](self)
+
+    def add_event_listener(self, value: Callable, event: int) -> None:
+        """
+        Subscribe to my events.
+        """
+        if event == self.EXIT_OPTIONS_MENU:
+            self.listener_exit_options_menu.append(value)
+
+    def set_is_options_menu_active(self, value: bool) -> None:
+        # Set to True by scnees that allows entry to options menu
+        self.is_options_menu_active = value
+
+        # Only possible to be set to False by options menu
+        if not self.is_options_menu_active:
+            # Announce that options menu is closed
+            for callback in self.listener_exit_options_menu:
+                callback()
 
     def set_resolution(self, value: int) -> None:
         """

@@ -68,8 +68,8 @@ class MainMenu:
         self.continue_button: Button = Button(
             48, 9, (30, 104), "continue", (4, 2), "continue from last save"
         )
-        self.load_game_button: Button = Button(
-            48, 9, (30, 114), "load game", (4, 2), "select a save slot to load"
+        self.options_button: Button = Button(
+            48, 9, (30, 114), "options", (4, 2), "adjust game settings"
         )
         self.exit_button: Button = Button(
             48, 9, (30, 124), "exit", (4, 2), "exit game"
@@ -78,7 +78,7 @@ class MainMenu:
             [
                 self.new_game_button,
                 self.continue_button,
-                self.load_game_button,
+                self.options_button,
                 self.exit_button,
             ]
         )
@@ -89,6 +89,10 @@ class MainMenu:
 
         self.selected_button: Button = self.new_game_button
 
+        self.game.add_event_listener(
+            self.on_exit_options_menu, game.EXIT_OPTIONS_MENU
+        )
+
         self.state: int = self.initial_state
 
         self.init_state()
@@ -98,6 +102,10 @@ class MainMenu:
         This is set state for none to initial state.
         """
         self.curtain.draw()
+
+    def on_exit_options_menu(self) -> None:
+        # Start my button input
+        self.button_container.set_is_input_allowed(True)
 
     def on_entry_delay_timer_end(self) -> None:
         self.set_state(self.GOING_TO_INVISIBLE)
@@ -122,8 +130,12 @@ class MainMenu:
         elif self.new_game_button == self.selected_button:
             pass
 
-        elif self.load_game_button == self.selected_button:
-            pass
+        elif self.options_button == self.selected_button:
+            # Stop my button input
+            self.button_container.set_is_input_allowed(False)
+
+            # Update and draw options menu
+            self.game.set_is_options_menu_active(True)
 
         elif self.exit_button == self.selected_button:
             self.set_state(self.GOING_TO_OPAQUE)

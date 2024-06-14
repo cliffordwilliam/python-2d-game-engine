@@ -5,8 +5,13 @@ from constants import NATIVE_SURF
 from constants import NEXT_FRAME
 from constants import pg
 from nodes.game import Game
+from nodes.options_menu import OptionsMenu
 
 game: Game = Game("CreatedBySplashScreen")
+
+# Treat this like a global debug mode
+options_menu: OptionsMenu = OptionsMenu(game)
+
 
 while 1:
     # REMOVE IN BUILD
@@ -17,6 +22,10 @@ while 1:
             game.current_scene.draw()
 
             game.current_scene.update(16)
+
+            if game.is_options_menu_active:
+                options_menu.draw()
+                options_menu.update(16)
 
             # REMOVE IN BUILD
             game.debug_draw.add(
@@ -56,6 +65,10 @@ while 1:
         game.current_scene.draw()
 
         game.current_scene.update(dt)
+
+        if game.is_options_menu_active:
+            options_menu.draw()
+            options_menu.update(dt)
 
         # REMOVE IN BUILD
         game.debug_draw.add(
