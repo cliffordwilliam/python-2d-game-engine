@@ -41,7 +41,6 @@ class ButtonContainer:
         self.listener_index_changed: List[Callable] = []
         self.listener_button_selected: List[Callable] = []
 
-        # TODO: When do I activate first button?
         self.is_input_allowed: bool = False
 
         self.description_surf: pg.Surface = pg.Surface(
@@ -116,18 +115,3 @@ class ButtonContainer:
         # Active animation lerp
         for button in self.buttons:
             button.update(dt)
-
-    # def update(self, dt: int) -> None:
-    #     """
-    #     Update my counting until duration.
-    #     """
-    #     if self.is_done:
-    #         return
-
-    #     self.timer += dt
-
-    #     if self.timer > self.duration:
-    #         self.is_done = True
-
-    #         for callback in self.listener_end:
-    #             callback()

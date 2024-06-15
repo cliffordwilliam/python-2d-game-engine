@@ -80,13 +80,15 @@ class Button:
         )
 
         self.active_curtain_duration: float = 300.0
+        self.active_curtain_start: int = Curtain.INVISIBLE
         self.active_curtain_max_alpha: int = 225
+        self.active_curtain_is_invisible: bool = True
         self.active_curtain: Curtain = Curtain(
             self.active_curtain_duration,
-            Curtain.INVISIBLE,
+            self.active_curtain_start,
             self.active_curtain_max_alpha,
             self.active_curtain_surf,
-            is_invisible=True,
+            self.active_curtain_is_invisible,
         )
         self.active_curtain.rect.center = self.rect.center
         self.active_curtain.rect.x -= 1  # shift to left
@@ -178,22 +180,3 @@ class Button:
         elif old_state == self.ACTIVE:
             if self.state == self.INACTIVE:
                 self.active_curtain.go_to_invisible()
-
-    # def add_event_listener(self, value: Callable, event: int) -> None:
-    #     if event == self.END:
-    #         self.listener_end.append(value)
-
-    # def update(self, dt: int) -> None:
-    #     """
-    #     Update my counting until duration.
-    #     """
-    #     if self.is_done:
-    #         return
-
-    #     self.timer += dt
-
-    #     if self.timer > self.duration:
-    #         self.is_done = True
-
-    #         for callback in self.listener_end:
-    #             callback()

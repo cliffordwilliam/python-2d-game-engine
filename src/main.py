@@ -26,6 +26,8 @@ while 1:
             if game.is_options_menu_active:
                 options_menu.draw()
                 options_menu.update(16)
+            else:
+                game.current_scene.update(16)
 
             # REMOVE IN BUILD
             game.debug_draw.add(
@@ -34,7 +36,7 @@ while 1:
                     "layer": 6,
                     "x": 0,
                     "y": 0,
-                    "text": f"fps: {int(CLOCK.get_fps())}",
+                    "text": f"fps: {CLOCK.get_fps()}",
                 }
             )
 
@@ -64,11 +66,13 @@ while 1:
 
         game.current_scene.draw()
 
-        game.current_scene.update(dt)
+        # game.current_scene.update(dt)
 
         if game.is_options_menu_active:
             options_menu.draw()
             options_menu.update(dt)
+        else:
+            game.current_scene.update(dt)
 
         # REMOVE IN BUILD
         game.debug_draw.add(
@@ -77,7 +81,7 @@ while 1:
                 "layer": 6,
                 "x": 0,
                 "y": 0,
-                "text": f"fps: {int(CLOCK.get_fps())}",
+                "text": f"fps: {CLOCK.get_fps()}",
             }
         )
 

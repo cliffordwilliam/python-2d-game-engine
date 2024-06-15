@@ -1,9 +1,7 @@
 from typing import Callable
 from typing import List
 
-from constants import NATIVE_H
 from constants import NATIVE_SURF
-from constants import NATIVE_W
 from constants import pg
 from pygame.math import clamp
 from pygame.math import lerp
@@ -29,13 +27,10 @@ class Curtain:
     def __init__(
         self,
         duration: float,
-        start: int = INVISIBLE,
-        max_alpha: int = 255,
-        # TODO: Remove this defaults, they are shared.
-        # So if mutate one surf in one instance the rest affected
-        # Dont use defaults, they are shared, unless specify explicitly
-        surf: pg.Surface = pg.Surface((NATIVE_W, NATIVE_H)),
-        is_invisible: bool = False,
+        start: int,
+        max_alpha: int,
+        surf: pg.Surface,
+        is_invisible: bool,
     ):
         self.start: int = start
 
