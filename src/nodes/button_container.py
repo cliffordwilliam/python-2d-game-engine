@@ -3,7 +3,6 @@ from typing import List
 from typing import TYPE_CHECKING
 
 from constants import NATIVE_RECT
-from constants import NATIVE_SURF
 from constants import pg
 from nodes.button import Button
 from typeguard import typechecked
@@ -87,6 +86,8 @@ class ButtonContainer:
                 new_button: Button = self.buttons[self.index]
                 old_button.set_state(Button.INACTIVE)
                 new_button.set_state(Button.ACTIVE)
+                for callback in self.listener_index_changed:
+                    callback(new_button)
 
         # Selected button
         if game.is_enter_just_pressed:
@@ -105,11 +106,11 @@ class ButtonContainer:
         if not self.is_input_allowed:
             current_button.set_state(Button.INACTIVE)
 
-    def draw(self) -> None:
-        NATIVE_SURF.blit(self.description_surf, self.description_rect)
+    def draw(self, surf: pg.Surface) -> None:
+        surf.blit(self.description_surf, self.description_rect)
 
         for button in self.buttons:
-            button.draw()
+            button.draw(surf)
 
     def update(self, dt: int) -> None:
         # Active animation lerp

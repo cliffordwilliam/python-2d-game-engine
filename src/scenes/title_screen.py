@@ -53,6 +53,7 @@ class TitleScreen:
         self.curtain_start: int = Curtain.OPAQUE
         self.curtain_max_alpha: int = 255
         self.curtain_surf: pg.Surface = pg.Surface((NATIVE_W, NATIVE_H))
+        self.curtain_surf.fill(self.native_clear_color)
         self.curtain_is_invisible: bool = False
         self.curtain: Curtain = Curtain(
             self.curtain_duration,
@@ -138,7 +139,7 @@ class TitleScreen:
         """
         This is set state for none to initial state.
         """
-        self.curtain.draw()
+        self.curtain.draw(NATIVE_SURF)
 
     def on_entry_delay_timer_end(self) -> None:
         self.set_state(self.GOING_TO_INVISIBLE)
@@ -174,8 +175,8 @@ class TitleScreen:
             self.version_text,
             self.font_color,
         )
-        self.prompt_curtain.draw()
-        self.curtain.draw()
+        self.prompt_curtain.draw(NATIVE_SURF)
+        self.curtain.draw(NATIVE_SURF)
 
     def update(self, dt: int) -> None:
         # REMOVE IN BUILD

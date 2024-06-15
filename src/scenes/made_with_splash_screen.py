@@ -50,6 +50,7 @@ class MadeWithSplashScreen:
         self.curtain_start: int = Curtain.OPAQUE
         self.curtain_max_alpha: int = 255
         self.curtain_surf: pg.Surface = pg.Surface((NATIVE_W, NATIVE_H))
+        self.curtain_surf.fill(self.native_clear_color)
         self.curtain_is_invisible: bool = False
         self.curtain: Curtain = Curtain(
             self.curtain_duration,
@@ -103,7 +104,7 @@ class MadeWithSplashScreen:
         """
         This is set state for none to initial state.
         """
-        self.curtain.draw()
+        self.curtain.draw(NATIVE_SURF)
 
     def on_entry_delay_timer_end(self) -> None:
         self.set_state(self.GOING_TO_INVISIBLE)
@@ -128,7 +129,7 @@ class MadeWithSplashScreen:
         FONT.render_to(
             NATIVE_SURF, self.tips_rect, self.tips_text, self.font_color
         )
-        self.curtain.draw()
+        self.curtain.draw(NATIVE_SURF)
 
     def update(self, dt: int) -> None:
         # REMOVE IN BUILD

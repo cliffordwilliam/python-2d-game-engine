@@ -1,7 +1,6 @@
 from typing import Callable
 from typing import List
 
-from constants import NATIVE_SURF
 from constants import pg
 from pygame.math import clamp
 from pygame.math import lerp
@@ -40,8 +39,7 @@ class Curtain:
 
         if is_invisible:
             self.surf.set_colorkey("black")
-
-        self.surf.fill("black")
+            self.surf.fill("black")
 
         self.rect: pg.Rect = self.surf.get_rect()
 
@@ -99,14 +97,14 @@ class Curtain:
     def set_max_alpha(self, value: int) -> None:
         self.max_alpha = value
 
-    def draw(self) -> None:
+    def draw(self, surf: pg.Surface) -> None:
         """
         Blit myself to native surf.
         """
         if self.alpha == 0:
             return
 
-        NATIVE_SURF.blit(self.surf, self.rect)
+        surf.blit(self.surf, self.rect)
 
     def update(self, dt: int) -> None:
         """

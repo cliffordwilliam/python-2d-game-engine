@@ -1,4 +1,3 @@
-# from typing import Callable
 from constants import FONT
 from constants import NATIVE_RECT
 from constants import NATIVE_SURF
@@ -19,7 +18,6 @@ class Button:
     BUTTON_INACTIVE_LINE_COLOR: str = "#004a89"
     BUTTON_INACTIVE_TEXT_COLOR: str = "#bac3d2"
 
-    # TODO: Use curtain to fade in / out active to inactive
     BUTTON_ACTIVE_BODY_COLOR: str = "#126a9c"
     BUTTON_ACTIVE_LINE_COLOR: str = "#1896ea"
     BUTTON_ACTIVE_TEXT_COLOR: str = "#feffff"
@@ -90,16 +88,11 @@ class Button:
             self.active_curtain_surf,
             self.active_curtain_is_invisible,
         )
-        self.active_curtain.rect.center = self.rect.center
-        self.active_curtain.rect.x -= 1  # shift to left
-
-        self.active_curtain.add_event_listener(
-            self.on_active_curtain_invisible, Curtain.INVISIBLE_END
-        )
+        self.active_curtain.rect.topright = self.rect.topright
 
         self.active_surf: pg.Surface = pg.Surface(
-            (self.width + 1, self.height)
-        )  # shift to left
+            (self.width + 1, self.height)  # shift to left
+        )
 
         self.active_surf.fill(self.BUTTON_ACTIVE_BODY_COLOR)
 
@@ -141,9 +134,6 @@ class Button:
 
         self.init_state()
 
-    def on_active_curtain_invisible(self) -> None:
-        NATIVE_SURF.blit(self.surf, self.rect)
-
     def init_state(self) -> None:
         """
         This is set state for none to initial state.
@@ -156,18 +146,18 @@ class Button:
 
         self.active_curtain.update(dt)
 
-    def draw(self) -> None:
+    def draw(self, surf: pg.Surface) -> None:
         # Draw my description if I am active
         if self.state == self.ACTIVE:
             FONT.render_to(
-                NATIVE_SURF,
+                surf,
                 self.description_text_rect,
                 self.description_text,
                 self.BUTTON_ACTIVE_TEXT_COLOR,
             )
 
-        NATIVE_SURF.blit(self.surf, self.rect)
-        self.active_curtain.draw()
+        surf.blit(self.surf, self.rect)
+        self.active_curtain.draw(surf)
 
     def set_state(self, value: int) -> None:
         old_state: int = self.state

@@ -4,8 +4,11 @@ from typing import TYPE_CHECKING
 from constants import FONT
 from constants import NATIVE_H
 from constants import NATIVE_RECT
+from constants import NATIVE_SURF
 from constants import NATIVE_W
 from constants import pg
+from nodes.button import Button
+from nodes.button_container import ButtonContainer
 from nodes.curtain import Curtain
 from nodes.timer import Timer
 from typeguard import typechecked
@@ -82,6 +85,49 @@ class OptionsMenu:
         self.title_text: str = "options"
         self.title_rect: pg.Rect = FONT.get_rect(self.title_text)
         self.title_rect.center = NATIVE_RECT.center
+        self.title_rect.y = 11
+
+        self.resolution_button: Button = Button(
+            149, 9, (87, 18), "resolutions", (4, 2), "set resolutions"
+        )
+        self.exit_button: Button = Button(
+            149, 9, (87, 28), "exit", (4, 2), "exit options menu"
+        )
+        self.button_container: ButtonContainer = ButtonContainer(
+            [
+                self.resolution_button,
+                self.exit_button,
+            ]
+        )
+
+        self.button_container.add_event_listener(
+            self.on_button_selected, ButtonContainer.BUTTON_SELECTED
+        )
+
+        self.button_container.add_event_listener(
+            self.on_button_index_changed, ButtonContainer.INDEX_CHANGED
+        )
+
+        self.selected_button: Button = self.resolution_button
+        self.focused_button: Button = self.resolution_button
+
+        self.resolution_texts: List = [
+            "320 x 160",
+            "640 x 320",
+        ]
+        self.resolution_texts_len: int = len(self.resolution_texts)
+        self.resolution_index: int = 0
+        self.resolution_text: str = self.resolution_texts[
+            self.resolution_index
+        ]
+        self.resolution_text_rect: pg.Rect = FONT.get_rect(
+            self.resolution_text
+        )
+        self.resolution_text_rect.topright = (
+            self.resolution_button.rect.topright
+        )
+        self.resolution_text_rect.x -= 3
+        self.resolution_text_rect.y += 2
 
         self.state: int = self.initial_state
 
@@ -92,6 +138,19 @@ class OptionsMenu:
         This is set state for none to initial state.
         """
         pass
+
+    def set_resolution_index(self, value: int) -> None:
+        self.resolution_index = value
+        self.resolution_index = (
+            self.resolution_index % self.resolution_texts_len
+        )
+        self.resolution_text = self.resolution_texts[self.resolution_index]
+        self.resolution_text_rect = FONT.get_rect(self.resolution_text)
+        self.resolution_text_rect.topright = (
+            self.resolution_button.rect.topright
+        )
+        self.resolution_text_rect.x -= 3
+        self.resolution_text_rect.y += 2
 
     def on_entry_delay_timer_end(self) -> None:
         self.set_state(self.GOING_TO_OPAQUE)
@@ -111,14 +170,44 @@ class OptionsMenu:
     def on_curtain_opaque(self) -> None:
         self.set_state(self.REACHED_OPAQUE)
 
+    def on_button_index_changed(self, focused_button: Button) -> None:
+        """
+        Called and pass the newly focused button
+        """
+        self.focused_button = focused_button
+
+    def on_button_selected(self, selected_button: Button) -> None:
+        """
+        Remember selected
+        Need to wait for curtain to go to opaque
+        Then use remembered button to switch statement to go somewhere
+        """
+        self.selected_button = selected_button
+
+        if self.resolution_button == self.selected_button:
+            pass
+
+        elif self.exit_button == self.selected_button:
+            self.set_state(self.GOING_TO_INVISIBLE)
+
     def draw(self) -> None:
+        self.curtain.surf.fill(self.native_clear_color)
         FONT.render_to(
             self.curtain.surf,
             self.title_rect,
             self.title_text,
             self.font_color,
         )
-        self.curtain.draw()
+        self.button_container.draw(self.curtain.surf)
+        FONT.render_to(
+            self.curtain.surf,
+            self.resolution_text_rect,
+            self.resolution_text,
+            self.font_color,
+        )
+        pg.draw.line(self.curtain.surf, "#0193bc", (87, 79), (232, 79), 1)
+        pg.draw.line(self.curtain.surf, "#0193bc", (160, 18), (160, 78), 1)
+        self.curtain.draw(NATIVE_SURF)
 
     def update(self, dt: int) -> None:
         # REMOVE IN BUILD
@@ -142,14 +231,23 @@ class OptionsMenu:
             self.curtain.update(dt)
 
         elif self.state == self.REACHED_OPAQUE:
-            # Temporary exit, use exit button later
-            # TODO: Exit button
-            if self.game.is_enter_just_pressed:
-                self.set_state(self.GOING_TO_INVISIBLE)
-                return
+            self.button_container.event(self.game)
+            self.button_container.update(dt)
+
+            if self.resolution_button == self.focused_button:
+                if self.game.is_left_just_pressed:
+                    new_value = self.resolution_index - 1
+                    self.set_resolution_index(new_value)
+                if self.game.is_right_just_pressed:
+                    new_value = self.resolution_index + 1
+                    self.set_resolution_index(new_value)
+
+            elif self.exit_button == self.focused_button:
+                pass
 
         elif self.state == self.GOING_TO_INVISIBLE:
             self.curtain.update(dt)
+            self.button_container.update(dt)
 
         elif self.state == self.REACHED_INVISIBLE:
             self.exit_delay_timer.update(dt)
@@ -164,11 +262,11 @@ class OptionsMenu:
 
         elif old_state == self.GOING_TO_OPAQUE:
             if self.state == self.REACHED_OPAQUE:
-                # TODO: Turn on my input
-                pass
+                self.button_container.set_is_input_allowed(True)
 
         elif old_state == self.REACHED_OPAQUE:
             if self.state == self.GOING_TO_INVISIBLE:
+                self.button_container.set_is_input_allowed(False)
                 self.curtain.go_to_invisible()
 
         elif old_state == self.GOING_TO_INVISIBLE:

@@ -51,6 +51,7 @@ class MainMenu:
         self.curtain_start: int = Curtain.OPAQUE
         self.curtain_max_alpha: int = 255
         self.curtain_surf: pg.Surface = pg.Surface((NATIVE_W, NATIVE_H))
+        self.curtain_surf.fill(self.native_clear_color)
         self.curtain_is_invisible: bool = False
         self.curtain: Curtain = Curtain(
             self.curtain_duration,
@@ -119,7 +120,7 @@ class MainMenu:
         """
         This is set state for none to initial state.
         """
-        self.curtain.draw()
+        self.curtain.draw(NATIVE_SURF)
 
     def on_entry_delay_timer_end(self) -> None:
         self.set_state(self.GOING_TO_INVISIBLE)
@@ -135,9 +136,11 @@ class MainMenu:
         self.set_state(self.REACHED_OPAQUE)
 
     def on_button_selected(self, selected_button: Button) -> None:
-        # Remember selected
-        # Need to wait for curtain to go to opaque
-        # Then use remembered button to switch statement to go somewhere
+        """
+        Remember selected
+        Need to wait for curtain to go to opaque
+        Then use remembered button to switch statement to go somewhere
+        """
         self.selected_button = selected_button
 
         if self.new_game_button == self.selected_button:
@@ -155,8 +158,8 @@ class MainMenu:
 
     def draw(self) -> None:
         NATIVE_SURF.blit(self.background_surf, (0, 0))
-        self.button_container.draw()
-        self.curtain.draw()
+        self.button_container.draw(NATIVE_SURF)
+        self.curtain.draw(NATIVE_SURF)
 
     def update(self, dt: int) -> None:
         # REMOVE IN BUILD
@@ -209,4 +212,4 @@ class MainMenu:
 
         elif old_state == self.GOING_TO_OPAQUE:
             if self.state == self.REACHED_OPAQUE:
-                NATIVE_SURF.fill("black")
+                pass
