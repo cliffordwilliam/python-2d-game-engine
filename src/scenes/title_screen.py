@@ -139,7 +139,7 @@ class TitleScreen:
         """
         This is set state for none to initial state.
         """
-        self.curtain.draw(NATIVE_SURF)
+        self.curtain.draw(NATIVE_SURF, 0)
 
     def on_entry_delay_timer_end(self) -> None:
         self.set_state(self.GOING_TO_INVISIBLE)
@@ -175,8 +175,8 @@ class TitleScreen:
             self.version_text,
             self.font_color,
         )
-        self.prompt_curtain.draw(NATIVE_SURF)
-        self.curtain.draw(NATIVE_SURF)
+        self.prompt_curtain.draw(NATIVE_SURF, 0)
+        self.curtain.draw(NATIVE_SURF, 0)
 
     def update(self, dt: int) -> None:
         # REMOVE IN BUILD

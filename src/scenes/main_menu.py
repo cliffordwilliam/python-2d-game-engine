@@ -103,7 +103,9 @@ class MainMenu:
                 self.continue_button,
                 self.options_button,
                 self.exit_button,
-            ]
+            ],
+            0,
+            4,
         )
 
         self.button_container.add_event_listener(
@@ -120,7 +122,7 @@ class MainMenu:
         """
         This is set state for none to initial state.
         """
-        self.curtain.draw(NATIVE_SURF)
+        self.curtain.draw(NATIVE_SURF, 0)
 
     def on_entry_delay_timer_end(self) -> None:
         self.set_state(self.GOING_TO_INVISIBLE)
@@ -159,7 +161,7 @@ class MainMenu:
     def draw(self) -> None:
         NATIVE_SURF.blit(self.background_surf, (0, 0))
         self.button_container.draw(NATIVE_SURF)
-        self.curtain.draw(NATIVE_SURF)
+        self.curtain.draw(NATIVE_SURF, 0)
 
     def update(self, dt: int) -> None:
         # REMOVE IN BUILD

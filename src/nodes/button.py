@@ -146,7 +146,7 @@ class Button:
 
         self.active_curtain.update(dt)
 
-    def draw(self, surf: pg.Surface) -> None:
+    def draw(self, surf: pg.Surface, y_offset: int) -> None:
         # Draw my description if I am active
         if self.state == self.ACTIVE:
             FONT.render_to(
@@ -155,9 +155,8 @@ class Button:
                 self.description_text,
                 self.BUTTON_ACTIVE_TEXT_COLOR,
             )
-
-        surf.blit(self.surf, self.rect)
-        self.active_curtain.draw(surf)
+        surf.blit(self.surf, (self.rect.x, self.rect.y + y_offset))
+        self.active_curtain.draw(surf, y_offset)
 
     def set_state(self, value: int) -> None:
         old_state: int = self.state

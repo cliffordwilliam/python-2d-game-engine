@@ -97,14 +97,14 @@ class Curtain:
     def set_max_alpha(self, value: int) -> None:
         self.max_alpha = value
 
-    def draw(self, surf: pg.Surface) -> None:
+    def draw(self, surf: pg.Surface, y_offset: int) -> None:
         """
         Blit myself to native surf.
         """
         if self.alpha == 0:
             return
 
-        surf.blit(self.surf, self.rect)
+        surf.blit(self.surf, (self.rect.x, self.rect.y + y_offset))
 
     def update(self, dt: int) -> None:
         """

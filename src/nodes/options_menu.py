@@ -87,17 +87,57 @@ class OptionsMenu:
         self.title_rect.center = NATIVE_RECT.center
         self.title_rect.y = 11
 
+        self.button_height: int = 9
         self.resolution_button: Button = Button(
-            149, 9, (87, 18), "resolutions", (4, 2), "set resolutions"
+            149,
+            self.button_height,
+            (87, 18),
+            "resolutions",
+            (4, 2),
+            "set resolutions",
         )
         self.exit_button: Button = Button(
-            149, 9, (87, 28), "exit", (4, 2), "exit options menu"
+            73,
+            self.button_height,
+            (87, 118),
+            "exit",
+            (4, 2),
+            "exit options menu",
         )
         self.button_container: ButtonContainer = ButtonContainer(
             [
                 self.resolution_button,
+                Button(
+                    149, self.button_height, (87, 28), "test1", (4, 2), "test"
+                ),
+                Button(
+                    149, self.button_height, (87, 38), "test2", (4, 2), "test"
+                ),
+                Button(
+                    149, self.button_height, (87, 48), "test3", (4, 2), "test"
+                ),
+                Button(
+                    149, self.button_height, (87, 58), "test4", (4, 2), "test"
+                ),
+                Button(
+                    149, self.button_height, (87, 68), "test5", (4, 2), "test"
+                ),
+                Button(
+                    149, self.button_height, (87, 78), "test6", (4, 2), "test"
+                ),
+                Button(
+                    149, self.button_height, (87, 88), "test7", (4, 2), "test"
+                ),
+                Button(
+                    149, self.button_height, (87, 98), "test8", (4, 2), "test"
+                ),
+                Button(
+                    149, self.button_height, (87, 108), "test9", (4, 2), "test"
+                ),
                 self.exit_button,
-            ]
+            ],
+            0,
+            8,
         )
 
         self.button_container.add_event_listener(
@@ -128,6 +168,20 @@ class OptionsMenu:
         )
         self.resolution_text_rect.x -= 3
         self.resolution_text_rect.y += 2
+
+        self.decoration_vertical_start = (160, 18)
+        self.decoration_vertical_x: int = 160
+        self.decoration_vertical_top: int = 18
+        self.decoration_vetical_height: int = (
+            self.button_container.buttons_len * (self.button_height + 1)
+        )
+        self.decoration_vertical_bottom: int = (
+            self.decoration_vertical_top + self.decoration_vetical_height
+        )
+
+        self.decoration_horizontal_y: int = self.decoration_vertical_bottom
+        self.decoration_horizontal_left: int = 87
+        self.decoration_horizontal_right: int = 232
 
         self.state: int = self.initial_state
 
@@ -205,9 +259,21 @@ class OptionsMenu:
             self.resolution_text,
             self.font_color,
         )
-        pg.draw.line(self.curtain.surf, "#0193bc", (87, 79), (232, 79), 1)
-        pg.draw.line(self.curtain.surf, "#0193bc", (160, 18), (160, 78), 1)
-        self.curtain.draw(NATIVE_SURF)
+        pg.draw.line(
+            self.curtain.surf,
+            "#0193bc",
+            (self.decoration_horizontal_left, self.decoration_horizontal_y),
+            (self.decoration_horizontal_right, self.decoration_horizontal_y),
+            1,
+        )
+        pg.draw.line(
+            self.curtain.surf,
+            "#0193bc",
+            (self.decoration_vertical_x, self.decoration_vertical_top),
+            (self.decoration_vertical_x, self.decoration_vertical_bottom),
+            1,
+        )
+        self.curtain.draw(NATIVE_SURF, 0)
 
     def update(self, dt: int) -> None:
         # REMOVE IN BUILD

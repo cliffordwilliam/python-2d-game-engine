@@ -104,7 +104,7 @@ class CreatedBySplashScreen:
         """
         This is set state for none to initial state.
         """
-        self.curtain.draw(NATIVE_SURF)
+        self.curtain.draw(NATIVE_SURF, 0)
 
     def on_entry_delay_timer_end(self) -> None:
         self.set_state(self.GOING_TO_INVISIBLE)
@@ -129,7 +129,7 @@ class CreatedBySplashScreen:
         FONT.render_to(
             NATIVE_SURF, self.tips_rect, self.tips_text, self.font_color
         )
-        self.curtain.draw(NATIVE_SURF)
+        self.curtain.draw(NATIVE_SURF, 0)
 
     def update(self, dt: int) -> None:
         # REMOVE IN BUILD
