@@ -37,17 +37,17 @@ WAVS_PATHS: Dict[str, str] = {
 FPS: int = 60
 
 # Fixed dimensions.
-TILE_W: int = 16
-TILE_H: int = 16
+TILE_WIDTH: int = 16
+TILE_HEIGHT: int = 16
 
-WINDOW_W: int = 320
-WINDOW_H: int = 180
+WINDOW_WIDTH: int = 320
+WINDOW_HEIGHT: int = 180
 
-NATIVE_W: int = 320
-NATIVE_H: int = 160
+NATIVE_WIDTH: int = 320
+NATIVE_HEIGHT: int = 160
 
 # Native surf and rect will never be mutated.
-NATIVE_SURF: pg.Surface = pg.Surface((NATIVE_W, NATIVE_H))
+NATIVE_SURF: pg.Surface = pg.Surface((NATIVE_WIDTH, NATIVE_HEIGHT))
 NATIVE_RECT: pg.Rect = NATIVE_SURF.get_rect()
 
 # Clock never changes.
@@ -65,11 +65,11 @@ EVENTS: List[int] = [
 ]
 
 # Font dimensions and instance.
-FONT_H: int = 5
-FONT_W: int = 3
+FONT_HEIGHT: int = 5
+FONT_WIDTH: int = 3
 FONT: font.Font = font.Font(
     join("ttf", "cg_pixel_3x5_mono.ttf"),
-    FONT_H,
+    FONT_HEIGHT,
 )
 
 # Quadtree recursion limit.

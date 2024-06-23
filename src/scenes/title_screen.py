@@ -2,10 +2,10 @@ from typing import List
 from typing import TYPE_CHECKING
 
 from constants import FONT
-from constants import NATIVE_H
+from constants import NATIVE_HEIGHT
 from constants import NATIVE_RECT
 from constants import NATIVE_SURF
-from constants import NATIVE_W
+from constants import NATIVE_WIDTH
 from constants import pg
 from constants import PNGS_PATHS
 from nodes.curtain import Curtain
@@ -52,7 +52,9 @@ class TitleScreen:
         self.curtain_duration: float = 1000.0
         self.curtain_start: int = Curtain.OPAQUE
         self.curtain_max_alpha: int = 255
-        self.curtain_surf: pg.Surface = pg.Surface((NATIVE_W, NATIVE_H))
+        self.curtain_surf: pg.Surface = pg.Surface(
+            (NATIVE_WIDTH, NATIVE_HEIGHT)
+        )
         self.curtain_surf.fill(self.native_clear_color)
         self.curtain_is_invisible: bool = False
         self.curtain: Curtain = Curtain(

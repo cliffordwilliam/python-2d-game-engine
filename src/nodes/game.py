@@ -2,11 +2,11 @@ from typing import Any
 from typing import Dict
 from typing import Type
 
-from constants import NATIVE_H
-from constants import NATIVE_W
+from constants import NATIVE_HEIGHT
+from constants import NATIVE_WIDTH
 from constants import pg
-from constants import WINDOW_H
-from constants import WINDOW_W
+from constants import WINDOW_HEIGHT
+from constants import WINDOW_WIDTH
 from nodes.debug_draw import DebugDraw
 from nodes.sound_manager import SoundManager
 from scenes.created_by_splash_screen import CreatedBySplashScreen
@@ -44,12 +44,14 @@ class Game:
         self.is_per_frame: bool = False
 
         self.resolution: int = 3
-        self.window_w: int = WINDOW_W * self.resolution
-        self.window_h: int = WINDOW_H * self.resolution
+        self.window_w: int = WINDOW_WIDTH * self.resolution
+        self.window_h: int = WINDOW_HEIGHT * self.resolution
         self.window_surf: pg.Surface = pg.display.set_mode(
             (self.window_w, self.window_h)
         )
-        self.y_offset: int = ((WINDOW_H - NATIVE_H) // 2) * self.resolution
+        self.y_offset: int = (
+            (WINDOW_HEIGHT - NATIVE_HEIGHT) // 2
+        ) * self.resolution
 
         self.is_up_pressed: bool = False
         self.is_down_pressed: bool = False
@@ -132,21 +134,25 @@ class Game:
         """
         if value != 7:
             self.resolution = value
-            self.window_w = WINDOW_W * self.resolution
-            self.window_h = WINDOW_H * self.resolution
+            self.window_w = WINDOW_WIDTH * self.resolution
+            self.window_h = WINDOW_HEIGHT * self.resolution
             self.window_surf = pg.display.set_mode(
                 (self.window_w, self.window_h)
             )
-            self.y_offset = ((WINDOW_H - NATIVE_H) // 2) * self.resolution
+            self.y_offset = (
+                (WINDOW_HEIGHT - NATIVE_HEIGHT) // 2
+            ) * self.resolution
 
         elif value == 7:
             self.window_surf = pg.display.set_mode(
                 (self.window_w, self.window_h), pg.FULLSCREEN
             )
-            self.resolution = self.window_surf.get_width() // NATIVE_W
-            self.window_w = WINDOW_W * self.resolution
-            self.window_h = WINDOW_H * self.resolution
-            self.y_offset = ((WINDOW_H - NATIVE_H) // 2) * self.resolution
+            self.resolution = self.window_surf.get_width() // NATIVE_WIDTH
+            self.window_w = WINDOW_WIDTH * self.resolution
+            self.window_h = WINDOW_HEIGHT * self.resolution
+            self.y_offset = (
+                (WINDOW_HEIGHT - NATIVE_HEIGHT) // 2
+            ) * self.resolution
 
     def set_scene(self, value: str) -> None:
         """

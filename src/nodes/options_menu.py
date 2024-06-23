@@ -2,10 +2,10 @@ from typing import List
 from typing import TYPE_CHECKING
 
 from constants import FONT
-from constants import NATIVE_H
+from constants import NATIVE_HEIGHT
 from constants import NATIVE_RECT
 from constants import NATIVE_SURF
-from constants import NATIVE_W
+from constants import NATIVE_WIDTH
 from constants import pg
 from nodes.button import Button
 from nodes.button_container import ButtonContainer
@@ -49,7 +49,9 @@ class OptionsMenu:
         self.native_clear_color: str = "#000000"
         self.font_color: str = "#ffffff"
 
-        self.curtain_surf: pg.Surface = pg.Surface((NATIVE_W, NATIVE_H))
+        self.curtain_surf: pg.Surface = pg.Surface(
+            (NATIVE_WIDTH, NATIVE_HEIGHT)
+        )
         self.curtain_surf.fill(self.native_clear_color)
         self.curtain_duration: float = 1000.0
         self.curtain_start: int = Curtain.INVISIBLE
