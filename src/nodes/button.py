@@ -141,9 +141,6 @@ class Button:
         NATIVE_SURF.blit(self.surf, self.rect)
 
     def update(self, dt: int) -> None:
-        if self.active_curtain.is_done_lerping:
-            return
-
         self.active_curtain.update(dt)
 
     def draw(self, surf: pg.Surface, y_offset: int) -> None:

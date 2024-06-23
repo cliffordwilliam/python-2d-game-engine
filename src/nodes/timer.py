@@ -8,7 +8,9 @@ from typeguard import typechecked
 class Timer:
     """
     A countup timer.
-    Counts up and fire END event on passing duration.
+
+    Events:
+    - END: When counter passes duration.
 
     Set duration in float.
     Call the update method to start counting up.
@@ -25,7 +27,7 @@ class Timer:
 
     def __init__(self, duration: float):
         # Holds my counting.
-        self.count: int = 0
+        self.counter: int = 0
 
         # Determine how long I count.
         self.duration: float = duration
@@ -38,7 +40,8 @@ class Timer:
 
     def add_event_listener(self, value: Callable, event: int) -> None:
         """
-        Use this to subscribe to my events.
+        Use this to subscribe to my events:
+        - END: When counter passes duration.
         """
 
         if event == self.END:
@@ -50,7 +53,7 @@ class Timer:
         Is done False.
         """
 
-        self.count = 0
+        self.counter = 0
 
         self.is_done = False
 
@@ -64,10 +67,10 @@ class Timer:
             return
 
         # Count.
-        self.count += dt
+        self.counter += dt
 
         # Counted past duration?
-        if self.count > self.duration:
+        if self.counter > self.duration:
             # Is done true.
             self.is_done = True
 
