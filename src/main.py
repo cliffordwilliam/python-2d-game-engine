@@ -7,27 +7,34 @@ from constants import pg
 from nodes.game import Game
 from nodes.options_menu import OptionsMenu
 
+# Has the following instances:
+# - Game.
+# - OptionsMenu.
+
+# Responsible for managing current scenes.
+# Scenes can be: splash screens, load data screen, gameplay scene.
 game: Game = Game("CreatedBySplashScreen")
 
-# Treat this like a global debug mode
+# Options menu is present all the time in any scenes.
+# Current scene and options menu cannot be updated at the same time.
+# Responsible for being the front-end to the json setting data base.
 options_menu: OptionsMenu = OptionsMenu(game)
 
-
+# The main game loop.
 while 1:
     # REMOVE IN BUILD
     if game.is_per_frame:
         for event in pg.event.get(EVENTS):
             game.event(event)
+
         if pg.key.get_just_pressed()[NEXT_FRAME]:
             game.current_scene.draw()
 
-            game.current_scene.update(16)
-
             if game.is_options_menu_active:
                 options_menu.draw()
-                options_menu.update(16)
+                options_menu.update(16)  # Hardcoded 16 dt.
             else:
-                game.current_scene.update(16)
+                game.current_scene.update(16)  # Hardcoded 16 dt.
 
             # REMOVE IN BUILD
             game.debug_draw.add(
@@ -48,6 +55,7 @@ while 1:
                 pg.transform.scale_by(NATIVE_SURF, game.resolution),
                 (0, game.y_offset),
             )
+
             pg.display.update()
 
             game.reset_just_events()
@@ -56,8 +64,8 @@ while 1:
         dt: int = CLOCK.tick(FPS)
 
         # REMOVE IN BUILD
-        # Quick hacky solution to prevent dt build up in frame by frame debug
-        # Most def I will debug more than 1s anyways
+        # Quick hacky solution to prevent dt build up in frame by frame debug.
+        # In frame by frame mode, must spend at least 1 s in there.
         if dt > 1000:
             dt = 16
 
@@ -65,8 +73,6 @@ while 1:
             game.event(event)
 
         game.current_scene.draw()
-
-        # game.current_scene.update(dt)
 
         if game.is_options_menu_active:
             options_menu.draw()
@@ -89,10 +95,11 @@ while 1:
         if game.is_debug:
             game.debug_draw.draw()
 
-        scaled_native_surf: pg.Surface = pg.transform.scale_by(
-            NATIVE_SURF, game.resolution
+        game.window_surf.blit(
+            pg.transform.scale_by(NATIVE_SURF, game.resolution),
+            (0, game.y_offset),
         )
-        game.window_surf.blit(scaled_native_surf, (0, game.y_offset))
+
         pg.display.update()
 
         game.reset_just_events()
