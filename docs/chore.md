@@ -1,4 +1,4 @@
-# My Notes
+# My notes for future me when working on this
 
 ## Commit flow
 
@@ -12,7 +12,7 @@ Then commit:
 cz commit
 ```
 
-If there are issues you have to commit the fixed files again:
+If there are issues you have to commit the fixed files again (or fix the ones it did not auto fix then commit):
 
 ```bash
 cz commit
@@ -36,15 +36,17 @@ https://medium.com/@0xmatriksh/how-to-setup-git-hooks-pre-commit-commit-msg-in-m
 
 https://github.com/pre-commit/pre-commit/issues/1550g
 
+```bash
 pre-commit sample-config | out-file .pre-commit-config.yaml -encoding utf8
+```
 
 ## Removed Unused Imports Hotkey
 
-Refs:
+https://stackoverflow.com/questions/53352135/is-there-a-way-to-remove-unused-imports-for-python-in-vs-code
 
-- https://stackoverflow.com/questions/53352135/is-there-a-way-to-remove-unused-imports-for-python-in-vs-code
-- https://codewithsusan.com/notes/vscode-keyboard-shortcuts#:~:text=All%20of%20your%20keybinding%20customizations,json%20.
-- https://stackoverflow.com/questions/56798514/visual-studio-code-unable-to-edit-keybingings-json-cannot-edit-in-read-only-ed
+https://codewithsusan.com/notes/vscode-keyboard-shortcuts#:~:text=All%20of%20your%20keybinding%20customizations,json%20.
+
+https://stackoverflow.com/questions/56798514/visual-studio-code-unable-to-edit-keybingings-json-cannot-edit-in-read-only-ed
 
 When it is done you can use the `shift + alt + r`.
 
@@ -54,7 +56,7 @@ https://gist.github.com/rupeshtiwari/6860fbc1b3e2f6711c780070d6f59748
 
 ## After Pip Install
 
-Always update the req txt every after installation.
+Always update the req txt every after new packages installation.
 
 ```bash
 pip freeze > requirements.txt
@@ -149,11 +151,11 @@ Then do the stop and rm as usual to stop it.
 
 ## Before prod
 
-Look for all instances of # REMOVE IN BUILD, then delete all that is not needed for prod.
+Look for all instances of `# REMOVE IN BUILD`, then delete all that is not needed for prod.
 
 ## Take note
 
-All names should be snake case no matter what, this makes it so that the data name can be anywhere, in json or in py files.
+All names should be snake case no matter what, this makes it so that the data name can be anywhere, in json or in python files.
 
 ## Todo
 
@@ -168,10 +170,14 @@ All names should be snake case no matter what, this makes it so that the data na
 - [ ] Check if each file has its own doc section in documention.md, make sure that it reflects the code as is too.
 - [ ] Always read if there are any more TODO.
 
+
+
 ## Typesafety
 
 ```py
 # This only import during coding, not runtime
+# Use this when you want the type but circular dependency becomes an issue
+# This is because arguments do not know their type in python, not like TypeScript
 if TYPE_CHECKING:
     from nodes.game import Game
 

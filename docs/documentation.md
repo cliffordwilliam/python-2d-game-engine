@@ -1,6 +1,6 @@
 # My Notes
 
-The following is a diagram showing how the nodes work together.
+The following is a diagram showing how the nodes work together. TODO: Update this drawing.
 
 ![Alt text](svgs/python-2d-game-engine.drawio.svg "Game engine flow")
 
@@ -121,4 +121,4 @@ There are a total of 6 layers, counting from 0 for you to use. Debug draw will o
 
 ### sound_manager.py
 
-TODO: Write a documentation on this.
+TODO: Seperate each node to their own md, otherwise this gets very long

@@ -1,10 +1,10 @@
 # Python 2D Game Engine
 
-This is my python 2D game engine project. I will work on it while making a game along side of it as a proof of concept. It comes with json editor, level editor and the game engine itself. There is no GUI but there are helpful classes out of the box you can use for common things like animation, saving, key binding, collision, camera and so much more.
+This is my python 2D game engine project. I will work on it while making a game along side of it as a proof of concept. It comes with json editor, level editor and the game engine itself. There is no GUI but there are helpful classes out of the box you can use for common things like animation, saving, key binding, collision, camera and so much more. Think of it like a wrapper for pygame.
 
 ## Motivation
 
-This project is the only thing right now that motivates me to keep going in life, my long term goal is to make a series out of this game. I will share more as I am also working on a blog to showcase my development, devlog.
+This project is the only thing right now that motivates me to keep going in life, my long term goal is to make a series out of this game. I will share more as I am also working on a blog to showcase my development, aka devlog.
 
 ## Python Version
 
@@ -33,19 +33,22 @@ To install and run the project, follow these steps:
    cd your-repository
    ```
 
-3. Create a virtual environment (optional but recommended):
+3. Create a virtual environment (optional but recommended / btw you can use VSCode to make virtual environment):
 
-   ```bash
-   python3 -m venv venv
-   ```
+   - Without VSCode, use Bash / any CLI you have:
 
-   Or you can use VSCode ctrl + shift + p to select the python intreperter and create venv. Open and close your terminal and wait until you see a popup saying that the venv is activated. If you are a dev you can run the pre-commit install now. Run this again if you update the pre commit yaml file.
+      ```bash
+      python3 -m venv venv
+      ```
 
-   ```bash
-   pre-commit install
-   ```
+   - Using VSCode:
+      ctrl + shift + p to select the python intreperter and create venv. Open and close your terminal and wait until you see a popup saying that the venv is activated. If you are a developer, you can run the pre-commit install now. Run this again if you update the pre commit yaml file.
 
-4. Activate the virtual environment:
+      ```bash
+      pre-commit install
+      ```
+
+4. Activate the virtual environment (skip this if you already made venv via VSCode, it activates it for you):
 
    - On Windows:
 
@@ -59,7 +62,7 @@ To install and run the project, follow these steps:
      source venv/bin/activate
      ```
 
-5. Install dependencies:
+5. Install dependencies (even if you had used VSCode to make your venv, you can run this again just in case):
 
    ```bash
    pip install -r requirements.txt
@@ -73,7 +76,7 @@ To install and run the project, follow these steps:
 
 ## Usage
 
-Read my docs to read the manual on how to use this, it is still a work in progress.
+Read my docs to read the manual on how to use this wrapper.
 
 ### Run Immediately
 
