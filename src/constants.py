@@ -1,12 +1,16 @@
-from os.path import join
+from os.path import join  # for OS agnostic paths.
 from typing import Dict
 from typing import List
 
 import pygame as pg
 import pygame.freetype as font
 
+# Everything here never changes ever.
+
+# Initialize pygame.
 pg.init()
 
+# Path dictionaries.
 PNGS_DIR_PATH: str = "pngs"
 PNGS_PATHS: Dict[str, str] = {
     "main_menu_background.png": join(
@@ -29,9 +33,12 @@ WAVS_PATHS: Dict[str, str] = {
     # join(WAVS_DIR_PATH, "cursor.wav"),
 }
 
-TILE_S: int = 16
-
+# FPS.
 FPS: int = 60
+
+# Fixed dimensions.
+TILE_W: int = 16
+TILE_H: int = 16
 
 WINDOW_W: int = 320
 WINDOW_H: int = 180
@@ -39,26 +46,25 @@ WINDOW_H: int = 180
 NATIVE_W: int = 320
 NATIVE_H: int = 160
 
-NATIVE_W_TU: int = 20
-NATIVE_H_TU: int = 10
-
-NATIVE_W_TU_EXTRA_ONE: int = 21
-NATIVE_H_TU_EXTRA_ONE: int = 11
-
+# Native surf and rect will never be mutated.
 NATIVE_SURF: pg.Surface = pg.Surface((NATIVE_W, NATIVE_H))
 NATIVE_RECT: pg.Rect = NATIVE_SURF.get_rect()
 
+# Clock never changes.
 CLOCK: pg.time.Clock = pg.time.Clock()
 
+# Event ints list (used by event for loop).
 EVENTS: List[int] = [
     pg.KEYDOWN,
     pg.KEYUP,
     pg.QUIT,
     # REMOVE IN BUILD
+    # Because production don't use the mouse.
     pg.MOUSEBUTTONUP,
     pg.MOUSEBUTTONDOWN,
 ]
 
+# Font dimensions and instance.
 FONT_H: int = 5
 FONT_W: int = 3
 FONT: font.Font = font.Font(
@@ -66,9 +72,11 @@ FONT: font.Font = font.Font(
     FONT_H,
 )
 
+# Quadtree recursion limit.
 MAX_QUADTREE_DEPTH: int = 8
 
 # REMOVE IN BUILD
+# This is for room editor autotile mapping.
 MASK_ID_TO_INDEX: Dict[str, int] = {
     "208": 0,
     "248": 1,
@@ -119,4 +127,6 @@ MASK_ID_TO_INDEX: Dict[str, int] = {
     "90": 46,
 }
 
+# REMOVE IN BUILD
+# This is for frame by frame debug tool.
 NEXT_FRAME: int = pg.K_8
