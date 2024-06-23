@@ -17,3 +17,9 @@ This is good to me because even if it is long, I know immediately what this scri
 
 - Using wildcards: I do not know what this script uses, I have to manually check with my eyes.
 - Importing the whole thing, then I still need to check with my eyes again to see what it uses.
+
+# Names
+
+Everything is not shortened for readability. Except the following as I am following the pygame names:
+- Surf.
+- Rects.
