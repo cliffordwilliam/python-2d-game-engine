@@ -52,8 +52,8 @@ while 1:
                 game.debug_draw.draw()
 
             game.window_surf.blit(
-                pg.transform.scale_by(NATIVE_SURF, game.resolution),
-                (0, game.y_offset),
+                pg.transform.scale_by(NATIVE_SURF, game.resolution_scale),
+                (0, game.native_y_offset),
             )
 
             pg.display.update()
@@ -96,8 +96,8 @@ while 1:
             game.debug_draw.draw()
 
         game.window_surf.blit(
-            pg.transform.scale_by(NATIVE_SURF, game.resolution),
-            (0, game.y_offset),
+            pg.transform.scale_by(NATIVE_SURF, game.resolution_scale),
+            (0, game.native_y_offset),
         )
 
         pg.display.update()
