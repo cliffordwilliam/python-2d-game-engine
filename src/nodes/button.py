@@ -22,7 +22,7 @@ class Button:
     BUTTON_ACTIVE_LINE_COLOR: str = "#1896ea"
     BUTTON_ACTIVE_TEXT_COLOR: str = "#feffff"
 
-    # Constants.
+    # Description text bottom padding.
     DESCRIPTION_TEXT_BOTTOM_PADDING: int = 2
 
     # States.

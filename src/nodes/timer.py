@@ -21,7 +21,6 @@ class Timer:
     """
 
     # Events.
-
     # Fired when count reaches duration.
     END: int = 0
 

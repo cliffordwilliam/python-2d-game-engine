@@ -30,18 +30,14 @@ class Curtain:
     """
 
     # Events.
-
     # Reached invisible.
     INVISIBLE_END: int = 0
-
     # Reached opaque.
     OPAQUE_END: int = 1
 
     # Enums.
-
     # Start invisible.
     INVISIBLE: int = 2
-
     # Start opaque.
     OPAQUE: int = 3
 

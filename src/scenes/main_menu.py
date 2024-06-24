@@ -91,13 +91,13 @@ class MainMenu:
             48, 9, (30, 94), "new game", (4, 2), "start a new game"
         )
         self.continue_button: Button = Button(
-            48, 9, (30, 104), "continue", (4, 2), "continue from last save"
+            48, 9, (30, 94), "continue", (4, 2), "continue from last save"
         )
         self.options_button: Button = Button(
-            48, 9, (30, 114), "options", (4, 2), "adjust game settings"
+            48, 9, (30, 94), "options", (4, 2), "adjust game settings"
         )
         self.exit_button: Button = Button(
-            48, 9, (30, 124), "exit", (4, 2), "exit game"
+            48, 9, (30, 94), "exit", (4, 2), "exit game"
         )
         self.button_container: ButtonContainer = ButtonContainer(
             [
@@ -108,6 +108,7 @@ class MainMenu:
             ],
             0,
             4,
+            False,
         )
 
         self.button_container.add_event_listener(
