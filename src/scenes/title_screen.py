@@ -7,7 +7,7 @@ from constants import NATIVE_RECT
 from constants import NATIVE_SURF
 from constants import NATIVE_WIDTH
 from constants import pg
-from constants import PNGS_PATHS
+from constants import PNGS_PATHS_DICT
 from nodes.curtain import Curtain
 from nodes.timer import Timer
 from typeguard import typechecked
@@ -84,7 +84,7 @@ class TitleScreen:
         )
 
         self.gestalt_illusion_logo_surf: pg.Surface = pg.image.load(
-            PNGS_PATHS["gestalt_illusion_logo.png"]
+            PNGS_PATHS_DICT["gestalt_illusion_logo.png"]
         )
         self.gestalt_illusion_logo_rect: pg.Rect = (
             self.gestalt_illusion_logo_surf.get_rect()

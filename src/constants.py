@@ -10,9 +10,19 @@ import pygame.freetype as font
 # Initialize pygame.
 pg.init()
 
+# Default settings to be written.
+DEFAULT_SETTINGS_DICT: Dict[str, str] = {
+    "resolution_scale": "3",
+}
+
 # Path dictionaries.
+JSONS_DIR_PATH: str = "jsons"
+JSONS_PATHS_DICT: Dict[str, str] = {
+    "settings.json": join(JSONS_DIR_PATH, "settings.json"),
+}
+
 PNGS_DIR_PATH: str = "pngs"
-PNGS_PATHS: Dict[str, str] = {
+PNGS_PATHS_DICT: Dict[str, str] = {
     "main_menu_background.png": join(
         PNGS_DIR_PATH, "main_menu_background.png"
     ),
@@ -21,14 +31,8 @@ PNGS_PATHS: Dict[str, str] = {
     ),
 }
 
-JSONS_DIR_PATH: str = "jsons"
-JSONS_PATHS: Dict[str, str] = {
-    # "fire_animation.json":
-    # join(JSONS_DIR_PATH, "fire_animation.json"),
-}
-
 WAVS_DIR_PATH: str = "wavs"
-WAVS_PATHS: Dict[str, str] = {
+WAVS_PATHS_DICT: Dict[str, str] = {
     # "cursor.wav":
     # join(WAVS_DIR_PATH, "cursor.wav"),
 }

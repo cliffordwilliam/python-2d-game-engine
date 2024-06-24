@@ -1,7 +1,11 @@
+from json import dump
+from json import load
 from typing import Any
 from typing import Dict
 from typing import Type
 
+from constants import DEFAULT_SETTINGS_DICT
+from constants import JSONS_PATHS_DICT
 from constants import NATIVE_HEIGHT
 from constants import NATIVE_WIDTH
 from constants import pg
@@ -38,6 +42,23 @@ class Game:
     """
 
     def __init__(self, initial_scene: str):
+        # Prepare local settings data.
+        # TODO: Create setters for each key val pair here.
+        # TODO: Resolution setter is already made here.
+        self.local_settings_dict: Dict[str, str] = {}
+
+        # Got load file on disk?
+        try:
+            # Load it.
+            with open(JSONS_PATHS_DICT["settings.json"], "r") as settings_json:
+                self.local_settings_dict = load(settings_json)
+        # No load file on disk?
+        except FileNotFoundError:
+            # Create one to disk.
+            self.local_settings_dict = DEFAULT_SETTINGS_DICT
+            with open(JSONS_PATHS_DICT["settings.json"], "w") as settings_json:
+                dump(self.local_settings_dict, settings_json)
+
         # Options menu flag, toggle options menu mode.
         self.is_options_menu_active: bool = False
 
@@ -55,7 +76,9 @@ class Game:
 
         # Window resolution scale, size, y offset.
         # Y offset because native is shorter than window.
-        self.resolution_scale: int = 3
+        self.resolution_scale: int = int(
+            self.local_settings_dict["resolution_scale"]
+        )
         self.window_width: int = WINDOW_WIDTH * self.resolution_scale
         self.window_height: int = WINDOW_HEIGHT * self.resolution_scale
         self.window_surf: pg.Surface = pg.display.set_mode(
@@ -156,6 +179,14 @@ class Game:
         # Keep track of current scene.
         self.current_scene: Any = self.scenes[initial_scene](self)
 
+    def sync_local_saves_with_disk_saves(self) -> None:
+        """
+        Dump my local saves to disk.
+        """
+
+        with open(JSONS_PATHS_DICT["settings.json"], "w") as settings_json:
+            dump(self.local_settings_dict, settings_json)
+
     def set_is_options_menu_active(self, value: bool) -> None:
         """
         Toggle options screen.
@@ -179,6 +210,11 @@ class Game:
             # Update self.resolution_scale
             self.resolution_scale = value
 
+            # Update local saves.
+            self.local_settings_dict["resolution_scale"] = str(
+                self.resolution_scale
+            )
+
             # Update window size, surf and y offset
             self.window_width = WINDOW_WIDTH * self.resolution_scale
             self.window_height = WINDOW_HEIGHT * self.resolution_scale
@@ -200,6 +236,11 @@ class Game:
             # Update self.resolution_scale with window fullscreen size.
             self.resolution_scale = (
                 self.window_surf.get_width() // NATIVE_WIDTH
+            )
+
+            # Update local saves.
+            self.local_settings_dict["resolution_scale"] = str(
+                self.resolution_scale
             )
 
             # Update window size, surf and y offset

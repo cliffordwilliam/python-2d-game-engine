@@ -5,7 +5,7 @@ from constants import NATIVE_HEIGHT
 from constants import NATIVE_SURF
 from constants import NATIVE_WIDTH
 from constants import pg
-from constants import PNGS_PATHS
+from constants import PNGS_PATHS_DICT
 from nodes.button import Button
 from nodes.button_container import ButtonContainer
 from nodes.curtain import Curtain
@@ -82,7 +82,7 @@ class MainMenu:
         )
 
         self.background_surf: pg.Surface = pg.image.load(
-            PNGS_PATHS["main_menu_background.png"]
+            PNGS_PATHS_DICT["main_menu_background.png"]
         )
 
         # TODO: Check each class instances and move their arg to self prop

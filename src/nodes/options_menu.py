@@ -133,11 +133,18 @@ class OptionsMenu:
 
         # Resolution texts.
         self.resolution_texts: List[str] = [
-            "320 x 160",
-            "640 x 320",
+            "< 320  x 160 >",
+            "< 640  x 320 >",
+            "< 960  x 480 >",
+            "< 1280 x 640 >",
+            "< 1600 x 800 >",
+            "< 1920 x 960 >",
+            "< fullscreen >",
         ]
         self.resolution_texts_len: int = len(self.resolution_texts)
-        self.resolution_index: int = 0
+        self.resolution_index: int = int(
+            self.game.local_settings_dict["resolution_scale"]
+        )
         self.resolution_text: str = self.resolution_texts[
             self.resolution_index
         ]
@@ -240,6 +247,11 @@ class OptionsMenu:
         elif self.exit_button == self.selected_button:
             # Set my state to GOING_TO_INVISIBLE.
             self.set_state(self.GOING_TO_INVISIBLE)
+
+            # TODO: Move this to apply button, also add another called revert.
+            # TODO: For now apply change is here + save to disk.
+            self.game.set_resolution(self.resolution_index)
+            self.game.sync_local_saves_with_disk_saves()
 
     def draw(self) -> None:
         """
