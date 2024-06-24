@@ -169,18 +169,6 @@ class ButtonContainer:
                 # Modulo wrap loop.
                 self.index = self.index % self.buttons_len
 
-                # Handle next page or prev page.
-                if self.index == self.end_offset:
-                    self.set_offset(self.offset + 1)
-                elif self.index == self.offset - 1:
-                    self.set_offset(self.offset - 1)
-
-                # Handle modulo loop for pagiantion offset.
-                elif old_index == self.buttons_len - 1 and self.index == 0:
-                    self.set_offset(0)
-                elif old_index == 0 and self.index == self.buttons_len - 1:
-                    self.set_offset(self.buttons_len - self.limit)
-
                 # Activate / deactivate old and new button.
                 old_button: Button = self.buttons[old_index]
                 new_button: Button = self.buttons[self.index]
@@ -195,6 +183,20 @@ class ButtonContainer:
                 if not self.is_pagination:
                     # Return.
                     return
+
+                # Update pagination offset.
+
+                # Handle next page or prev page.
+                if self.index == self.end_offset:
+                    self.set_offset(self.offset + 1)
+                elif self.index == self.offset - 1:
+                    self.set_offset(self.offset - 1)
+
+                # Handle modulo loop for pagiantion offset.
+                elif old_index == self.buttons_len - 1 and self.index == 0:
+                    self.set_offset(0)
+                elif old_index == 0 and self.index == self.buttons_len - 1:
+                    self.set_offset(self.buttons_len - self.limit)
 
                 # Compute scrollbar step and height.
 
