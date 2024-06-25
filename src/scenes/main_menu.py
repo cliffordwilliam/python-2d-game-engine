@@ -50,17 +50,14 @@ class MainMenu:
         self.curtain_duration: float = 1000.0
         self.curtain_start: int = Curtain.OPAQUE
         self.curtain_max_alpha: int = 255
-        self.curtain_surf: pg.Surface = pg.Surface(
-            (NATIVE_WIDTH, NATIVE_HEIGHT)
-        )
-        self.curtain_surf.fill(self.native_clear_color)
         self.curtain_is_invisible: bool = False
         self.curtain: Curtain = Curtain(
             self.curtain_duration,
             self.curtain_start,
             self.curtain_max_alpha,
-            self.curtain_surf,
+            (NATIVE_WIDTH, NATIVE_HEIGHT),
             self.curtain_is_invisible,
+            self.native_clear_color,
         )
         self.curtain.add_event_listener(
             self.on_curtain_invisible, Curtain.INVISIBLE_END
@@ -88,16 +85,16 @@ class MainMenu:
         # TODO: Check each class instances and move their arg to self prop
         # Move all const like prop to top, for config
         self.new_game_button: Button = Button(
-            48, 9, (30, 94), "new game", (4, 2), "start a new game"
+            (48, 9), (30, 94), "new game", (4, 2), "start a new game"
         )
         self.continue_button: Button = Button(
-            48, 9, (30, 94), "continue", (4, 2), "continue from last save"
+            (48, 9), (30, 94), "continue", (4, 2), "continue from last save"
         )
         self.options_button: Button = Button(
-            48, 9, (30, 94), "options", (4, 2), "adjust game settings"
+            (48, 9), (30, 94), "options", (4, 2), "adjust game settings"
         )
         self.exit_button: Button = Button(
-            48, 9, (30, 94), "exit", (4, 2), "exit game"
+            (48, 9), (30, 94), "exit", (4, 2), "exit game"
         )
         self.button_container: ButtonContainer = ButtonContainer(
             [

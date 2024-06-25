@@ -10,35 +10,34 @@ from typeguard import typechecked
 @typechecked
 class Curtain:
     """
-    A surface alpha fader.
+    A surface that can fades its alpha.
 
-    Events:
-    - INVISIBLE_END
-    - OPAQUE_END
+    Parameters:
+    - surf_size_tuple: button surf.
+    - topleft: button rect topleft.
+    - text: button text.
+    - text_topleft: relative to button rect.
+    - description_text: text near screen bottom.
 
-    Give me a surface.
-    if is_invisible is set to True:
-    - Curtain is always invisible.
-    - But when you stick things to it, it fades.
-    Set duration in float.
-    Set start_state in invisible or opaque (enum).
-    Set the max alpha of the opaque state in int.
-    Add event listeners (optional).
-    FIRST, Call go_to_invisible() or opaque to start_state fading.
-    THEN, Call draw() (draw me).
-    THEN, Call update() (update alpha value).
+    Update:
+    - Active curtain.
+
+    Draw:
+    - description.
+    - surf.
+    - active curtain.
+
+    States:
+    - INACTIVE.
+    - ACTIVE.
     """
 
     # Events.
-    # Reached invisible.
     INVISIBLE_END: int = 0
-    # Reached opaque.
     OPAQUE_END: int = 1
 
-    # Enums.
-    # Start invisible.
+    # Start settings enum.
     INVISIBLE: int = 2
-    # Start opaque.
     OPAQUE: int = 3
 
     def __init__(
@@ -46,63 +45,60 @@ class Curtain:
         duration: float,
         start_state: int,
         max_alpha: int,
-        surf: pg.Surface,
+        surf_size_tuple: tuple[int, int],
         is_invisible: bool,
+        color: str,
     ):
-        # The surf that alpha I manipulate.
-        self.surf: pg.Surface = surf
+        # Set surf.
+        self.surf: pg.Surface = pg.Surface(surf_size_tuple)
 
-        # is_invisible True?
+        # Is invisible True?
         if is_invisible:
-            # Set my surf to be always invisible.
-            self.surf.set_colorkey("black")
-            self.surf.fill("black")
+            # Turn surf invisible.
+            self.surf.set_colorkey(color)
 
-        # Define surf OPAQUE's alpha.
-        self.max_alpha: int = max_alpha
+        # Fill surf with given color.
+        self.surf.fill(color)
 
-        # Use this to position me relative to topleft native.
+        # Get surf rect.
         self.rect: pg.Rect = self.surf.get_rect()
 
-        # Determine to count up or down. Default 0.
-        self.direction: int = 0
-
-        # Determine how long I fade in or out.
+        # Fade in / out duration.
         self.fade_duration: float = duration
 
-        # Either start INVISIBLE or OPAQUE.
-        self.start_state: int = start_state
+        # Set max alpha.
+        self.max_alpha: int = max_alpha
 
-        # Set initial surf alpha and fade counter.
+        # Set initial alpha and fade counter.
         self.alpha: int = 0
         self.fade_counter: float = 0
 
+        # Start INVISIBLE / OPAQUE.
+        # Update alpha and fade counter.
+        self.start_state: int = start_state
         # Start INVISIBLE?
         if self.start_state == self.INVISIBLE:
-            # Surf alpha 0.
-            # Fade counter 0.
             self.alpha = 0
             self.fade_counter = 0
-
         # Start OPAQUE?
         elif self.start_state == self.OPAQUE:
-            # Surf alpha max_alpha.
-            # Fade counter fade_duration.
             self.alpha = self.max_alpha
             self.fade_counter = self.fade_duration
 
-        # Update actual surf alpha.
+        # Set surf alpha.
         self.surf.set_alpha(self.alpha)
 
-        # Store lost float to int rounding.
+        # Store truncated float.
         self.remainder: float = 0
 
-        # INVISIBLE_END event subscribers list.
+        # Fade direction.
+        self.direction: int = 0
+
+        # Event subscribers list.
         self.listener_invisible_ends: List[Callable] = []
-        # OPAQUE_END event subscribers list.
         self.listener_opaque_ends: List[Callable] = []
 
-        # True when I have reached INVISIBLE_END or OPAQUE_END.
+        # True when reached INVISIBLE_END / OPAQUE_END.
         self.is_done: bool = True
 
     def go_to_opaque(self) -> None:
@@ -110,10 +106,10 @@ class Curtain:
         Lerp the curtain to my max alpha.
         """
 
-        # Go right (opaque).
+        # Go right opaque.
         self.direction = 1
 
-        # Is done False.
+        # Set is done false.
         self.is_done = False
 
     def go_to_invisible(self) -> None:
@@ -121,10 +117,10 @@ class Curtain:
         Lerp the curtain to alpha 0.
         """
 
-        # Go left (invisible).
+        # Go left invisible.
         self.direction = -1
 
-        # Is done False.
+        # Set is done true.
         self.is_done = False
 
     def add_event_listener(self, value: Callable, event: int) -> None:
@@ -136,13 +132,15 @@ class Curtain:
 
         if event == self.INVISIBLE_END:
             self.listener_invisible_ends.append(value)
-
         elif event == self.OPAQUE_END:
             self.listener_opaque_ends.append(value)
 
     def jump_to_opaque(self) -> None:
         """
-        Call this to force the lerp to jump to opaque.
+        Forces the alpha to jump to opaque, mutates:
+        - alpha.
+        - remainder.
+        - fade_counter.
         """
 
         self.alpha = self.max_alpha
@@ -158,9 +156,8 @@ class Curtain:
 
     def draw(self, surf: pg.Surface, y_offset: int) -> None:
         """
-        Blit myself to the given surface.
-        Need to pass offset, useful for camera tricks:
-            - Draw my surf somewhere else, not on my rect pos.
+        Draw:
+        - surf.
         """
 
         # No need to draw if my alpha is 0, I am invisible.
@@ -171,7 +168,13 @@ class Curtain:
 
     def update(self, dt: int) -> None:
         """
-        Update to lerp my curtain.
+        Update:
+        - fade_counter.
+        - alpha.
+        - remainder.
+        - surf alpha.
+        - Fire INVISIBLE_END event.
+        - Fire OPAQUE_END event.
         """
 
         # No need to count when is done true.
@@ -181,30 +184,30 @@ class Curtain:
         # Count up or down.
         self.fade_counter += dt * self.direction
 
-        # Clamp counter to 0 and fade duration.
+        # Clamp counter.
         self.fade_counter = clamp(self.fade_counter, 0, self.fade_duration)
 
-        # Use counter and duration to get: fraction.
+        # Get fraction with counter and duration.
         fraction: float = self.fade_counter / self.fade_duration
 
-        # Use fraction to get alpha.
+        # Get alpha with fraction.
         lerp_alpha: float = lerp(0, self.max_alpha, fraction)
 
-        # Add lost alpha from remainder.
+        # Add lost truncated alpha.
         lerp_alpha += self.remainder
 
-        # Int, clamp and round this alpha.
+        # Truncate alpha.
         self.alpha = int(clamp(round(lerp_alpha), 0, self.max_alpha))
 
-        # Store lost floats from truncation in previous line.
+        # Store truncated floats.
         self.remainder = lerp_alpha - self.alpha
 
-        # Set actual surface alpha.
+        # Set surf alpha.
         self.surf.set_alpha(self.alpha)
 
         # Counter is 0?
         if self.fade_counter == 0:
-            # Is done true.
+            # Set is done true.
             self.is_done = True
 
             # Fire INVISIBLE_END event.
@@ -213,7 +216,7 @@ class Curtain:
 
         # Counter reached duration?
         elif self.fade_counter == self.fade_duration:
-            # Is done true.
+            # Set is done true.
             self.is_done = True
 
             # Fire OPAQUE_END event.

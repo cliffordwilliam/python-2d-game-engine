@@ -21,7 +21,34 @@ if TYPE_CHECKING:
 @typechecked
 class OptionsMenu:
     """
-    Since most things can access pause menu, it is autoloaded.
+    Autoload scene.
+    Activate this to update this instead of current scene.
+
+    States:
+    - JUST_ENTERED.
+    - GOING_TO_OPAQUE.
+    - REACHED_OPAQUE.
+    - GOING_TO_INVISIBLE.
+    - REACHED_INVISIBLE.
+
+    Parameters:
+    - game:
+        - read / update local save.
+        - activates / deactivates options menu.
+        - sync disk to local save.
+        - debug draw.
+        - input flags.
+
+    Update:
+    - state machine.
+
+    Draw:
+    - clear curtain.
+    - draw title.
+    - button container.
+    - resolution texts.
+    - decorations.
+    - draw curtain on native.
     """
 
     # States.
@@ -32,7 +59,7 @@ class OptionsMenu:
     REACHED_INVISIBLE: int = 4
 
     # REMOVE IN BUILD
-    # For debug drwa.
+    # For debug draw.
     state_names: List[str] = [
         "JUST_ENTERED",
         "GOING_TO_OPAQUE",
@@ -53,10 +80,6 @@ class OptionsMenu:
         self.font_color: str = "#ffffff"
 
         # Curtain here is my surface.
-        self.curtain_surf: pg.Surface = pg.Surface(
-            (NATIVE_WIDTH, NATIVE_HEIGHT)
-        )
-        self.curtain_surf.fill(self.native_clear_color)
         self.curtain_duration: float = 1000.0
         self.curtain_start: int = Curtain.INVISIBLE
         self.curtain_max_alpha: int = 255
@@ -65,8 +88,9 @@ class OptionsMenu:
             self.curtain_duration,
             self.curtain_start,
             self.curtain_max_alpha,
-            self.curtain_surf,
+            (NATIVE_WIDTH, NATIVE_HEIGHT),
             self.curtain_is_invisible,
+            self.native_clear_color,
         )
         self.curtain.add_event_listener(
             self.on_curtain_invisible, Curtain.INVISIBLE_END
@@ -96,16 +120,14 @@ class OptionsMenu:
         # Buttons and button container.
         self.button_height: int = 9
         self.resolution_button: Button = Button(
-            149,
-            self.button_height,
+            (149, self.button_height),
             (87, 18),
             "resolutions",
             (4, 2),
             "set resolutions",
         )
         self.exit_button: Button = Button(
-            73,
-            self.button_height,
+            (73, self.button_height),
             (87, 18),
             "exit",
             (4, 2),
@@ -255,12 +277,13 @@ class OptionsMenu:
 
     def draw(self) -> None:
         """
-        - Clear curtain.
-        - Draw title.
-        - Button container.
-        - Resolution texts.
-        - Decorations.
-        - Draw curtain on native.
+        Draw:
+        - clear curtain.
+        - draw title.
+        - button container.
+        - resolution texts.
+        - decorations.
+        - draw curtain on native.
         """
 
         # Clear curtain.
@@ -305,8 +328,13 @@ class OptionsMenu:
         self.curtain.draw(NATIVE_SURF, 0)
 
     def update(self, dt: int) -> None:
+        """
+        Update:
+        - state machine.
+        """
+
         # REMOVE IN BUILD
-        # Draw my state.
+        # Draw my state name.
         self.game.debug_draw.add(
             {
                 "type": "text",
@@ -338,10 +366,9 @@ class OptionsMenu:
 
             # Focusing on resolution button?
             if self.resolution_button == self.focused_button:
-                # Initialize new value.
+                # Get left right direction.
                 new_value = self.resolution_index
                 is_pressed_left_or_right: bool = False
-
                 # Left?
                 if self.game.is_left_just_pressed:
                     new_value -= 1
@@ -350,9 +377,8 @@ class OptionsMenu:
                 if self.game.is_right_just_pressed:
                     new_value += 1
                     is_pressed_left_or_right = True
-
+                # Update resolution index.
                 if is_pressed_left_or_right:
-                    # Frame perfect press both, no index change, return.
                     if self.resolution_index != new_value:
                         self.set_resolution_index(new_value)
 

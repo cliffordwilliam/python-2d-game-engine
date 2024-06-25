@@ -16,17 +16,35 @@ if TYPE_CHECKING:
 @typechecked
 class ButtonContainer:
     """
-    This thing only job is to listen to input.
-    Toggle button active states (draw and update too).
-    Fire events on index change and clicks.
+    Listen to input, updates button index.
 
-    Also draws the desc background
+    Events:
+    - INDEX_CHANGED.
+    - BUTTON_SELECTED.
+
+    Consts:
+    - DESCRIPTION_SURF_WIDTH
+    - DESCRIPTION_SURF_HEIGHT
+    - DESCRIPTION_RECT_TOP_LEFT
+    - DESCRIPTION_SURF_COLOR
+
+    Parameters:
+    - buttons: buttons list.
+    - offset: pagination.
+    - limit: pagination.
+    - is_pagination: pagination toggle feature.
+
+    Update:
+    - Buttons active curtain.
+
+    Draw:
+    - Description.
+    - Buttons.
+    - Scrollbar.
     """
 
     # Events.
-    # Button index changed.
     INDEX_CHANGED: int = 0
-    # Button selected.
     BUTTON_SELECTED: int = 1
 
     # Description dimension, position and color.
@@ -42,17 +60,20 @@ class ButtonContainer:
         limit: int,
         is_pagination: bool,
     ):
-        # Set pagination or not.
+        # Set pagination on or off.
         self.is_pagination = is_pagination
 
-        # Buttons list.
+        # Get buttons list.
         self.buttons: List[Button] = buttons
         self.buttons_len: int = len(self.buttons)
 
-        # Get button total occupied vertical space.
-        self.button_height_with_margin: int = self.buttons[0].height + 1
+        # Button margin and height with margin.
+        self.bottom_margin: int = 1
+        self.button_height_with_margin: int = (
+            self.buttons[0].rect.height + self.bottom_margin
+        )
 
-        # Reposition button like flex col.
+        # Reposition button like flex col, from top first button.
         for i in range(self.buttons_len):
             self.buttons[i].rect.y += i * self.button_height_with_margin
             self.buttons[i].active_curtain.rect.y += (
@@ -63,18 +84,16 @@ class ButtonContainer:
         self.offset: int = offset
         self.limit: int = limit
         self.end_offset: int = self.offset + self.limit
-        # Draw offset for pagination.
         self.button_draw_y_offset: int = 0
 
-        # Focused button index.
+        # Hovered button index.
         self.index: int = 0
 
-        # INDEX_CHANGED event subscribers list.
+        # Event subscribers list.
         self.listener_index_changed: List[Callable] = []
-        # BUTTON_SELECTED event subscribers list.
         self.listener_button_selected: List[Callable] = []
 
-        # User input blocker.
+        # Input blocker.
         self.is_input_allowed: bool = False
 
         # Description surf, rect and position.
@@ -85,48 +104,55 @@ class ButtonContainer:
         self.description_rect: pg.Rect = self.description_surf.get_rect()
         self.description_rect.bottomleft = NATIVE_RECT.bottomleft
 
-        # Scrollbar color
+        # Scrollbar color, margin, y remainder, position.
         self.scrollbar_color: str = "#44afe7"
         self.scrollbar_right_margin: int = 3
-
-        # Scrollbar y remainder.
         self.remainder: float = 0
-
-        # Scrollbar top left
         self.scrollbar_x: int = self.buttons[0].rect.x
         self.scrollbar_y: int = self.buttons[0].rect.y
 
         # Pagination?
         if self.is_pagination:
-            # Compute scrollbar step and height for first time.
+            # Init scrollbar height and step.
+            self.scrollbar_step: float = 0.0
+            self.scrollbar_height: float = 0.0
 
-            # Handle scrollbar, get ratio
-            size_ratio: float = self.limit / self.buttons_len
+            self.update_scrollbar_step_and_height()
 
-            # Compute the limit height.
-            limit_height: int = self.button_height_with_margin * self.limit
+    def update_scrollbar_step_and_height(self) -> None:
+        """
+        Call this whenever the pagination changes.
+        This updates scrollbar_step and scrollbar_height.
+        Which determines where the scrollbar is drawn.
+        """
 
-            # Constant ratio.
-            # (limit height : tot height) = (bar height : limit height)
-            self.bar_height: float = size_ratio * limit_height
+        # Handle scrollbar, get ratio
+        size_ratio: float = self.limit / self.buttons_len
 
-            # Compute distance to cover.
-            bar_distance_to_cover: float = limit_height - self.bar_height
+        # Compute the limit height.
+        limit_height: int = self.button_height_with_margin * self.limit
 
-            # Compute step to take this frame.
-            self.bar_step: float = bar_distance_to_cover / (
-                self.buttons_len - 1
+        # Constant ratio.
+        # (limit height : tot height) = (bar height : limit height)
+        self.scrollbar_height = size_ratio * limit_height
+
+        # Compute distance to cover.
+        bar_distance_to_cover: float = limit_height - self.scrollbar_height
+
+        # Compute step to take this frame.
+        self.scrollbar_step = bar_distance_to_cover / (self.buttons_len - 1)
+
+        # Add lost remainder from prev float truncation.
+        self.scrollbar_step += self.remainder
+
+        # Truncate bar step.
+        self.scrollbar_step = int(
+            clamp(
+                round(self.index * self.scrollbar_step),
+                0,
+                bar_distance_to_cover,
             )
-
-            # Add lost remainder from prev float truncation.
-            self.bar_step += self.remainder
-
-            # Truncate bar step.
-            self.bar_step = int(
-                clamp(
-                    round(self.index * self.bar_step), 0, bar_distance_to_cover
-                )
-            )
+        )
 
     def add_event_listener(self, value: Callable, event: int) -> None:
         """
@@ -137,13 +163,21 @@ class ButtonContainer:
 
         if event == self.INDEX_CHANGED:
             self.listener_index_changed.append(value)
-
         elif event == self.BUTTON_SELECTED:
             self.listener_button_selected.append(value)
 
     def event(self, game: "Game") -> None:
         """
-        Uses event to update index and notify subscribers.
+        Does the following:
+        - Listen to up down input.
+        - Updates index with up down input.
+        - Fire INDEX_CHANGED event.
+        - Got pagination?
+            - Next / prev page based on index value.
+            - Compute scrollbar step and height.
+
+        - Listen to enter input. (if up down were not pressed)
+        - Fire BUTTON_SELECTED event.
         """
 
         # Input blocker.
@@ -181,58 +215,23 @@ class ButtonContainer:
 
                 # Pagination?
                 if self.is_pagination:
-                    # Update pagination offset.
-
-                    # Handle next page or prev page for set offset.
+                    # Call next / prev page based on index position.
+                    # Handle next page or prev page.
                     if self.index == self.end_offset:
                         self.set_offset(self.offset + 1)
                     elif self.index == self.offset - 1:
                         self.set_offset(self.offset - 1)
-
-                    # Handle modulo loop for pagiantion set offset.
+                    # Handle modulo loop.
                     elif old_index == self.buttons_len - 1 and self.index == 0:
                         self.set_offset(0)
                     elif old_index == 0 and self.index == self.buttons_len - 1:
                         self.set_offset(self.buttons_len - self.limit)
 
                     # Compute scrollbar step and height.
+                    self.update_scrollbar_step_and_height()
 
-                    # Handle scrollbar, get ratio
-                    size_ratio: float = self.limit / self.buttons_len
-
-                    # Compute the limit height.
-                    limit_height: int = (
-                        self.button_height_with_margin * self.limit
-                    )
-
-                    # Constant ratio.
-                    # (limit height : tot height) = (bar height : limit height)
-                    self.bar_height = size_ratio * limit_height
-
-                    # Compute distance to cover.
-                    bar_distance_to_cover: float = (
-                        limit_height - self.bar_height
-                    )
-
-                    # Compute step to take this frame.
-                    self.bar_step = bar_distance_to_cover / (
-                        self.buttons_len - 1
-                    )
-
-                    # Add lost remainder from prev float truncation.
-                    self.bar_step += self.remainder
-
-                    # Truncate bar step.
-                    self.bar_step = int(
-                        clamp(
-                            round(self.index * self.bar_step),
-                            0,
-                            bar_distance_to_cover,
-                        )
-                    )
-
-        # Press enter (can press this same time with directions).
-        if game.is_enter_just_pressed:
+        # Press enter. (if up / down not pressed)
+        elif game.is_enter_just_pressed:
             # Fire BUTTON_SELECTED event.
             selected_button: Button = self.buttons[self.index]
             for callback in self.listener_button_selected:
@@ -254,7 +253,10 @@ class ButtonContainer:
 
     def set_offset(self, value: int) -> None:
         """
-        Set pagination offset and pagination draw y offset.
+        Sets:
+        - offset.
+        - end_offset.
+        - button_draw_y_offset.
         """
 
         self.offset = value
@@ -268,7 +270,9 @@ class ButtonContainer:
         Draw:
         - Description.
         - Buttons.
-        - Scrollbar.
+
+        - Got pagination?
+            - Scrollbar.
         """
 
         # Description.
@@ -287,15 +291,22 @@ class ButtonContainer:
                 self.scrollbar_color,
                 (
                     self.scrollbar_x - self.scrollbar_right_margin,
-                    self.scrollbar_y + self.bar_step,
+                    self.scrollbar_y + self.scrollbar_step,
                 ),
                 (
                     self.scrollbar_x - self.scrollbar_right_margin,
-                    self.scrollbar_y + self.bar_step + self.bar_height,
+                    self.scrollbar_y
+                    + self.scrollbar_step
+                    + self.scrollbar_height,
                 ),
             )
 
     def update(self, dt: int) -> None:
-        # Active animation lerp.
+        """
+        Update:
+        - Buttons active curtain.
+        """
+
+        # Update all buttons active surf.
         for button in self.buttons:
             button.update(dt)

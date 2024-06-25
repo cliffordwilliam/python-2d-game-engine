@@ -49,17 +49,14 @@ class MadeWithSplashScreen:
         self.curtain_duration: float = 1000.0
         self.curtain_start: int = Curtain.OPAQUE
         self.curtain_max_alpha: int = 255
-        self.curtain_surf: pg.Surface = pg.Surface(
-            (NATIVE_WIDTH, NATIVE_HEIGHT)
-        )
-        self.curtain_surf.fill(self.native_clear_color)
         self.curtain_is_invisible: bool = False
         self.curtain: Curtain = Curtain(
             self.curtain_duration,
             self.curtain_start,
             self.curtain_max_alpha,
-            self.curtain_surf,
+            (NATIVE_WIDTH, NATIVE_HEIGHT),
             self.curtain_is_invisible,
+            self.native_clear_color,
         )
         self.curtain.add_event_listener(
             self.on_curtain_invisible, Curtain.INVISIBLE_END
@@ -99,14 +96,6 @@ class MadeWithSplashScreen:
         self.tips_rect.y -= 1
 
         self.state: int = self.initial_state
-
-        self.init_state()
-
-    def init_state(self) -> None:
-        """
-        This is set state for none to initial state.
-        """
-        self.curtain.draw(NATIVE_SURF, 0)
 
     def on_entry_delay_timer_end(self) -> None:
         self.set_state(self.GOING_TO_INVISIBLE)

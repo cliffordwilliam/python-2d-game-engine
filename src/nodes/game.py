@@ -23,28 +23,35 @@ from typeguard import typechecked
 @typechecked
 class Game:
     """
-    Requires initial scene name.
-    The scene names are the keys to my scenes list.
+    Responsibility:
+    - sync_local_saves_with_disk_saves.
+    - set_is_options_menu_active.
+    - set_resolution.
+    - set_scene.
+    - quit.
+    - event.
 
     Properties:
-    - Options menu state:
-        - Updates option, not current scene.
-    - Debug states:
-        - Debug draw instance.
-        - Frame per frame mode.
-    - Window size (resolution scale).
-    - All inputs flags.
-    - All inputs dict, name to int (keybinding).
-    - All actors dict, name to memory.
-    - All scenes dict, name to memory.
-    - Sound manager instance.
-    - Current scene.
+    - local_settings_dict.
+    - is_options_menu_active.
+    - is_debug.
+    - debug_draw.
+    - is_per_frame.
+    - resolution_scale.
+    - window_width.
+    - window_height.
+    - window_surf.
+    - native_y_offset.
+    - input flags.
+    - inputs dict, name to int. KEYBINDS
+    - actors dict, name to memory.
+    - scenes dict, name to memory.
+    - sound_manager.
+    - current_scene.
     """
 
     def __init__(self, initial_scene: str):
         # Prepare local settings data.
-        # TODO: Create setters for each key val pair here.
-        # TODO: Resolution setter is already made here.
         self.local_settings_dict: Dict[str, str] = {}
 
         # Got load file on disk?
@@ -160,12 +167,12 @@ class Game:
             "rmb": 3,
         }
 
-        # All actors dict, name to memory
+        # All actors dict, name to memory.
         self.actors: Dict[str, Type[Any]] = {
             # "fire": Fire,
         }
 
-        # All scenes dict, name to memory
+        # All scenes dict, name to memory.
         self.scenes: Dict[str, Type[Any]] = {
             "CreatedBySplashScreen": CreatedBySplashScreen,
             "MadeWithSplashScreen": MadeWithSplashScreen,
@@ -173,10 +180,10 @@ class Game:
             "MainMenu": MainMenu,
         }
 
-        # The thing that handles sounds.
+        # Handles sounds.
         self.sound_manager: SoundManager = SoundManager()
 
-        # Keep track of current scene.
+        # Keeps track of current scene.
         self.current_scene: Any = self.scenes[initial_scene](self)
 
     def sync_local_saves_with_disk_saves(self) -> None:
@@ -191,8 +198,6 @@ class Game:
         """
         Toggle options screen.
         If options screen is active, current scene is not updated.
-
-        Takes bool parameter.
         """
 
         self.is_options_menu_active = value
@@ -205,7 +210,7 @@ class Game:
         Takes int parameter, 1 - 7 only.
         """
 
-        # Not fullscreen. Value updates self.resolution_scale.
+        # Not fullscreen.
         if value != 7:
             # Update self.resolution_scale
             self.resolution_scale = value
@@ -225,8 +230,7 @@ class Game:
                 (WINDOW_HEIGHT - NATIVE_HEIGHT) // 2
             ) * self.resolution_scale
 
-        # Full screen. Values does not update self.resolution_scale.
-        # self.resolution_scale is updated by how big fullscreen is.
+        # Full screen.
         elif value == 7:
             # Set window surface to be fullscreen size.
             self.window_surf = pg.display.set_mode(
@@ -252,7 +256,7 @@ class Game:
 
     def set_scene(self, value: str) -> None:
         """
-        Sets the current scene with a new instance.
+        Sets the current scene with a new scene instance.
         """
 
         self.current_scene = self.scenes[value](self)

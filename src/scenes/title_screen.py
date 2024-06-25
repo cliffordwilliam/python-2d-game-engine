@@ -52,17 +52,14 @@ class TitleScreen:
         self.curtain_duration: float = 1000.0
         self.curtain_start: int = Curtain.OPAQUE
         self.curtain_max_alpha: int = 255
-        self.curtain_surf: pg.Surface = pg.Surface(
-            (NATIVE_WIDTH, NATIVE_HEIGHT)
-        )
-        self.curtain_surf.fill(self.native_clear_color)
         self.curtain_is_invisible: bool = False
         self.curtain: Curtain = Curtain(
             self.curtain_duration,
             self.curtain_start,
             self.curtain_max_alpha,
-            self.curtain_surf,
+            (NATIVE_WIDTH, NATIVE_HEIGHT),
             self.curtain_is_invisible,
+            self.native_clear_color,
         )
         self.curtain.add_event_listener(
             self.on_curtain_invisible, Curtain.INVISIBLE_END
@@ -105,18 +102,15 @@ class TitleScreen:
         self.version_rect.x -= 1
         self.version_rect.y -= 1
 
-        self.prompt_surf: pg.Surface = pg.Surface(
-            (self.prompt_rect.width, self.prompt_rect.height)
-        )
-
         self.prompt_curtain_duration: float = 1000.0
         self.prompt_curtain_max_alpha: int = 125
         self.prompt_curtain: Curtain = Curtain(
             self.prompt_curtain_duration,
             Curtain.INVISIBLE,
             self.prompt_curtain_max_alpha,
-            self.prompt_surf,
-            is_invisible=True,
+            (self.prompt_rect.width, self.prompt_rect.height),
+            True,
+            "black",
         )
         self.prompt_curtain.add_event_listener(
             self.on_prompt_curtain_invisible, Curtain.INVISIBLE_END
