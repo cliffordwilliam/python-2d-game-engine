@@ -82,8 +82,6 @@ class MainMenu:
             PNGS_PATHS_DICT["main_menu_background.png"]
         )
 
-        # TODO: Check each class instances and move their arg to self prop
-        # Move all const like prop to top, for config
         self.new_game_button: Button = Button(
             (48, 9), (30, 94), "new game", (4, 2), "start a new game"
         )
@@ -104,7 +102,7 @@ class MainMenu:
                 self.exit_button,
             ],
             0,
-            4,
+            0,
             False,
         )
 

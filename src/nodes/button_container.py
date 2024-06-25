@@ -80,9 +80,13 @@ class ButtonContainer:
                 i * self.button_height_with_margin
             )
 
-        # Pagination.
+        # Init pagination.
         self.offset: int = offset
         self.limit: int = limit
+        # Not pagination?
+        if not self.is_pagination:
+            # Set limit to total button len
+            self.limit = self.buttons_len
         self.end_offset: int = self.offset + self.limit
         self.button_draw_y_offset: int = 0
 

@@ -11,8 +11,16 @@ import pygame.freetype as font
 pg.init()
 
 # Default settings to be written.
-DEFAULT_SETTINGS_DICT: Dict[str, str] = {
-    "resolution_scale": "3",
+DEFAULT_SETTINGS_DICT: Dict[str, int] = {
+    "resolution_scale": 3,
+    "up": 1073741906,
+    "down": 1073741905,
+    "left": 1073741904,
+    "right": 1073741903,
+    "enter": 13,
+    "pause": 27,
+    "jump": 99,
+    "attack": 120,
 }
 
 # Path dictionaries.

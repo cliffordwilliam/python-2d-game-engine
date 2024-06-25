@@ -110,9 +110,7 @@ class CreatedBySplashScreen:
         self.title_rect: pg.Rect = FONT.get_rect(self.title_text)
         self.title_rect.center = NATIVE_RECT.center
 
-        self.tips_text: str = (
-            f"press {pg.key.name(self.game.key_bindings['enter'])} to skip"
-        )
+        self.tips_text: str = "press any key to skip"
         self.tips_rect: pg.Rect = FONT.get_rect(self.tips_text)
         self.tips_rect.bottomright = NATIVE_RECT.bottomright
         self.tips_rect.x -= 1
@@ -187,7 +185,7 @@ class CreatedBySplashScreen:
             - Updates curtain alpha.
             """
 
-            if self.game.is_enter_just_pressed:
+            if self.game.is_any_key_just_pressed:
                 self.set_state(self.GOING_TO_OPAQUE)
                 return
 

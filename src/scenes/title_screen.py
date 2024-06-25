@@ -88,9 +88,7 @@ class TitleScreen:
         )
         self.gestalt_illusion_logo_rect.topleft = (77, 74)
 
-        self.prompt_text: str = (
-            f"press {pg.key.name(self.game.key_bindings['enter'])}"
-        )
+        self.prompt_text: str = "press any key to continue"
         self.prompt_rect: pg.Rect = FONT.get_rect(self.prompt_text)
         self.prompt_rect.center = NATIVE_RECT.center
         # TODO: Move magic numbers to self props
@@ -128,14 +126,6 @@ class TitleScreen:
         )
 
         self.state: int = self.initial_state
-
-        self.init_state()
-
-    def init_state(self) -> None:
-        """
-        This is set state for none to initial state.
-        """
-        self.curtain.draw(NATIVE_SURF, 0)
 
     def on_entry_delay_timer_end(self) -> None:
         self.set_state(self.GOING_TO_INVISIBLE)
@@ -196,7 +186,7 @@ class TitleScreen:
             self.curtain.update(dt)
 
         elif self.state == self.REACHED_INVISIBLE:
-            if self.game.is_enter_just_pressed:
+            if self.game.is_any_key_just_pressed:
                 self.set_state(self.LEAVE_FADE_PROMPT)
                 return
 
