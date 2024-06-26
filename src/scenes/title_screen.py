@@ -6,6 +6,7 @@ from constants import NATIVE_HEIGHT
 from constants import NATIVE_RECT
 from constants import NATIVE_SURF
 from constants import NATIVE_WIDTH
+from constants import OGGS_PATHS_DICT
 from constants import pg
 from constants import PNGS_PATHS_DICT
 from nodes.curtain import Curtain
@@ -127,6 +128,11 @@ class TitleScreen:
 
         self.state: int = self.initial_state
 
+        # Load title screen music. Played in set state.
+        self.game.music_manager.set_current_music_path(
+            OGGS_PATHS_DICT["xdeviruchi_title_theme.ogg"]
+        )
+
     def on_entry_delay_timer_end(self) -> None:
         self.set_state(self.GOING_TO_INVISIBLE)
 
@@ -208,6 +214,7 @@ class TitleScreen:
         if old_state == self.JUST_ENTERED:
             if self.state == self.GOING_TO_INVISIBLE:
                 self.curtain.go_to_invisible()
+                self.game.music_manager.play_music(-1, 0.0, 0)
 
         elif old_state == self.GOING_TO_INVISIBLE:
             if self.state == self.GOING_TO_OPAQUE:

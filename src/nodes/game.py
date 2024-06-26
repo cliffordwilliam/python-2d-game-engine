@@ -12,6 +12,7 @@ from constants import pg
 from constants import WINDOW_HEIGHT
 from constants import WINDOW_WIDTH
 from nodes.debug_draw import DebugDraw
+from nodes.music_manager import MusicManager
 from nodes.sound_manager import SoundManager
 from scenes.created_by_splash_screen import CreatedBySplashScreen
 from scenes.made_with_splash_screen import MadeWithSplashScreen
@@ -168,6 +169,7 @@ class Game:
 
         # Handles sounds.
         self.sound_manager: SoundManager = SoundManager()
+        self.music_manager: MusicManager = MusicManager()
 
         # Keeps track of current scene.
         self.current_scene: Any = self.scenes[initial_scene](self)

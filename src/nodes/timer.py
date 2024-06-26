@@ -1,5 +1,4 @@
 from typing import Callable
-from typing import List
 
 from typeguard import typechecked
 
@@ -31,7 +30,7 @@ class Timer:
         self.duration: float = duration
 
         # Event subscribers list.
-        self.listener_end: List[Callable] = []
+        self.listener_end: list[Callable] = []
 
         # True when I have counted past duration.
         self.is_done: bool = False

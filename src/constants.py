@@ -39,10 +39,11 @@ PNGS_PATHS_DICT: Dict[str, str] = {
     ),
 }
 
-WAVS_DIR_PATH: str = "wavs"
-WAVS_PATHS_DICT: Dict[str, str] = {
-    # "cursor.wav":
-    # join(WAVS_DIR_PATH, "cursor.wav"),
+OGGS_DIR_PATH: str = "oggs"
+OGGS_PATHS_DICT: Dict[str, str] = {
+    "xdeviruchi_title_theme.ogg": join(
+        OGGS_DIR_PATH, "xdeviruchi_title_theme.ogg"
+    ),
 }
 
 # FPS.

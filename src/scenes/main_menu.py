@@ -114,14 +114,6 @@ class MainMenu:
 
         self.state: int = self.initial_state
 
-        self.init_state()
-
-    def init_state(self) -> None:
-        """
-        This is set state for none to initial state.
-        """
-        self.curtain.draw(NATIVE_SURF, 0)
-
     def on_entry_delay_timer_end(self) -> None:
         self.set_state(self.GOING_TO_INVISIBLE)
 
@@ -209,6 +201,10 @@ class MainMenu:
             if self.state == self.GOING_TO_OPAQUE:
                 self.button_container.set_is_input_allowed(False)
                 self.curtain.go_to_opaque()
+                # Fades out music and stop after.
+                self.game.music_manager.fade_out_music(
+                    int(self.curtain_duration)
+                )
 
         elif old_state == self.GOING_TO_OPAQUE:
             if self.state == self.REACHED_OPAQUE:

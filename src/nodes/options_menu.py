@@ -20,7 +20,9 @@ if TYPE_CHECKING:
 @typechecked
 class OptionsMenu:
     """
-    TODO: refactor this, remove all the repetitions.
+    TODO: Refactor this, remove all the repetitions.
+    TODO: Create a method for button to render extra text on it.
+    TODO: Create a method for button to update text.
 
     Autoload scene.
     Activate this to update this instead of current scene.
