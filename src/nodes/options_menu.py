@@ -1,4 +1,3 @@
-from typing import List
 from typing import TYPE_CHECKING
 
 from constants import FONT
@@ -21,6 +20,8 @@ if TYPE_CHECKING:
 @typechecked
 class OptionsMenu:
     """
+    TODO: refactor this, remove all the repetitions.
+
     Autoload scene.
     Activate this to update this instead of current scene.
 
@@ -61,7 +62,7 @@ class OptionsMenu:
 
     # REMOVE IN BUILD
     # For debug draw.
-    state_names: List[str] = [
+    state_names: list[str] = [
         "JUST_ENTERED",
         "GOING_TO_OPAQUE",
         "REACHED_OPAQUE",
@@ -126,21 +127,63 @@ class OptionsMenu:
             (87, 18),
             "resolutions",
             (4, 2),
-            "set resolutions",
+            "set resolutions with left and right input",
         )
         self.up_input_button: Button = Button(
             (149, self.button_height),
             (87, 18),
             "up input",
             (4, 2),
-            "press enter to rebind",
+            "press enter to rebind up input",
         )
         self.down_input_button: Button = Button(
             (149, self.button_height),
             (87, 18),
             "down input",
             (4, 2),
-            "press enter to rebind",
+            "press enter to rebind down input",
+        )
+        self.left_input_button: Button = Button(
+            (149, self.button_height),
+            (87, 18),
+            "left input",
+            (4, 2),
+            "press enter to rebind left input",
+        )
+        self.right_input_button: Button = Button(
+            (149, self.button_height),
+            (87, 18),
+            "right input",
+            (4, 2),
+            "press enter to rebind right input",
+        )
+        self.enter_input_button: Button = Button(
+            (149, self.button_height),
+            (87, 18),
+            "enter input",
+            (4, 2),
+            "press enter to rebind enter input",
+        )
+        self.pause_input_button: Button = Button(
+            (149, self.button_height),
+            (87, 18),
+            "pause input",
+            (4, 2),
+            "press pause to rebind pause input",
+        )
+        self.jump_input_button: Button = Button(
+            (149, self.button_height),
+            (87, 18),
+            "jump input",
+            (4, 2),
+            "press jump to rebind jump input",
+        )
+        self.attack_input_button: Button = Button(
+            (149, self.button_height),
+            (87, 18),
+            "attack input",
+            (4, 2),
+            "press attack to rebind attack input",
         )
         self.apply_button: Button = Button(
             (73, self.button_height),
@@ -168,13 +211,19 @@ class OptionsMenu:
                 self.resolution_button,
                 self.up_input_button,
                 self.down_input_button,
+                self.left_input_button,
+                self.right_input_button,
+                self.enter_input_button,
+                self.pause_input_button,
+                self.jump_input_button,
+                self.attack_input_button,
                 self.apply_button,
                 self.reset_button,
                 self.exit_button,
             ],
             0,
-            0,
-            False,
+            6,
+            True,
         )
         self.button_container.add_event_listener(
             self.on_button_selected, ButtonContainer.BUTTON_SELECTED
@@ -188,7 +237,7 @@ class OptionsMenu:
         self.focused_button: Button = self.resolution_button
 
         # Resolution texts.
-        self.resolution_texts: List[str] = [
+        self.resolution_texts: list[str] = [
             "< 320  x 160 >",
             "< 640  x 320 >",
             "< 960  x 480 >",
@@ -235,13 +284,89 @@ class OptionsMenu:
         self.down_input_text_rect.x -= 3
         self.down_input_text_rect.y += 2
 
+        # Left input text.
+        self.left_input_text: str = pg.key.name(
+            self.game.local_settings_dict["left"]
+        )
+        self.left_input_text_rect: pg.Rect = FONT.get_rect(
+            self.left_input_text
+        )
+        self.left_input_text_rect.topright = (
+            self.left_input_button.rect.topright
+        )
+        self.left_input_text_rect.x -= 3
+        self.left_input_text_rect.y += 2
+
+        # Right input text.
+        self.right_input_text: str = pg.key.name(
+            self.game.local_settings_dict["right"]
+        )
+        self.right_input_text_rect: pg.Rect = FONT.get_rect(
+            self.right_input_text
+        )
+        self.right_input_text_rect.topright = (
+            self.right_input_button.rect.topright
+        )
+        self.right_input_text_rect.x -= 3
+        self.right_input_text_rect.y += 2
+
+        # Enter input text.
+        self.enter_input_text: str = pg.key.name(
+            self.game.local_settings_dict["enter"]
+        )
+        self.enter_input_text_rect: pg.Rect = FONT.get_rect(
+            self.enter_input_text
+        )
+        self.enter_input_text_rect.topright = (
+            self.enter_input_button.rect.topright
+        )
+        self.enter_input_text_rect.x -= 3
+        self.enter_input_text_rect.y += 2
+
+        # Pause input text.
+        self.pause_input_text: str = pg.key.name(
+            self.game.local_settings_dict["pause"]
+        )
+        self.pause_input_text_rect: pg.Rect = FONT.get_rect(
+            self.pause_input_text
+        )
+        self.pause_input_text_rect.topright = (
+            self.pause_input_button.rect.topright
+        )
+        self.pause_input_text_rect.x -= 3
+        self.pause_input_text_rect.y += 2
+
+        # Jump input text.
+        self.jump_input_text: str = pg.key.name(
+            self.game.local_settings_dict["jump"]
+        )
+        self.jump_input_text_rect: pg.Rect = FONT.get_rect(
+            self.jump_input_text
+        )
+        self.jump_input_text_rect.topright = (
+            self.jump_input_button.rect.topright
+        )
+        self.jump_input_text_rect.x -= 3
+        self.jump_input_text_rect.y += 2
+
+        # Attack input text.
+        self.attack_input_text: str = pg.key.name(
+            self.game.local_settings_dict["attack"]
+        )
+        self.attack_input_text_rect: pg.Rect = FONT.get_rect(
+            self.attack_input_text
+        )
+        self.attack_input_text_rect.topright = (
+            self.attack_input_button.rect.topright
+        )
+        self.attack_input_text_rect.x -= 3
+        self.attack_input_text_rect.y += 2
+
         # Decoration lines.
         self.decoration_vertical_start = (160, 18)
         self.decoration_vertical_x: int = 160
         self.decoration_vertical_top: int = 18
-        self.decoration_vetical_height: int = (
-            self.button_container.buttons_len * (self.button_height + 1)
-        )
+        self.decoration_vetical_height: int = 60
         self.decoration_vertical_bottom: int = (
             self.decoration_vertical_top + self.decoration_vetical_height
         )
@@ -287,6 +412,42 @@ class OptionsMenu:
             pg.key.name(self.game.local_settings_dict["down"]),
         )
 
+        # Left input text.
+        self.update_input_text(
+            self.left_input_button,
+            pg.key.name(self.game.local_settings_dict["left"]),
+        )
+
+        # Right input text.
+        self.update_input_text(
+            self.right_input_button,
+            pg.key.name(self.game.local_settings_dict["right"]),
+        )
+
+        # Enter input text.
+        self.update_input_text(
+            self.enter_input_button,
+            pg.key.name(self.game.local_settings_dict["enter"]),
+        )
+
+        # Pause input text.
+        self.update_input_text(
+            self.pause_input_button,
+            pg.key.name(self.game.local_settings_dict["pause"]),
+        )
+
+        # Jump input text.
+        self.update_input_text(
+            self.jump_input_button,
+            pg.key.name(self.game.local_settings_dict["jump"]),
+        )
+
+        # Attack input text.
+        self.update_input_text(
+            self.attack_input_button,
+            pg.key.name(self.game.local_settings_dict["attack"]),
+        )
+
     def update_input_text(self, button: Button, text: str) -> None:
         """
         Input texts are not classes, have to check one by one.
@@ -312,6 +473,60 @@ class OptionsMenu:
             )
             self.down_input_text_rect.x -= 3
             self.down_input_text_rect.y += 2
+
+        elif button == self.left_input_button:
+            self.left_input_text = text
+            self.left_input_text_rect = FONT.get_rect(self.left_input_text)
+            self.left_input_text_rect.topright = (
+                self.left_input_button.rect.topright
+            )
+            self.left_input_text_rect.x -= 3
+            self.left_input_text_rect.y += 2
+
+        elif button == self.right_input_button:
+            self.right_input_text = text
+            self.right_input_text_rect = FONT.get_rect(self.right_input_text)
+            self.right_input_text_rect.topright = (
+                self.right_input_button.rect.topright
+            )
+            self.right_input_text_rect.x -= 3
+            self.right_input_text_rect.y += 2
+
+        elif button == self.enter_input_button:
+            self.enter_input_text = text
+            self.enter_input_text_rect = FONT.get_rect(self.enter_input_text)
+            self.enter_input_text_rect.topright = (
+                self.enter_input_button.rect.topright
+            )
+            self.enter_input_text_rect.x -= 3
+            self.enter_input_text_rect.y += 2
+
+        elif button == self.pause_input_button:
+            self.pause_input_text = text
+            self.pause_input_text_rect = FONT.get_rect(self.pause_input_text)
+            self.pause_input_text_rect.topright = (
+                self.pause_input_button.rect.topright
+            )
+            self.pause_input_text_rect.x -= 3
+            self.pause_input_text_rect.y += 2
+
+        elif button == self.jump_input_button:
+            self.jump_input_text = text
+            self.jump_input_text_rect = FONT.get_rect(self.jump_input_text)
+            self.jump_input_text_rect.topright = (
+                self.jump_input_button.rect.topright
+            )
+            self.jump_input_text_rect.x -= 3
+            self.jump_input_text_rect.y += 2
+
+        elif button == self.attack_input_button:
+            self.attack_input_text = text
+            self.attack_input_text_rect = FONT.get_rect(self.attack_input_text)
+            self.attack_input_text_rect.topright = (
+                self.attack_input_button.rect.topright
+            )
+            self.attack_input_text_rect.x -= 3
+            self.attack_input_text_rect.y += 2
 
     def set_resolution_index(self, value: int) -> None:
         """
@@ -399,6 +614,12 @@ class OptionsMenu:
         elif self.selected_button in [
             self.up_input_button,
             self.down_input_button,
+            self.left_input_button,
+            self.right_input_button,
+            self.enter_input_button,
+            self.pause_input_button,
+            self.jump_input_button,
+            self.attack_input_button,
         ]:
             # Exit state to REBIND.
             self.set_state(self.REBIND)
@@ -429,28 +650,184 @@ class OptionsMenu:
         self.button_container.draw(self.curtain.surf)
 
         # Resolution texts.
-        FONT.render_to(
-            self.curtain.surf,
-            self.resolution_text_rect,
-            self.resolution_text,
-            self.font_color,
-        )
+        if (
+            80
+            > (
+                self.resolution_text_rect.y
+                + self.button_container.button_draw_y_offset
+            )
+            > 10
+        ):
+            FONT.render_to(
+                self.curtain.surf,
+                (
+                    self.resolution_text_rect.x,
+                    self.resolution_text_rect.y
+                    + self.button_container.button_draw_y_offset,
+                ),
+                self.resolution_text,
+                self.font_color,
+            )
 
         # Up input text.
-        FONT.render_to(
-            self.curtain.surf,
-            self.up_input_text_rect,
-            self.up_input_text,
-            self.font_color,
-        )
+        if (
+            80
+            > (
+                self.up_input_text_rect.y
+                + self.button_container.button_draw_y_offset
+            )
+            > 10
+        ):
+            FONT.render_to(
+                self.curtain.surf,
+                (
+                    self.up_input_text_rect.x,
+                    self.up_input_text_rect.y
+                    + self.button_container.button_draw_y_offset,
+                ),
+                self.up_input_text,
+                self.font_color,
+            )
 
         # Down input text.
-        FONT.render_to(
-            self.curtain.surf,
-            self.down_input_text_rect,
-            self.down_input_text,
-            self.font_color,
-        )
+        if (
+            80
+            > (
+                self.down_input_text_rect.y
+                + self.button_container.button_draw_y_offset
+            )
+            > 10
+        ):
+            FONT.render_to(
+                self.curtain.surf,
+                (
+                    self.down_input_text_rect.x,
+                    self.down_input_text_rect.y
+                    + self.button_container.button_draw_y_offset,
+                ),
+                self.down_input_text,
+                self.font_color,
+            )
+
+        # Left input text.
+        if (
+            80
+            > (
+                self.left_input_text_rect.y
+                + self.button_container.button_draw_y_offset
+            )
+            > 10
+        ):
+            FONT.render_to(
+                self.curtain.surf,
+                (
+                    self.left_input_text_rect.x,
+                    self.left_input_text_rect.y
+                    + self.button_container.button_draw_y_offset,
+                ),
+                self.left_input_text,
+                self.font_color,
+            )
+
+        # Right input text.
+        if (
+            80
+            > (
+                self.right_input_text_rect.y
+                + self.button_container.button_draw_y_offset
+            )
+            > 10
+        ):
+            FONT.render_to(
+                self.curtain.surf,
+                (
+                    self.right_input_text_rect.x,
+                    self.right_input_text_rect.y
+                    + self.button_container.button_draw_y_offset,
+                ),
+                self.right_input_text,
+                self.font_color,
+            )
+
+        # Enter input text.
+        if (
+            80
+            > (
+                self.enter_input_text_rect.y
+                + self.button_container.button_draw_y_offset
+            )
+            > 10
+        ):
+            FONT.render_to(
+                self.curtain.surf,
+                (
+                    self.enter_input_text_rect.x,
+                    self.enter_input_text_rect.y
+                    + self.button_container.button_draw_y_offset,
+                ),
+                self.enter_input_text,
+                self.font_color,
+            )
+
+        # Pause input text.
+        if (
+            80
+            > (
+                self.pause_input_text_rect.y
+                + self.button_container.button_draw_y_offset
+            )
+            > 10
+        ):
+            FONT.render_to(
+                self.curtain.surf,
+                (
+                    self.pause_input_text_rect.x,
+                    self.pause_input_text_rect.y
+                    + self.button_container.button_draw_y_offset,
+                ),
+                self.pause_input_text,
+                self.font_color,
+            )
+
+        # Jump input text.
+        if (
+            80
+            > (
+                self.jump_input_text_rect.y
+                + self.button_container.button_draw_y_offset
+            )
+            > 10
+        ):
+            FONT.render_to(
+                self.curtain.surf,
+                (
+                    self.jump_input_text_rect.x,
+                    self.jump_input_text_rect.y
+                    + self.button_container.button_draw_y_offset,
+                ),
+                self.jump_input_text,
+                self.font_color,
+            )
+
+        # Attack input text.
+        if (
+            80
+            > (
+                self.attack_input_text_rect.y
+                + self.button_container.button_draw_y_offset
+            )
+            > 10
+        ):
+            FONT.render_to(
+                self.curtain.surf,
+                (
+                    self.attack_input_text_rect.x,
+                    self.attack_input_text_rect.y
+                    + self.button_container.button_draw_y_offset,
+                ),
+                self.attack_input_text,
+                self.font_color,
+            )
 
         # Decorations.
         pg.draw.line(
@@ -554,6 +931,30 @@ class OptionsMenu:
                     self.game.local_settings_dict[
                         "down"
                     ] = self.game.this_frame_event.key
+                elif self.focused_button == self.left_input_button:
+                    self.game.local_settings_dict[
+                        "left"
+                    ] = self.game.this_frame_event.key
+                elif self.focused_button == self.right_input_button:
+                    self.game.local_settings_dict[
+                        "right"
+                    ] = self.game.this_frame_event.key
+                elif self.focused_button == self.enter_input_button:
+                    self.game.local_settings_dict[
+                        "enter"
+                    ] = self.game.this_frame_event.key
+                elif self.focused_button == self.pause_input_button:
+                    self.game.local_settings_dict[
+                        "pause"
+                    ] = self.game.this_frame_event.key
+                elif self.focused_button == self.jump_input_button:
+                    self.game.local_settings_dict[
+                        "jump"
+                    ] = self.game.this_frame_event.key
+                elif self.focused_button == self.attack_input_button:
+                    self.game.local_settings_dict[
+                        "attack"
+                    ] = self.game.this_frame_event.key
                 self.update_input_text(
                     self.focused_button,
                     pg.key.name(self.game.this_frame_event.key),
@@ -603,6 +1004,30 @@ class OptionsMenu:
                 elif self.focused_button == self.down_input_button:
                     self.update_input_text(
                         self.down_input_button, "press any key"
+                    )
+                elif self.focused_button == self.left_input_button:
+                    self.update_input_text(
+                        self.left_input_button, "press any key"
+                    )
+                elif self.focused_button == self.right_input_button:
+                    self.update_input_text(
+                        self.right_input_button, "press any key"
+                    )
+                elif self.focused_button == self.enter_input_button:
+                    self.update_input_text(
+                        self.enter_input_button, "press any key"
+                    )
+                elif self.focused_button == self.pause_input_button:
+                    self.update_input_text(
+                        self.pause_input_button, "press any key"
+                    )
+                elif self.focused_button == self.jump_input_button:
+                    self.update_input_text(
+                        self.jump_input_button, "press any key"
+                    )
+                elif self.focused_button == self.attack_input_button:
+                    self.update_input_text(
+                        self.attack_input_button, "press any key"
                     )
 
         # From REBIND
