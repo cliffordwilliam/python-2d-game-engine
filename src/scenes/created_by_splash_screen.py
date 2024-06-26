@@ -1,16 +1,16 @@
-from typing import List
 from typing import TYPE_CHECKING
 
-from constants import FONT
-from constants import NATIVE_HEIGHT
-from constants import NATIVE_RECT
-from constants import NATIVE_SURF
-from constants import NATIVE_WIDTH
-from constants import pg
+from constants import (
+    FONT,
+    NATIVE_HEIGHT,
+    NATIVE_RECT,
+    NATIVE_SURF,
+    NATIVE_WIDTH,
+    pg,
+)
 from nodes.curtain import Curtain
 from nodes.timer import Timer
 from typeguard import typechecked
-
 
 if TYPE_CHECKING:
     from nodes.game import Game
@@ -53,7 +53,7 @@ class CreatedBySplashScreen:
     REACHED_OPAQUE: int = 4
 
     # REMOVE IN BUILD
-    state_names: List = [
+    state_names: list = [
         "JUST_ENTERED",
         "GOING_TO_INVISIBLE",
         "REACHED_INVISIBLE",
@@ -84,9 +84,7 @@ class CreatedBySplashScreen:
         self.curtain.add_event_listener(
             self.on_curtain_invisible, Curtain.INVISIBLE_END
         )
-        self.curtain.add_event_listener(
-            self.on_curtain_opaque, Curtain.OPAQUE_END
-        )
+        self.curtain.add_event_listener(self.on_curtain_opaque, Curtain.OPAQUE_END)
 
         self.entry_delay_timer_duration: float = 1000
         self.entry_delay_timer: Timer = Timer(self.entry_delay_timer_duration)
@@ -110,7 +108,9 @@ class CreatedBySplashScreen:
         self.title_rect: pg.Rect = FONT.get_rect(self.title_text)
         self.title_rect.center = NATIVE_RECT.center
 
-        self.tips_text: str = "press any key to skip"
+        self.tips_text: str = (
+            f"press {pg.key.name(self.game.key_bindings['enter'])} to skip"
+        )
         self.tips_rect: pg.Rect = FONT.get_rect(self.tips_text)
         self.tips_rect.bottomright = NATIVE_RECT.bottomright
         self.tips_rect.x -= 1
@@ -144,12 +144,8 @@ class CreatedBySplashScreen:
         """
 
         NATIVE_SURF.fill(self.native_clear_color)
-        FONT.render_to(
-            NATIVE_SURF, self.title_rect, self.title_text, self.font_color
-        )
-        FONT.render_to(
-            NATIVE_SURF, self.tips_rect, self.tips_text, self.font_color
-        )
+        FONT.render_to(NATIVE_SURF, self.title_rect, self.title_text, self.font_color)
+        FONT.render_to(NATIVE_SURF, self.tips_rect, self.tips_text, self.font_color)
         self.curtain.draw(NATIVE_SURF, 0)
 
     def update(self, dt: int) -> None:
@@ -185,7 +181,7 @@ class CreatedBySplashScreen:
             - Updates curtain alpha.
             """
 
-            if self.game.is_any_key_just_pressed:
+            if self.game.is_enter_just_pressed:
                 self.set_state(self.GOING_TO_OPAQUE)
                 return
 

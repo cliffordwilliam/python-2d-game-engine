@@ -1,5 +1,3 @@
-from typing import Union
-
 from constants import pg
 from typeguard import typechecked
 
@@ -28,7 +26,7 @@ class SoundManager:
         if name in self.sounds:
             self.sounds[name].set_volume(volume)
 
-    def get_volume(self, name: str) -> Union[float, None]:
+    def get_volume(self, name: str) -> float | None:
         if name in self.sounds:
             return self.sounds[name].get_volume()
         return None

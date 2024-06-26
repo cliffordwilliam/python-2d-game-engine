@@ -1,17 +1,17 @@
-from typing import List
 from typing import TYPE_CHECKING
 
-from constants import FONT
-from constants import NATIVE_HEIGHT
-from constants import NATIVE_RECT
-from constants import NATIVE_SURF
-from constants import NATIVE_WIDTH
-from constants import pg
-from constants import PNGS_PATHS_DICT
+from constants import (
+    FONT,
+    NATIVE_HEIGHT,
+    NATIVE_RECT,
+    NATIVE_SURF,
+    NATIVE_WIDTH,
+    PNGS_PATHS_DICT,
+    pg,
+)
 from nodes.curtain import Curtain
 from nodes.timer import Timer
 from typeguard import typechecked
-
 
 if TYPE_CHECKING:
     from nodes.game import Game
@@ -32,7 +32,7 @@ class TitleScreen:
     REACHED_OPAQUE: int = 5
 
     # REMOVE IN BUILD
-    state_names: List = [
+    state_names: list = [
         "JUST_ENTERED",
         "GOING_TO_INVISIBLE",
         "REACHED_INVISIBLE",
@@ -64,9 +64,7 @@ class TitleScreen:
         self.curtain.add_event_listener(
             self.on_curtain_invisible, Curtain.INVISIBLE_END
         )
-        self.curtain.add_event_listener(
-            self.on_curtain_opaque, Curtain.OPAQUE_END
-        )
+        self.curtain.add_event_listener(self.on_curtain_opaque, Curtain.OPAQUE_END)
 
         self.entry_delay_timer_duration: float = 1000
         self.entry_delay_timer: Timer = Timer(self.entry_delay_timer_duration)
@@ -88,7 +86,7 @@ class TitleScreen:
         )
         self.gestalt_illusion_logo_rect.topleft = (77, 74)
 
-        self.prompt_text: str = "press any key to continue"
+        self.prompt_text: str = f"press {pg.key.name(self.game.key_bindings['enter'])}"
         self.prompt_rect: pg.Rect = FONT.get_rect(self.prompt_text)
         self.prompt_rect.center = NATIVE_RECT.center
         # TODO: Move magic numbers to self props
@@ -126,6 +124,14 @@ class TitleScreen:
         )
 
         self.state: int = self.initial_state
+
+        self.init_state()
+
+    def init_state(self) -> None:
+        """
+        This is set state for none to initial state.
+        """
+        self.curtain.draw(NATIVE_SURF, 0)
 
     def on_entry_delay_timer_end(self) -> None:
         self.set_state(self.GOING_TO_INVISIBLE)
@@ -173,8 +179,7 @@ class TitleScreen:
                 "x": 0,
                 "y": 6,
                 "text": (
-                    f"title screen state "
-                    f"state: {self.state_names[self.state]}"
+                    f"title screen state " f"state: {self.state_names[self.state]}"
                 ),
             }
         )
@@ -186,7 +191,7 @@ class TitleScreen:
             self.curtain.update(dt)
 
         elif self.state == self.REACHED_INVISIBLE:
-            if self.game.is_any_key_just_pressed:
+            if self.game.is_enter_just_pressed:
                 self.set_state(self.LEAVE_FADE_PROMPT)
                 return
 

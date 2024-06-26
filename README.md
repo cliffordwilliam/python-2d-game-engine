@@ -38,14 +38,14 @@ To install and run the project, follow these steps:
    - Without VSCode, use Bash / any CLI you have:
 
       ```bash
-      python3 -m venv venv
+      python3.12 -m venv venv
       ```
 
    - Using VSCode:
       ctrl + shift + p to select the python intreperter and create venv. Open and close your terminal and wait until you see a popup saying that the venv is activated. If you are a developer, you can run the pre-commit install now. Run this again if you update the pre commit yaml file.
 
       ```bash
-      pre-commit install
+      poetry install
       ```
 
 4. Activate the virtual environment (skip this if you already made venv via VSCode, it activates it for you):
@@ -65,14 +65,44 @@ To install and run the project, follow these steps:
 5. Install dependencies (even if you had used VSCode to make your venv, you can run this again just in case):
 
    ```bash
-   pip install -r requirements.txt
+   poetry install
    ```
 
 6. Run the main script:
 
    ```bash
-   python main.py
+   python src/main.py
    ```
+7. Run pre-commit hook with tests:
+
+   ```
+   poetry run pre-commit run -a
+   ```
+   This hook consists of such things as ruff and black linters, pyright and tests:
+
+   ```
+   Check for added large files..............................................Passed
+   Check JSON...............................................................Passed
+   Pretty format JSON.......................................................Passed
+   Check Yaml...............................................................Passed
+   Forbid new submodules....................................................Passed
+   Mixed line ending........................................................Passed
+   Trim Trailing Whitespace.................................................Passed
+   Check docstring is first.................................................Passed
+   Check for merge conflicts................................................Passed
+   Detect Private Key.......................................................Passed
+   pyupgrade................................................................Passed
+   ruff.....................................................................Passed
+   black....................................................................Passed
+   pyright..................................................................Passed
+   pytest...................................................................Passed
+   ```
+   To update dependencies, update `pyproject.toml` and run minimal update of poetry.lock:
+
+   ```
+   poetry lock --no-update
+   ```
+
 
 ## Usage
 
@@ -95,12 +125,13 @@ If you want to run this with no hassle I provide docker. Here are the steps to r
 6. Clone this repo and enter its dir. Then do the following:
 
 ```bash
-docker build -t my-python-app .
+docker compose up --build
 ```
 
-```bash
-docker run -p 4000:80 my-python-app
-```
+To tun tests in docker, ensure you built docker with `BUILD_DEPENDENCIES=dev` and edit the command in docker-compose:
+
+`command: "python src/main.py"` -> `command: "pytest -v"`
+
 
 If you need to find the id or name from terminal run this.
 

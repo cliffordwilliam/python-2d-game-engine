@@ -1,17 +1,17 @@
-from typing import List
 from typing import TYPE_CHECKING
 
-from constants import NATIVE_HEIGHT
-from constants import NATIVE_SURF
-from constants import NATIVE_WIDTH
-from constants import pg
-from constants import PNGS_PATHS_DICT
+from constants import (
+    NATIVE_HEIGHT,
+    NATIVE_SURF,
+    NATIVE_WIDTH,
+    PNGS_PATHS_DICT,
+    pg,
+)
 from nodes.button import Button
 from nodes.button_container import ButtonContainer
 from nodes.curtain import Curtain
 from nodes.timer import Timer
 from typeguard import typechecked
-
 
 if TYPE_CHECKING:
     from nodes.game import Game
@@ -31,7 +31,7 @@ class MainMenu:
     REACHED_OPAQUE: int = 4
 
     # REMOVE IN BUILD
-    state_names: List = [
+    state_names: list = [
         "JUST_ENTERED",
         "GOING_TO_INVISIBLE",
         "REACHED_INVISIBLE",
@@ -62,9 +62,7 @@ class MainMenu:
         self.curtain.add_event_listener(
             self.on_curtain_invisible, Curtain.INVISIBLE_END
         )
-        self.curtain.add_event_listener(
-            self.on_curtain_opaque, Curtain.OPAQUE_END
-        )
+        self.curtain.add_event_listener(self.on_curtain_opaque, Curtain.OPAQUE_END)
 
         self.entry_delay_timer_duration: float = 1000
         self.entry_delay_timer: Timer = Timer(self.entry_delay_timer_duration)
@@ -82,6 +80,8 @@ class MainMenu:
             PNGS_PATHS_DICT["main_menu_background.png"]
         )
 
+        # TODO: Check each class instances and move their arg to self prop
+        # Move all const like prop to top, for config
         self.new_game_button: Button = Button(
             (48, 9), (30, 94), "new game", (4, 2), "start a new game"
         )
@@ -102,7 +102,7 @@ class MainMenu:
                 self.exit_button,
             ],
             0,
-            0,
+            4,
             False,
         )
 
@@ -169,10 +169,7 @@ class MainMenu:
                 "layer": 6,
                 "x": 0,
                 "y": 6,
-                "text": (
-                    f"main menu state "
-                    f"state: {self.state_names[self.state]}"
-                ),
+                "text": (f"main menu state " f"state: {self.state_names[self.state]}"),
             }
         )
 

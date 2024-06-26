@@ -1,0 +1,86 @@
+[tool.poetry]
+name = "python-2d-game-engine"
+version = "0.0.1"
+description = "My personal 2D python game engine"
+authors = ["Clifford William <you@example.com>"]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.12"
+argcomplete = "3.3.0"
+cfgv = "3.4.0"
+charset-normalizer = "3.3.2"
+colorama = "0.4.6"
+commitizen = "3.25.0"
+decli = "0.6.2"
+distlib = "0.3.8"
+filelock = "3.14.0"
+identify = "2.5.36"
+importlib-metadata = "7.1.0"
+jinja2 = "3.1.4"
+markupsafe = "2.1.5"
+mypy = "1.10.0"
+mypy-extensions = "1.0.0"
+nodeenv = "1.8.0"
+packaging = "24.0"
+platformdirs = "4.2.1"
+prompt-toolkit = "3.0.36"
+pygame-ce = "2.4.1"
+pyyaml = "6.0.1"
+questionary = "2.0.1"
+setuptools = "69.5.1"
+termcolor = "2.4.0"
+tomlkit = "0.12.5"
+typeguard = "4.2.1"
+typing-extensions = "4.11.0"
+virtualenv = "20.26.1"
+wcwidth = "0.2.13"
+zipp = "3.18.1"
+
+[tool.poetry.group.dev.dependencies]
+black = "^24.2.0"
+pre-commit = "^3.2.2"
+pyright = "^1.1.302"
+ruff = "^0.2.0"
+pytest = "^8.2.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 120
+
+
+[tool.ruff.lint]
+extend-select = ["I"]
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
+
+[tool.pyright]
+reportPropertyTypeMismatch = true
+reportImportCycles = true
+reportWildcardImportFromLibrary = true
+reportUntypedFunctionDecorator = true
+reportUntypedClassDecorator = true
