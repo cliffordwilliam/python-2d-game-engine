@@ -104,6 +104,7 @@ class MainMenu:
             0,
             0,
             False,
+            self.game,
         )
 
         self.button_container.add_event_listener(

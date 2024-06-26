@@ -226,6 +226,7 @@ class OptionsMenu:
             0,
             6,
             True,
+            self.game,
         )
         self.button_container.add_event_listener(
             self.on_button_selected, ButtonContainer.BUTTON_SELECTED

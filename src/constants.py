@@ -44,6 +44,8 @@ OGGS_PATHS_DICT: Dict[str, str] = {
     "xdeviruchi_title_theme.ogg": join(
         OGGS_DIR_PATH, "xdeviruchi_title_theme.ogg"
     ),
+    "001_hover_01.ogg": join(OGGS_DIR_PATH, "001_hover_01.ogg"),
+    "confirm.ogg": join(OGGS_DIR_PATH, "confirm.ogg"),
 }
 
 # FPS.
