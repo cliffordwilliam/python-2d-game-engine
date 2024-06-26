@@ -1,9 +1,4 @@
-from constants import CLOCK
-from constants import EVENTS
-from constants import FPS
-from constants import NATIVE_SURF
-from constants import NEXT_FRAME
-from constants import pg
+from constants import CLOCK, EVENTS, FPS, NATIVE_SURF, NEXT_FRAME, pg
 from nodes.game import Game
 from nodes.options_menu import OptionsMenu
 

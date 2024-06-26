@@ -1,13 +1,10 @@
-from typing import Callable
-from typing import List
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
-from constants import NATIVE_RECT
-from constants import pg
+from constants import NATIVE_RECT, pg
 from nodes.button import Button
 from pygame.math import clamp
 from typeguard import typechecked
-
 
 if TYPE_CHECKING:
     from nodes.game import Game
@@ -55,7 +52,7 @@ class ButtonContainer:
 
     def __init__(
         self,
-        buttons: List[Button],
+        buttons: list[Button],
         offset: int,
         limit: int,
         is_pagination: bool,
@@ -64,29 +61,29 @@ class ButtonContainer:
         self.is_pagination = is_pagination
 
         # Get buttons list.
-        self.buttons: List[Button] = buttons
+        self.buttons: list[Button] = buttons
         self.buttons_len: int = len(self.buttons)
 
-        # Button margin and height with margin.
-        self.bottom_margin: int = 1
-        self.button_height_with_margin: int = (
-            self.buttons[0].rect.height + self.bottom_margin
-        )
-
-        # Reposition button like flex col, from top first button.
-        for i in range(self.buttons_len):
-            self.buttons[i].rect.y += i * self.button_height_with_margin
-            self.buttons[i].active_curtain.rect.y += (
-                i * self.button_height_with_margin
+        if self.buttons_len > 0:
+            # Button margin and height with margin.
+            self.bottom_margin: int = 1
+            self.button_height_with_margin: int = (
+                self.buttons[0].rect.height + self.bottom_margin
             )
 
-        # Init pagination.
+            # Reposition button like flex col, from top first button.
+            for i in range(self.buttons_len):
+                self.buttons[i].rect.y += i * self.button_height_with_margin
+                self.buttons[i].active_curtain.rect.y += (
+                    i * self.button_height_with_margin
+                )
+        else:
+            self.bottom_margin = 0
+            self.button_height_with_margin = 0
+
+        # Pagination.
         self.offset: int = offset
         self.limit: int = limit
-        # Not pagination?
-        if not self.is_pagination:
-            # Set limit to total button len
-            self.limit = self.buttons_len
         self.end_offset: int = self.offset + self.limit
         self.button_draw_y_offset: int = 0
 
@@ -94,8 +91,8 @@ class ButtonContainer:
         self.index: int = 0
 
         # Event subscribers list.
-        self.listener_index_changed: List[Callable] = []
-        self.listener_button_selected: List[Callable] = []
+        self.listener_index_changed: list[Callable] = []
+        self.listener_button_selected: list[Callable] = []
 
         # Input blocker.
         self.is_input_allowed: bool = False
@@ -112,11 +109,11 @@ class ButtonContainer:
         self.scrollbar_color: str = "#44afe7"
         self.scrollbar_right_margin: int = 3
         self.remainder: float = 0
-        self.scrollbar_x: int = self.buttons[0].rect.x
-        self.scrollbar_y: int = self.buttons[0].rect.y
+        self.scrollbar_x: int = self.buttons[0].rect.x if self.buttons_len > 0 else 0
+        self.scrollbar_y: int = self.buttons[0].rect.y if self.buttons_len > 0 else 0
 
         # Pagination?
-        if self.is_pagination:
+        if self.is_pagination and self.buttons_len > 0:
             # Init scrollbar height and step.
             self.scrollbar_step: float = 0.0
             self.scrollbar_height: float = 0.0
@@ -129,6 +126,8 @@ class ButtonContainer:
         This updates scrollbar_step and scrollbar_height.
         Which determines where the scrollbar is drawn.
         """
+        if self.buttons_len == 0:
+            return
 
         # Handle scrollbar, get ratio
         size_ratio: float = self.limit / self.buttons_len
@@ -183,6 +182,8 @@ class ButtonContainer:
         - Listen to enter input. (if up down were not pressed)
         - Fire BUTTON_SELECTED event.
         """
+        if self.buttons_len == 0:
+            return
 
         # Input blocker.
         if not self.is_input_allowed:
@@ -245,6 +246,8 @@ class ButtonContainer:
         """
         Set input blocker.
         """
+        if self.buttons_len == 0:
+            return
 
         self.is_input_allowed = value
 
@@ -262,12 +265,12 @@ class ButtonContainer:
         - end_offset.
         - button_draw_y_offset.
         """
+        if self.buttons_len == 0:
+            return
 
         self.offset = value
         self.end_offset = self.offset + self.limit
-        self.button_draw_y_offset = (
-            -self.button_height_with_margin * self.offset
-        )
+        self.button_draw_y_offset = -self.button_height_with_margin * self.offset
 
     def draw(self, surf: pg.Surface) -> None:
         """
@@ -278,9 +281,11 @@ class ButtonContainer:
         - Got pagination?
             - Scrollbar.
         """
-
         # Description.
         surf.blit(self.description_surf, self.description_rect)
+
+        if self.buttons_len == 0:
+            return
 
         # Buttons.
         for index in range(self.offset, self.end_offset):
@@ -299,9 +304,7 @@ class ButtonContainer:
                 ),
                 (
                     self.scrollbar_x - self.scrollbar_right_margin,
-                    self.scrollbar_y
-                    + self.scrollbar_step
-                    + self.scrollbar_height,
+                    self.scrollbar_y + self.scrollbar_step + self.scrollbar_height,
                 ),
             )
 
@@ -310,6 +313,8 @@ class ButtonContainer:
         Update:
         - Buttons active curtain.
         """
+        if self.buttons_len == 0:
+            return
 
         # Update all buttons active surf.
         for button in self.buttons:

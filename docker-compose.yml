@@ -1,0 +1,16 @@
+services:
+  python-2d-game-engine:
+    build:
+      context: .
+    command: "python src/main.py"
+    ports:
+      - "4000:80"  # Map port 4000 on the host to port 80 in the container
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - .:/app
+    environment:
+      DISPLAY: ${DISPLAY} # use thr hosts display. Run xhost +local:docker to grant docker access to display
+      QT_X11_NO_MITSHM: 1
+      ENVIRONMENT: local
+      LOG_LEVEL: info
+      PYTHONUNBUFFERED: "0"

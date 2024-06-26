@@ -1,6 +1,4 @@
-from constants import FONT
-from constants import NATIVE_RECT
-from constants import pg
+from constants import FONT, NATIVE_RECT, pg
 from nodes.curtain import Curtain
 from typeguard import typechecked
 
@@ -120,9 +118,7 @@ class Button:
         # Get description text.
         self.description_text: str = description_text
         # Get description rect.
-        self.description_text_rect: pg.Rect = FONT.get_rect(
-            self.description_text
-        )
+        self.description_text_rect: pg.Rect = FONT.get_rect(self.description_text)
         # Position description rect.
         self.description_text_rect.center = NATIVE_RECT.center
         self.description_text_rect.bottom = NATIVE_RECT.bottom

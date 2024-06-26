@@ -1,17 +1,13 @@
 from typing import Any
-from typing import Dict
-from typing import List
 
-from constants import FONT
-from constants import NATIVE_SURF
-from constants import pg
+from constants import FONT, NATIVE_SURF, pg
 from typeguard import typechecked
 
 
 @typechecked
 class DebugDraw:
     def __init__(self) -> None:
-        self.layers: List[List[Any]] = [
+        self.layers: list[list[Any]] = [
             [],
             [],
             [],
@@ -21,7 +17,7 @@ class DebugDraw:
             [],
         ]
 
-    def add(self, obj: Dict[str, Any]) -> None:
+    def add(self, obj: dict[str, Any]) -> None:
         layer: int = obj["layer"]
         self.layers[layer].append(obj)
 

@@ -1,6 +1,4 @@
 from os.path import join  # for OS agnostic paths.
-from typing import Dict
-from typing import List
 
 import pygame as pg
 import pygame.freetype as font
@@ -11,36 +9,24 @@ import pygame.freetype as font
 pg.init()
 
 # Default settings to be written.
-DEFAULT_SETTINGS_DICT: Dict[str, int] = {
-    "resolution_scale": 3,
-    "up": 1073741906,
-    "down": 1073741905,
-    "left": 1073741904,
-    "right": 1073741903,
-    "enter": 13,
-    "pause": 27,
-    "jump": 99,
-    "attack": 120,
+DEFAULT_SETTINGS_DICT: dict[str, str] = {
+    "resolution_scale": "3",
 }
 
 # Path dictionaries.
 JSONS_DIR_PATH: str = "jsons"
-JSONS_PATHS_DICT: Dict[str, str] = {
+JSONS_PATHS_DICT: dict[str, str] = {
     "settings.json": join(JSONS_DIR_PATH, "settings.json"),
 }
 
 PNGS_DIR_PATH: str = "pngs"
-PNGS_PATHS_DICT: Dict[str, str] = {
-    "main_menu_background.png": join(
-        PNGS_DIR_PATH, "main_menu_background.png"
-    ),
-    "gestalt_illusion_logo.png": join(
-        PNGS_DIR_PATH, "gestalt_illusion_logo.png"
-    ),
+PNGS_PATHS_DICT: dict[str, str] = {
+    "main_menu_background.png": join(PNGS_DIR_PATH, "main_menu_background.png"),
+    "gestalt_illusion_logo.png": join(PNGS_DIR_PATH, "gestalt_illusion_logo.png"),
 }
 
 WAVS_DIR_PATH: str = "wavs"
-WAVS_PATHS_DICT: Dict[str, str] = {
+WAVS_PATHS_DICT: dict[str, str] = {
     # "cursor.wav":
     # join(WAVS_DIR_PATH, "cursor.wav"),
 }
@@ -66,7 +52,7 @@ NATIVE_RECT: pg.Rect = NATIVE_SURF.get_rect()
 CLOCK: pg.time.Clock = pg.time.Clock()
 
 # Event ints list (used by event for loop).
-EVENTS: List[int] = [
+EVENTS: list[int] = [
     pg.KEYDOWN,
     pg.KEYUP,
     pg.QUIT,
@@ -89,7 +75,7 @@ MAX_QUADTREE_DEPTH: int = 8
 
 # REMOVE IN BUILD
 # This is for room editor autotile mapping.
-MASK_ID_TO_INDEX: Dict[str, int] = {
+MASK_ID_TO_INDEX: dict[str, int] = {
     "208": 0,
     "248": 1,
     "104": 2,
