@@ -233,7 +233,7 @@ class Game:
 
         # Full screen.
         elif value == 7:
-            # Set window surface to be fullscreen size.
+            # Set window surf to be fullscreen size.
             self.window_surf = pg.display.set_mode(
                 (self.window_width, self.window_height), pg.FULLSCREEN
             )

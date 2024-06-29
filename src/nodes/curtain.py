@@ -10,7 +10,7 @@ from typeguard import typechecked
 @typechecked
 class Curtain:
     """
-    A surface that can fades its alpha.
+    A surf that can fades its alpha.
 
     Parameters:
     - surf_size_tuple: button surf.
@@ -149,7 +149,7 @@ class Curtain:
 
     def set_max_alpha(self, value: int) -> None:
         """
-        Sets the max_alpha of the surface.
+        Sets the max_alpha of the surf.
         """
 
         self.max_alpha = value
@@ -214,6 +214,9 @@ class Curtain:
             for callback in self.listener_invisible_ends:
                 callback()
 
+            # Make sure it is zero.
+            self.alpha = 0
+
         # Counter reached duration?
         elif self.fade_counter == self.fade_duration:
             # Set is done true.
@@ -222,3 +225,6 @@ class Curtain:
             # Fire OPAQUE_END event.
             for callback in self.listener_opaque_ends:
                 callback()
+
+            # Make sure it is max.
+            self.alpha = self.max_alpha

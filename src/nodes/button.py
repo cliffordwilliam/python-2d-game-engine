@@ -109,7 +109,7 @@ class Button:
             (1, 0),
             (1, self.rect.height),
         )
-        # Draw font on active curtain surf.
+        # Draw text on active curtain surf.
         FONT.render_to(
             self.active_curtain.surf,
             self.text_top_left,
@@ -139,6 +139,73 @@ class Button:
         """
 
         self.active_curtain.update(dt)
+
+    def draw_text_on_surface(
+        self,
+        text: str,
+        position_tuple_relative_to_button_surface_topleft: tuple[int, int],
+    ) -> None:
+        """
+        Clear both active and inactive surf.
+        Draw old texts on them.
+        Draw given texts on them.
+        """
+
+        # Clear surfs.
+        self.surf.fill(self.BUTTON_INACTIVE_BODY_COLOR)
+        self.active_curtain.surf.fill(self.BUTTON_ACTIVE_BODY_COLOR)
+
+        # Draw decor on surf.
+        pg.draw.line(
+            self.surf,
+            self.BUTTON_INACTIVE_LINE_COLOR,
+            (0, 0),
+            (0, self.rect.height),
+        )
+
+        # Draw original text to surf.
+        FONT.render_to(
+            self.surf,
+            self.text_top_left,
+            self.text,
+            self.BUTTON_INACTIVE_TEXT_COLOR,
+        )
+
+        # Draw given text to surf.
+        FONT.render_to(
+            self.surf,
+            position_tuple_relative_to_button_surface_topleft,
+            text,
+            self.BUTTON_INACTIVE_TEXT_COLOR,
+        )
+
+        # Draw decor on active curtain surf.
+        pg.draw.line(
+            self.active_curtain.surf,
+            self.BUTTON_ACTIVE_TEXT_COLOR,
+            (0, 0),
+            (0, self.rect.height),
+        )
+        pg.draw.line(
+            self.active_curtain.surf,
+            self.BUTTON_ACTIVE_LINE_COLOR,
+            (1, 0),
+            (1, self.rect.height),
+        )
+        # Draw original text on active curtain surf.
+        FONT.render_to(
+            self.active_curtain.surf,
+            self.text_top_left,
+            self.text,
+            self.BUTTON_ACTIVE_TEXT_COLOR,
+        )
+        # Draw given text on active curtain surf.
+        FONT.render_to(
+            self.active_curtain.surf,
+            position_tuple_relative_to_button_surface_topleft,
+            text,
+            self.BUTTON_ACTIVE_TEXT_COLOR,
+        )
 
     def draw(self, surf: pg.Surface, y_offset: int) -> None:
         """

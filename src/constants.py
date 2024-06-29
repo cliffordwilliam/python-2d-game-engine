@@ -21,6 +21,10 @@ DEFAULT_SETTINGS_DICT: Dict[str, int] = {
     "pause": 27,
     "jump": 99,
     "attack": 120,
+    # REMOVE IN BUILD
+    "lmb": 1,
+    "mmb": 2,
+    "rmb": 3,
 }
 
 # Path dictionaries.
