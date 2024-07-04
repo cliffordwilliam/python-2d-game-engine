@@ -15,6 +15,7 @@ pg.init()
 
 # Default settings to be written.
 DEFAULT_SETTINGS_DICT: Dict[str, int] = {
+    "resolution_index": 2,
     "resolution_scale": 3,
     "up": 1073741906,
     "down": 1073741905,

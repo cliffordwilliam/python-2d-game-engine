@@ -87,17 +87,56 @@ class Game:
 
         # Window resolution scale, size, y offset.
         # Y offset because native is shorter than window.
-        self.resolution_scale: int = self.local_settings_dict[
-            "resolution_scale"
-        ]
-        self.window_width: int = WINDOW_WIDTH * self.resolution_scale
-        self.window_height: int = WINDOW_HEIGHT * self.resolution_scale
-        self.window_surf: pg.Surface = pg.display.set_mode(
-            (self.window_width, self.window_height)
+
+        # Default.
+        self.window_width: int = (
+            WINDOW_WIDTH * self.local_settings_dict["resolution_scale"]
         )
+        self.window_height: int = (
+            WINDOW_HEIGHT * self.local_settings_dict["resolution_scale"]
+        )
+        self.window_surf: Any | pg.Surface = None
         self.native_y_offset: int = (
             (WINDOW_HEIGHT - NATIVE_HEIGHT) // 2
-        ) * self.resolution_scale
+        ) * self.local_settings_dict["resolution_scale"]
+
+        # Not fullscreen.
+        if self.local_settings_dict["resolution_index"] != 6:
+            # Update window size, surf and y offset
+            self.window_width = (
+                WINDOW_WIDTH * self.local_settings_dict["resolution_scale"]
+            )
+            self.window_height = (
+                WINDOW_HEIGHT * self.local_settings_dict["resolution_scale"]
+            )
+            self.window_surf = pg.display.set_mode(
+                (self.window_width, self.window_height)
+            )
+            self.native_y_offset = (
+                (WINDOW_HEIGHT - NATIVE_HEIGHT) // 2
+            ) * self.local_settings_dict["resolution_scale"]
+
+        # Full screen.
+        elif self.local_settings_dict["resolution_index"] == 6:
+            # Set window surf to be fullscreen size.
+            self.window_surf = pg.display.set_mode(
+                (self.window_width, self.window_height), pg.FULLSCREEN
+            )
+
+            self.local_settings_dict["resolution_scale"] = (
+                self.window_surf.get_width() // NATIVE_WIDTH
+            )
+
+            # Update window size, surf and y offset
+            self.window_width = (
+                WINDOW_WIDTH * self.local_settings_dict["resolution_scale"]
+            )
+            self.window_height = (
+                WINDOW_HEIGHT * self.local_settings_dict["resolution_scale"]
+            )
+            self.native_y_offset = (
+                (WINDOW_HEIGHT - NATIVE_HEIGHT) // 2
+            ) * self.local_settings_dict["resolution_scale"]
 
         # All game input flags.
         self.is_any_key_just_pressed: bool = False
@@ -206,57 +245,56 @@ class Game:
 
         self.is_options_menu_active = value
 
-    def set_resolution(self, value: int) -> None:
+    def set_resolution_index(self, value: int) -> None:
         """
         Sets the resolution scale of the window.
         Called by options screen.
 
-        Takes int parameter, 1 - 7 only.
+        Takes int parameter, 0 - 6 only.
         """
 
         # Not fullscreen.
-        if value != 7:
-            # Update self.resolution_scale
-            self.resolution_scale = value
-
-            # Update local saves.
-            self.local_settings_dict[
-                "resolution_scale"
-            ] = self.resolution_scale
+        if value != 6:
+            # Update self.local_settings_dict["resolution_scale"]
+            self.local_settings_dict["resolution_index"] = value
+            self.local_settings_dict["resolution_scale"] = value + 1
 
             # Update window size, surf and y offset
-            self.window_width = WINDOW_WIDTH * self.resolution_scale
-            self.window_height = WINDOW_HEIGHT * self.resolution_scale
+            self.window_width = (
+                WINDOW_WIDTH * self.local_settings_dict["resolution_scale"]
+            )
+            self.window_height = (
+                WINDOW_HEIGHT * self.local_settings_dict["resolution_scale"]
+            )
             self.window_surf = pg.display.set_mode(
                 (self.window_width, self.window_height)
             )
             self.native_y_offset = (
                 (WINDOW_HEIGHT - NATIVE_HEIGHT) // 2
-            ) * self.resolution_scale
+            ) * self.local_settings_dict["resolution_scale"]
 
         # Full screen.
-        elif value == 7:
+        elif value == 6:
+            self.local_settings_dict["resolution_index"] = value
             # Set window surf to be fullscreen size.
             self.window_surf = pg.display.set_mode(
                 (self.window_width, self.window_height), pg.FULLSCREEN
             )
 
-            # Update self.resolution_scale with window fullscreen size.
-            self.resolution_scale = (
+            self.local_settings_dict["resolution_scale"] = (
                 self.window_surf.get_width() // NATIVE_WIDTH
             )
 
-            # Update local saves.
-            self.local_settings_dict[
-                "resolution_scale"
-            ] = self.resolution_scale
-
             # Update window size, surf and y offset
-            self.window_width = WINDOW_WIDTH * self.resolution_scale
-            self.window_height = WINDOW_HEIGHT * self.resolution_scale
+            self.window_width = (
+                WINDOW_WIDTH * self.local_settings_dict["resolution_scale"]
+            )
+            self.window_height = (
+                WINDOW_HEIGHT * self.local_settings_dict["resolution_scale"]
+            )
             self.native_y_offset = (
                 (WINDOW_HEIGHT - NATIVE_HEIGHT) // 2
-            ) * self.resolution_scale
+            ) * self.local_settings_dict["resolution_scale"]
 
     def set_scene(self, value: str) -> None:
         """

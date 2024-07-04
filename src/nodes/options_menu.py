@@ -253,11 +253,8 @@ class OptionsMenu:
             "< fullscreen >",
         ]
         self.resolution_texts_len: int = len(self.resolution_texts)
-        self.resolution_index: int = (
-            self.game.local_settings_dict["resolution_scale"] - 1
-        )
         self.resolution_text: str = self.resolution_texts[
-            self.resolution_index
+            self.game.local_settings_dict["resolution_index"]
         ]
         self.resolution_text_rect: pg.Rect = FONT.get_rect(
             self.resolution_text
@@ -460,22 +457,26 @@ class OptionsMenu:
         Left and right input while resolution button is focused.
         """
 
+        old_local_settings_dict_resolution_index = (
+            self.game.local_settings_dict["resolution_index"]
+        )
+
         # Try loading to local, if not dump local to disk.
         self.game.load_or_create_settings()
 
         # Update input texts with local.
 
         # Resolution input text.
-        old_resolution_index = self.resolution_index
         self.set_resolution_index(
-            self.game.local_settings_dict["resolution_scale"] - 1
+            self.game.local_settings_dict["resolution_index"]
         )
-        if self.game.local_settings_dict["resolution_scale"] != (
-            old_resolution_index + 1
+        if old_local_settings_dict_resolution_index != (
+            self.game.local_settings_dict["resolution_index"]
         ):
             # Update game.local_settings_dict resolution.
-            new_value = self.resolution_index + 1
-            self.game.set_resolution(new_value)
+            self.game.set_resolution_index(
+                self.game.local_settings_dict["resolution_index"]
+            )
 
         # Up input text.
         self.update_input_text(
@@ -677,11 +678,14 @@ class OptionsMenu:
         - resolution_text_rect
         """
 
-        self.resolution_index = value
-        self.resolution_index = (
-            self.resolution_index % self.resolution_texts_len
+        self.game.local_settings_dict["resolution_index"] = value
+        self.game.local_settings_dict["resolution_index"] = (
+            self.game.local_settings_dict["resolution_index"]
+            % self.resolution_texts_len
         )
-        self.resolution_text = self.resolution_texts[self.resolution_index]
+        self.resolution_text = self.resolution_texts[
+            self.game.local_settings_dict["resolution_index"]
+        ]
         self.resolution_text_rect = FONT.get_rect(self.resolution_text)
         self.resolution_text_rect.topright = (
             self.resolution_button.rect.topright
@@ -857,7 +861,7 @@ class OptionsMenu:
             # Focusing on resolution button?
             if self.resolution_button == self.focused_button:
                 # Get left right direction.
-                new_value = self.resolution_index
+                new_value = self.game.local_settings_dict["resolution_index"]
                 is_pressed_left_or_right: bool = False
                 # Left?
                 if self.game.is_left_just_pressed:
@@ -869,14 +873,15 @@ class OptionsMenu:
                     is_pressed_left_or_right = True
                 # Update resolution index.
                 if is_pressed_left_or_right:
-                    if self.resolution_index != new_value:
+                    if (
+                        self.game.local_settings_dict["resolution_index"]
+                        != new_value
+                    ):
                         self.set_resolution_index(new_value)
-                        if self.game.local_settings_dict[
-                            "resolution_scale"
-                        ] != (self.resolution_index + 1):
-                            # Update game.local_settings_dict resolution.
-                            new_value = self.resolution_index + 1
-                            self.game.set_resolution(new_value)
+                        # Update game.local_settings_dict resolution.
+                        self.game.set_resolution_index(
+                            self.game.local_settings_dict["resolution_index"]
+                        )
 
         # REBIND state.
         elif self.state == self.REBIND:
