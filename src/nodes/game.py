@@ -52,6 +52,9 @@ class Game:
     """
 
     def __init__(self, initial_scene: str):
+        # TODO: Use this instead of hard coding it.
+        # print(pg.display.get_desktop_sizes())
+
         # Prepare local settings data.
         self.local_settings_dict: Dict[str, Any] = {}
 

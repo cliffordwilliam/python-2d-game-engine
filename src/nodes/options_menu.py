@@ -253,9 +253,9 @@ class OptionsMenu:
             "< fullscreen >",
         ]
         self.resolution_texts_len: int = len(self.resolution_texts)
-        self.resolution_index: int = self.game.local_settings_dict[
-            "resolution_scale"
-        ]
+        self.resolution_index: int = (
+            self.game.local_settings_dict["resolution_scale"] - 1
+        )
         self.resolution_text: str = self.resolution_texts[
             self.resolution_index
         ]
@@ -468,15 +468,14 @@ class OptionsMenu:
         # Resolution input text.
         old_resolution_index = self.resolution_index
         self.set_resolution_index(
-            self.game.local_settings_dict["resolution_scale"]
+            self.game.local_settings_dict["resolution_scale"] - 1
         )
-
-        if (
-            self.game.local_settings_dict["resolution_scale"]
-            != old_resolution_index
+        if self.game.local_settings_dict["resolution_scale"] != (
+            old_resolution_index + 1
         ):
             # Update game.local_settings_dict resolution.
-            self.game.set_resolution(self.resolution_index)
+            new_value = self.resolution_index + 1
+            self.game.set_resolution(new_value)
 
         # Up input text.
         self.update_input_text(
@@ -872,12 +871,12 @@ class OptionsMenu:
                 if is_pressed_left_or_right:
                     if self.resolution_index != new_value:
                         self.set_resolution_index(new_value)
-                        if (
-                            self.game.local_settings_dict["resolution_scale"]
-                            != self.resolution_index
-                        ):
+                        if self.game.local_settings_dict[
+                            "resolution_scale"
+                        ] != (self.resolution_index + 1):
                             # Update game.local_settings_dict resolution.
-                            self.game.set_resolution(self.resolution_index)
+                            new_value = self.resolution_index + 1
+                            self.game.set_resolution(new_value)
 
         # REBIND state.
         elif self.state == self.REBIND:

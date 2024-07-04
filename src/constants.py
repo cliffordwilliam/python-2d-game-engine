@@ -1,3 +1,4 @@
+from os import environ
 from os.path import join  # for OS agnostic paths.
 from typing import Dict
 from typing import List
@@ -6,6 +7,8 @@ import pygame as pg
 import pygame.freetype as font
 
 # Everything here never changes ever.
+
+environ["SDL_VIDEO_CENTERED"] = "1"
 
 # Initialize pygame.
 pg.init()
