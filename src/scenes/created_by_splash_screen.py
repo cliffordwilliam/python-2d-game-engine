@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 class CreatedBySplashScreen:
     """
     Fades in and out to show created by text.
-    Early fade out on press enter during fade in.
+    Player can skip for an early fade out if they input during fade in.
 
     States:
     - JUST_ENTERED.
@@ -30,20 +30,26 @@ class CreatedBySplashScreen:
     - REACHED_OPAQUE.
 
     Parameters:
-    - game:
-        - keybinding name.
-        - set scene.
-        - debug draw.
-        - input flags.
+    - game.
 
-    Update:
-    - state machine.
-
-    Draw:
-    - clear NATIVE_SURF.
-    - title_text.
-    - tips_text.
+    Properties:
+    - game.
+    - state.
+    - color.
     - curtain.
+    - timer.
+    - text.
+
+    Methods:
+        - callbacks.
+        - update:
+            - state machine.
+        - draw:
+            - clear NATIVE_SURF.
+            - title_text.
+            - tips_text.
+            - curtain.
+        - set_state.
     """
 
     JUST_ENTERED: int = 0
@@ -62,13 +68,21 @@ class CreatedBySplashScreen:
     ]
 
     def __init__(self, game: "Game"):
+        # - Set scene.
+        # - Debug draw.
+        # - Events.
         self.game = game
 
+        # Initial state.
         self.initial_state: int = self.JUST_ENTERED
+        # Null to initial state.
+        self.state: int = self.initial_state
 
+        # Colors.
         self.native_clear_color: str = "#000000"
         self.font_color: str = "#ffffff"
 
+        # Curtain.
         self.curtain_duration: float = 1000.0
         self.curtain_start: int = Curtain.OPAQUE
         self.curtain_max_alpha: int = 255
@@ -88,35 +102,37 @@ class CreatedBySplashScreen:
             self.on_curtain_opaque, Curtain.OPAQUE_END
         )
 
+        # Timers.
+        # Entry delay.
         self.entry_delay_timer_duration: float = 1000
         self.entry_delay_timer: Timer = Timer(self.entry_delay_timer_duration)
         self.entry_delay_timer.add_event_listener(
             self.on_entry_delay_timer_end, Timer.END
         )
-
+        # Exit delay.
         self.exit_delay_timer_duration: float = 1000
         self.exit_delay_timer: Timer = Timer(self.exit_delay_timer_duration)
         self.exit_delay_timer.add_event_listener(
             self.on_exit_delay_timer_end, Timer.END
         )
-
+        # Screen time.
         self.screen_time_timer_duration: float = 1000
         self.screen_time_timer: Timer = Timer(self.screen_time_timer_duration)
         self.screen_time_timer.add_event_listener(
             self.on_screen_time_timer_end, Timer.END
         )
 
+        # Texts.
+        # Title.
         self.title_text: str = "made by clifford william"
         self.title_rect: pg.Rect = FONT.get_rect(self.title_text)
         self.title_rect.center = NATIVE_RECT.center
-
+        # Tips.
         self.tips_text: str = "press any key to skip"
         self.tips_rect: pg.Rect = FONT.get_rect(self.tips_text)
         self.tips_rect.bottomright = NATIVE_RECT.bottomright
         self.tips_rect.x -= 1
         self.tips_rect.y -= 1
-
-        self.state: int = self.initial_state
 
     # Callbacks.
     def on_entry_delay_timer_end(self) -> None:
@@ -136,7 +152,6 @@ class CreatedBySplashScreen:
 
     def draw(self) -> None:
         """
-        Draw:
         - clear NATIVE_SURF.
         - title_text.
         - tips_text.
@@ -154,7 +169,6 @@ class CreatedBySplashScreen:
 
     def update(self, dt: int) -> None:
         """
-        Update:
         - state machine.
         """
 
@@ -174,7 +188,7 @@ class CreatedBySplashScreen:
 
         if self.state == self.JUST_ENTERED:
             """
-            - Counts up delay time.
+            - Counts up entry delay time.
             """
 
             self.entry_delay_timer.update(dt)
@@ -207,7 +221,7 @@ class CreatedBySplashScreen:
 
         elif self.state == self.REACHED_OPAQUE:
             """
-            - Counts up delay time.
+            - Counts up exit delay time.
             """
 
             self.exit_delay_timer.update(dt)

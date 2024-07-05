@@ -2,13 +2,12 @@ from typing import List
 from typing import TYPE_CHECKING
 
 from constants import FONT
+from constants import FONT_HEIGHT
 from constants import NATIVE_HEIGHT
 from constants import NATIVE_RECT
 from constants import NATIVE_SURF
 from constants import NATIVE_WIDTH
-from constants import OGGS_PATHS_DICT
 from constants import pg
-from constants import PNGS_PATHS_DICT
 from nodes.curtain import Curtain
 from nodes.timer import Timer
 from typeguard import typechecked
@@ -19,16 +18,15 @@ if TYPE_CHECKING:
 
 
 @typechecked
-class TitleScreen:
+class AnimationJsonGenerator:
     """
-    Fades in and out to show a text that shows my name.
+    Fades in and out to show created by text.
     Player can skip for an early fade out if they input during fade in.
 
     States:
     - JUST_ENTERED.
     - GOING_TO_INVISIBLE.
     - REACHED_INVISIBLE.
-    - LEAVE_FADE_PROMPT.
     - GOING_TO_OPAQUE.
     - REACHED_OPAQUE.
 
@@ -41,7 +39,6 @@ class TitleScreen:
     - color.
     - curtain.
     - timer.
-    - surfaces.
     - text.
 
     Methods:
@@ -50,9 +47,8 @@ class TitleScreen:
             - state machine.
         - draw:
             - clear NATIVE_SURF.
-            - logo.
-            - version_text.
-            - prompt_curtain.
+            - file_text.
+            - tips_text.
             - curtain.
         - set_state.
     """
@@ -60,16 +56,14 @@ class TitleScreen:
     JUST_ENTERED: int = 0
     GOING_TO_INVISIBLE: int = 1
     REACHED_INVISIBLE: int = 2
-    LEAVE_FADE_PROMPT: int = 3
-    GOING_TO_OPAQUE: int = 4
-    REACHED_OPAQUE: int = 5
+    GOING_TO_OPAQUE: int = 3
+    REACHED_OPAQUE: int = 4
 
     # REMOVE IN BUILD
     state_names: List = [
         "JUST_ENTERED",
         "GOING_TO_INVISIBLE",
         "REACHED_INVISIBLE",
-        "LEAVE_FADE_PROMPT",
         "GOING_TO_OPAQUE",
         "REACHED_OPAQUE",
     ]
@@ -86,21 +80,22 @@ class TitleScreen:
         self.state: int = self.initial_state
 
         # Colors.
-        self.native_clear_color: str = "#000000"
-        self.font_color: str = "#ffffff"
+        self.native_clear_color: str = "#fefefe"
+        self.font_color: str = "#000000"
 
         # Curtain.
         self.curtain_duration: float = 1000.0
         self.curtain_start: int = Curtain.OPAQUE
         self.curtain_max_alpha: int = 255
         self.curtain_is_invisible: bool = False
+        self.curtain_color: str = "#000000"
         self.curtain: Curtain = Curtain(
             self.curtain_duration,
             self.curtain_start,
             self.curtain_max_alpha,
             (NATIVE_WIDTH, NATIVE_HEIGHT),
             self.curtain_is_invisible,
-            self.native_clear_color,
+            self.curtain_color,
         )
         self.curtain.add_event_listener(
             self.on_curtain_invisible, Curtain.INVISIBLE_END
@@ -123,64 +118,30 @@ class TitleScreen:
             self.on_exit_delay_timer_end, Timer.END
         )
 
-        # Surfaces.
-        # Logo.
-        self.gestalt_illusion_logo_surf: pg.Surface = pg.image.load(
-            PNGS_PATHS_DICT["gestalt_illusion_logo.png"]
-        )
-        self.gestalt_illusion_logo_rect: pg.Rect = (
-            self.gestalt_illusion_logo_surf.get_rect()
-        )
-        self.gestalt_illusion_logo_rect.topleft = (77, 74)
-
         # Texts.
-        # Prompt.
-        self.prompt_text: str = "press any key to continue"
-        self.prompt_rect: pg.Rect = FONT.get_rect(self.prompt_text)
-        self.prompt_rect.center = NATIVE_RECT.center
-        self.prompt_rect.y = 120
-        # Version.
-        self.version_text: str = "0.x.x"
-        self.version_rect: pg.Rect = FONT.get_rect(self.version_text)
-        self.version_rect.bottomright = NATIVE_RECT.bottomright
-        self.version_rect.x -= 1
-        self.version_rect.y -= 1
-        # Prompt curtain.
-        self.prompt_curtain_duration: float = 1000.0
-        self.prompt_curtain_max_alpha: int = 125
-        self.prompt_curtain: Curtain = Curtain(
-            self.prompt_curtain_duration,
-            Curtain.INVISIBLE,
-            self.prompt_curtain_max_alpha,
-            (self.prompt_rect.width, self.prompt_rect.height),
-            True,
-            "black",
-        )
-        self.prompt_curtain.add_event_listener(
-            self.on_prompt_curtain_invisible, Curtain.INVISIBLE_END
-        )
-        self.prompt_curtain.add_event_listener(
-            self.on_prompt_curtain_opaque, Curtain.OPAQUE_END
-        )
-        self.prompt_curtain.rect.center = self.prompt_rect.center
-        FONT.render_to(
-            self.prompt_curtain.surf,
-            (0, 0),
-            self.prompt_text,
-            self.font_color,
+        # File name prompt.
+        self.file_name_text_prompt = (
+            "type the file name to be saved, "
+            f"hit {pg.key.name(self.game.local_settings_dict['enter'])} "
+            "to proceed"
         )
 
-        # Load title screen music. Played in my set state.
-        self.game.music_manager.set_current_music_path(
-            OGGS_PATHS_DICT["xdeviruchi_title_theme.ogg"]
+        self.file_name_prompt_rect: pg.Rect = FONT.get_rect(
+            self.file_name_text_prompt
         )
+        self.file_name_prompt_rect.center = NATIVE_RECT.center
+        self.file_name_prompt_rect.y -= FONT_HEIGHT + 1
+        # File name.
+        self.file_name_text: str = ""
+        self.file_name_rect: pg.Rect = FONT.get_rect(self.file_name_text)
+        self.file_name_rect.center = NATIVE_RECT.center
 
     # Callbacks.
     def on_entry_delay_timer_end(self) -> None:
         self.set_state(self.GOING_TO_INVISIBLE)
 
     def on_exit_delay_timer_end(self) -> None:
-        self.game.set_scene("MainMenu")
+        self.game.set_scene("MadeWithSplashScreen")
 
     def on_curtain_invisible(self) -> None:
         self.set_state(self.REACHED_INVISIBLE)
@@ -188,40 +149,33 @@ class TitleScreen:
     def on_curtain_opaque(self) -> None:
         self.set_state(self.REACHED_OPAQUE)
 
-    def on_prompt_curtain_invisible(self) -> None:
-        # Exits to going to opaque.
-        if self.state == self.LEAVE_FADE_PROMPT:
-            self.set_state(self.GOING_TO_OPAQUE)
-            return
-
-        # Oscillates.
-        self.prompt_curtain.go_to_opaque()
-
-    def on_prompt_curtain_opaque(self) -> None:
-        self.prompt_curtain.go_to_invisible()
-
     def draw(self) -> None:
         """
         - clear NATIVE_SURF.
-        - logo.
-        - version_text.
-        - prompt_curtain.
+        - file_text.
+        - tips_text.
         - curtain.
         """
 
         NATIVE_SURF.fill(self.native_clear_color)
-        NATIVE_SURF.blit(
-            self.gestalt_illusion_logo_surf,
-            self.gestalt_illusion_logo_rect,
+        FONT.render_to(
+            NATIVE_SURF,
+            self.file_name_prompt_rect,
+            self.file_name_text_prompt,
+            self.font_color,
         )
         FONT.render_to(
             NATIVE_SURF,
-            self.version_rect,
-            self.version_text,
+            self.file_name_rect,
+            self.file_name_text,
             self.font_color,
         )
-        self.prompt_curtain.draw(NATIVE_SURF, 0)
         self.curtain.draw(NATIVE_SURF, 0)
+
+    def set_file_name_text(self, value: str) -> None:
+        self.file_name_text = value
+        self.file_name_rect = FONT.get_rect(self.file_name_text)
+        self.file_name_rect.center = NATIVE_RECT.center
 
     def update(self, dt: int) -> None:
         """
@@ -236,7 +190,7 @@ class TitleScreen:
                 "x": 0,
                 "y": 6,
                 "text": (
-                    f"title screen state "
+                    f"animation json generator state"
                     f"state: {self.state_names[self.state]}"
                 ),
             }
@@ -258,25 +212,23 @@ class TitleScreen:
 
         elif self.state == self.REACHED_INVISIBLE:
             """
-            - Enter pressed? Exit to LEAVE_FADE_PROMPT state.
-            - Updates curtain alpha.
+            - Get user input for file name.
             """
-
-            if self.game.is_any_key_just_pressed:
-                # Play confirm sound.
-                self.game.sound_manager.play_sound("confirm.ogg", 0, 0, 0)
-                # Exit to LEAVE_FADE_PROMPT.
-                self.set_state(self.LEAVE_FADE_PROMPT)
-                return
-
-            self.prompt_curtain.update(dt)
-
-        elif self.state == self.LEAVE_FADE_PROMPT:
-            """
-            - Updates curtain alpha.
-            """
-
-            self.prompt_curtain.update(dt)
+            if self.game.this_frame_event:
+                if self.game.this_frame_event.type == pg.KEYDOWN:
+                    if self.game.this_frame_event.key == pg.K_RETURN:
+                        print(self.file_name_text)
+                        new_value: str = ""
+                        self.set_file_name_text(new_value)
+                    elif self.game.this_frame_event.key == pg.K_BACKSPACE:
+                        new_value = self.file_name_text[:-1]
+                        self.set_file_name_text(new_value)
+                    else:
+                        new_value = (
+                            self.file_name_text
+                            + self.game.this_frame_event.unicode
+                        )
+                        self.set_file_name_text(new_value)
 
         elif self.state == self.GOING_TO_OPAQUE:
             """
@@ -301,28 +253,15 @@ class TitleScreen:
             # To GOING_TO_INVISIBLE.
             if self.state == self.GOING_TO_INVISIBLE:
                 self.curtain.go_to_invisible()
-                self.game.music_manager.play_music(-1, 0.0, 0)
 
         # From GOING_TO_INVISIBLE.
         elif old_state == self.GOING_TO_INVISIBLE:
-            # To GOING_TO_OPAQUE.
-            if self.state == self.GOING_TO_OPAQUE:
-                self.curtain.go_to_opaque()
-
             # To REACHED_INVISIBLE.
-            elif self.state == self.REACHED_INVISIBLE:
-                self.prompt_curtain.go_to_opaque()
+            if self.state == self.REACHED_INVISIBLE:
+                pass
 
         # From REACHED_INVISIBLE.
         elif old_state == self.REACHED_INVISIBLE:
-            # To LEAVE_FADE_PROMPT.
-            if self.state == self.LEAVE_FADE_PROMPT:
-                self.prompt_curtain.set_max_alpha(255)
-                self.prompt_curtain.jump_to_opaque()
-                self.prompt_curtain.go_to_invisible()
-
-        # From LEAVE_FADE_PROMPT.
-        elif old_state == self.LEAVE_FADE_PROMPT:
             # To GOING_TO_OPAQUE.
             if self.state == self.GOING_TO_OPAQUE:
                 self.curtain.go_to_opaque()

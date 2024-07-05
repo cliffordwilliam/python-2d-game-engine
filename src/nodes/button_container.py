@@ -3,7 +3,6 @@ from typing import List
 from typing import TYPE_CHECKING
 
 from constants import NATIVE_RECT
-from constants import OGGS_PATHS_DICT
 from constants import pg
 from nodes.button import Button
 from pygame.math import clamp
@@ -127,14 +126,6 @@ class ButtonContainer:
 
             self.update_scrollbar_step_and_height()
 
-        # Load sounds. TODO: Load it when you need it, like sprite sheet.
-        self.game.sound_manager.load_sound(
-            "001_hover_01", OGGS_PATHS_DICT["001_hover_01.ogg"]
-        )
-        self.game.sound_manager.load_sound(
-            "confirm", OGGS_PATHS_DICT["confirm.ogg"]
-        )
-
     def update_scrollbar_step_and_height(self) -> None:
         """
         Call this whenever the pagination changes.
@@ -230,7 +221,7 @@ class ButtonContainer:
                     callback(new_button)
 
                 # Play hover sound.
-                self.game.sound_manager.play_sound("001_hover_01", 0, 0, 0)
+                self.game.sound_manager.play_sound("001_hover_01.ogg", 0, 0, 0)
 
                 # Pagination?
                 if self.is_pagination:
@@ -256,7 +247,7 @@ class ButtonContainer:
             for callback in self.listener_button_selected:
                 callback(selected_button)
             # Play confirm sound.
-            self.game.sound_manager.play_sound("confirm", 0, 0, 0)
+            self.game.sound_manager.play_sound("confirm.ogg", 0, 0, 0)
 
     def set_is_input_allowed(self, value: bool) -> None:
         """

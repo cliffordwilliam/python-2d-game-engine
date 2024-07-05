@@ -8,12 +8,14 @@ from constants import DEFAULT_SETTINGS_DICT
 from constants import JSONS_PATHS_DICT
 from constants import NATIVE_HEIGHT
 from constants import NATIVE_WIDTH
+from constants import OGGS_PATHS_DICT
 from constants import pg
 from constants import WINDOW_HEIGHT
 from constants import WINDOW_WIDTH
 from nodes.debug_draw import DebugDraw
 from nodes.music_manager import MusicManager
 from nodes.sound_manager import SoundManager
+from scenes.animation_json_generator import AnimationJsonGenerator
 from scenes.created_by_splash_screen import CreatedBySplashScreen
 from scenes.made_with_splash_screen import MadeWithSplashScreen
 from scenes.main_menu import MainMenu
@@ -52,43 +54,28 @@ class Game:
     """
 
     def __init__(self, initial_scene: str):
-        # TODO: Use this instead of hard coding it.
-        # print(pg.display.get_desktop_sizes())
-
         # Prepare local settings data.
         self.local_settings_dict: Dict[str, Any] = {}
 
-        # Got load file on disk?
-        try:
-            # Load it.
-            with open(JSONS_PATHS_DICT["settings.json"], "r") as settings_json:
-                self.local_settings_dict = load(settings_json)
-        # No load file on disk?
-        except FileNotFoundError:
-            # Create one to disk.
-            self.local_settings_dict = DEFAULT_SETTINGS_DICT
-            with open(JSONS_PATHS_DICT["settings.json"], "w") as settings_json:
-                dump(self.local_settings_dict, settings_json)
+        # Update local settings dict.
+        self.load_or_create_settings()
 
+        # Flags.
         # Options menu flag, toggle options menu mode.
         self.is_options_menu_active: bool = False
-
         # REMOVE IN BUILD
         # Toggle drawing debug data.
         self.is_debug: bool = False
-
         # REMOVE IN BUILD
         # The thing that does the actual debug data drawing.
         self.debug_draw: DebugDraw = DebugDraw()
-
         # REMOVE IN BUILD
         # Toggle frame per frame debug mode.
         self.is_per_frame: bool = False
 
         # Window resolution scale, size, y offset.
         # Y offset because native is shorter than window.
-
-        # Default.
+        # Default values.
         self.window_width: int = (
             WINDOW_WIDTH * self.local_settings_dict["resolution_scale"]
         )
@@ -99,97 +86,52 @@ class Game:
         self.native_y_offset: int = (
             (WINDOW_HEIGHT - NATIVE_HEIGHT) // 2
         ) * self.local_settings_dict["resolution_scale"]
-
-        # Not fullscreen.
-        if self.local_settings_dict["resolution_index"] != 6:
-            # Update window size, surf and y offset
-            self.window_width = (
-                WINDOW_WIDTH * self.local_settings_dict["resolution_scale"]
-            )
-            self.window_height = (
-                WINDOW_HEIGHT * self.local_settings_dict["resolution_scale"]
-            )
-            self.window_surf = pg.display.set_mode(
-                (self.window_width, self.window_height)
-            )
-            self.native_y_offset = (
-                (WINDOW_HEIGHT - NATIVE_HEIGHT) // 2
-            ) * self.local_settings_dict["resolution_scale"]
-
-        # Full screen.
-        elif self.local_settings_dict["resolution_index"] == 6:
-            # Set window surf to be fullscreen size.
-            self.window_surf = pg.display.set_mode(
-                (self.window_width, self.window_height), pg.FULLSCREEN
-            )
-
-            self.local_settings_dict["resolution_scale"] = (
-                self.window_surf.get_width() // NATIVE_WIDTH
-            )
-
-            # Update window size, surf and y offset
-            self.window_width = (
-                WINDOW_WIDTH * self.local_settings_dict["resolution_scale"]
-            )
-            self.window_height = (
-                WINDOW_HEIGHT * self.local_settings_dict["resolution_scale"]
-            )
-            self.native_y_offset = (
-                (WINDOW_HEIGHT - NATIVE_HEIGHT) // 2
-            ) * self.local_settings_dict["resolution_scale"]
+        self.set_resolution_index(self.local_settings_dict["resolution_index"])
 
         # All game input flags.
+        # Any just pressed and this event.
         self.is_any_key_just_pressed: bool = False
         self.this_frame_event: Any = None
-
         # Directions pressed.
         self.is_up_pressed: bool = False
         self.is_down_pressed: bool = False
         self.is_left_pressed: bool = False
         self.is_right_pressed: bool = False
-
         # Directions just pressed.
         self.is_up_just_pressed: bool = False
         self.is_down_just_pressed: bool = False
         self.is_left_just_pressed: bool = False
         self.is_right_just_pressed: bool = False
-
         # Directions just released.
         self.is_up_just_released: bool = False
         self.is_down_just_released: bool = False
         self.is_left_just_released: bool = False
         self.is_right_just_released: bool = False
-
         # REMOVE IN BUILD
         # Mouse pressed.
         self.is_lmb_pressed: bool = False
         self.is_rmb_pressed: bool = False
         self.is_mmb_pressed: bool = False
-
         # REMOVE IN BUILD
         # Mouse just pressed.
         self.is_lmb_just_pressed: bool = False
         self.is_rmb_just_pressed: bool = False
         self.is_mmb_just_pressed: bool = False
-
         # REMOVE IN BUILD
         # Mouse just released.
         self.is_lmb_just_released: bool = False
         self.is_rmb_just_released: bool = False
         self.is_mmb_just_released: bool = False
-
         # Actions pressed.
         self.is_enter_pressed: bool = False
         self.is_pause_pressed: bool = False
         self.is_jump_pressed: bool = False
         self.is_attack_pressed: bool = False
-
         # Actions just pressed.
         self.is_enter_just_pressed: bool = False
         self.is_pause_just_pressed: bool = False
         self.is_jump_just_pressed: bool = False
         self.is_attack_just_pressed: bool = False
-
         # Actions just released.
         self.is_enter_just_released: bool = False
         self.is_pause_just_released: bool = False
@@ -207,6 +149,7 @@ class Game:
             "MadeWithSplashScreen": MadeWithSplashScreen,
             "TitleScreen": TitleScreen,
             "MainMenu": MainMenu,
+            "AnimationJsonGenerator": AnimationJsonGenerator,
         }
 
         # Handles sounds.
@@ -216,15 +159,25 @@ class Game:
         # Keeps track of current scene.
         self.current_scene: Any = self.scenes[initial_scene](self)
 
+        # Load all oggs.
+        for ogg_name, ogg_path in OGGS_PATHS_DICT.items():
+            self.sound_manager.load_sound(ogg_name, ogg_path)
+
     def load_or_create_settings(self) -> None:
-        # Got load file on disk?
+        """
+        Load to local or create and then load.
+        """
+
+        # TODO: Deal with different OS. AppData.
+
+        # Got settings file on disk?
         try:
             # Load it.
             with open(JSONS_PATHS_DICT["settings.json"], "r") as settings_json:
                 self.local_settings_dict = load(settings_json)
-        # No load file on disk?
+        # No settings file on disk?
         except FileNotFoundError:
-            # Create one to disk.
+            # Create one to disk. Load to local.
             self.local_settings_dict = DEFAULT_SETTINGS_DICT
             with open(JSONS_PATHS_DICT["settings.json"], "w") as settings_json:
                 dump(self.local_settings_dict, settings_json)
@@ -254,7 +207,7 @@ class Game:
         """
 
         # Not fullscreen.
-        if value != 6:
+        if value != 6 and value >= 0:
             # Update self.local_settings_dict["resolution_scale"]
             self.local_settings_dict["resolution_index"] = value
             self.local_settings_dict["resolution_scale"] = value + 1

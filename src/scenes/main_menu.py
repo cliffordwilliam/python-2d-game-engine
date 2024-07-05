@@ -94,16 +94,20 @@ class MainMenu:
         self.exit_button: Button = Button(
             (48, 9), (30, 94), "exit", (4, 2), "exit game"
         )
+        self.animation_json_generator: Button = Button(
+            (48, 9), (30, 94), "animation", (4, 2), "animation json generator"
+        )
         self.button_container: ButtonContainer = ButtonContainer(
             [
                 self.new_game_button,
                 self.continue_button,
                 self.options_button,
                 self.exit_button,
+                self.animation_json_generator,
             ],
             0,
-            0,
-            False,
+            4,
+            True,
             self.game,
         )
 
@@ -121,6 +125,9 @@ class MainMenu:
     def on_exit_delay_timer_end(self) -> None:
         if self.selected_button == self.exit_button:
             self.game.quit()
+
+        elif self.selected_button == self.animation_json_generator:
+            self.game.set_scene("AnimationJsonGenerator")
 
     def on_curtain_invisible(self) -> None:
         self.set_state(self.REACHED_INVISIBLE)
@@ -147,6 +154,9 @@ class MainMenu:
             self.game.set_is_options_menu_active(True)
 
         elif self.exit_button == self.selected_button:
+            self.set_state(self.GOING_TO_OPAQUE)
+
+        elif self.animation_json_generator == self.selected_button:
             self.set_state(self.GOING_TO_OPAQUE)
 
     def draw(self) -> None:
@@ -202,6 +212,8 @@ class MainMenu:
             if self.state == self.GOING_TO_OPAQUE:
                 self.button_container.set_is_input_allowed(False)
                 self.curtain.go_to_opaque()
+                # TODO: let music play on load screen.
+                # if self.selected_button == self.exit_button:
                 # Fades out music and stop after.
                 self.game.music_manager.fade_out_music(
                     int(self.curtain_duration)
