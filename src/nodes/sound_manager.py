@@ -1,4 +1,4 @@
-import os
+from os.path import exists
 
 from constants import pg
 from typeguard import typechecked
@@ -23,7 +23,7 @@ class SoundManager:
         Load a sound and add it to the sound dictionary.
         """
 
-        if os.path.exists(path):
+        if exists(path):
             self.sounds[name] = pg.mixer.Sound(path)
         else:
             print(f"Error: Sound file {path} does not exist.")

@@ -69,6 +69,12 @@ WINDOW_HEIGHT: int = 180
 NATIVE_WIDTH: int = 320
 NATIVE_HEIGHT: int = 160
 
+NATIVE_HALF_WIDTH: int = 160
+NATIVE_HALF_HEIGHT: int = 80
+
+NATIVE_WIDTH_TU: int = 20
+NATIVE_HEIGHT_TU: int = 10
+
 # Native surf and rect will never be mutated.
 NATIVE_SURF: pg.Surface = pg.Surface((NATIVE_WIDTH, NATIVE_HEIGHT))
 NATIVE_RECT: pg.Rect = NATIVE_SURF.get_rect()
