@@ -140,10 +140,10 @@ class Button:
 
         self.active_curtain.update(dt)
 
-    def draw_text_on_surface(
+    def draw_text_on_surf(
         self,
         text: str,
-        position_tuple_relative_to_button_surface_topleft: tuple[int, int],
+        position_tuple_relative_to_button_surf_topleft: tuple[int, int],
     ) -> None:
         """
         Clear both active and inactive surf.
@@ -174,7 +174,7 @@ class Button:
         # Draw given text to surf.
         FONT.render_to(
             self.surf,
-            position_tuple_relative_to_button_surface_topleft,
+            position_tuple_relative_to_button_surf_topleft,
             text,
             self.BUTTON_INACTIVE_TEXT_COLOR,
         )
@@ -202,7 +202,7 @@ class Button:
         # Draw given text on active curtain surf.
         FONT.render_to(
             self.active_curtain.surf,
-            position_tuple_relative_to_button_surface_topleft,
+            position_tuple_relative_to_button_surf_topleft,
             text,
             self.BUTTON_ACTIVE_TEXT_COLOR,
         )

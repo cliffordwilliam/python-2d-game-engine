@@ -24,25 +24,25 @@ class MainMenu:
     Player can skip for an early fade out if they input during fade in.
     """
 
-    JUST_ENTERED: int = 0
-    GOING_TO_INVISIBLE: int = 1
-    REACHED_INVISIBLE: int = 2
-    GOING_TO_OPAQUE: int = 3
-    REACHED_OPAQUE: int = 4
+    JUST_ENTERED_SCENE: int = 0
+    OPENING_SCENE_CURTAIN: int = 1
+    SCENE_CURTAIN_OPENED: int = 2
+    CLOSING_SCENE_CURTAIN: int = 3
+    SCENE_CURTAIN_CLOSED: int = 4
 
     # REMOVE IN BUILD
     state_names: List = [
-        "JUST_ENTERED",
-        "GOING_TO_INVISIBLE",
-        "REACHED_INVISIBLE",
-        "GOING_TO_OPAQUE",
-        "REACHED_OPAQUE",
+        "JUST_ENTERED_SCENE",
+        "OPENING_SCENE_CURTAIN",
+        "SCENE_CURTAIN_OPENED",
+        "CLOSING_SCENE_CURTAIN",
+        "SCENE_CURTAIN_CLOSED",
     ]
 
     def __init__(self, game: "Game"):
         self.game = game
 
-        self.initial_state: int = self.JUST_ENTERED
+        self.initial_state: int = self.JUST_ENTERED_SCENE
 
         self.native_clear_color: str = "#000000"
         self.font_color: str = "#ffffff"
@@ -120,7 +120,7 @@ class MainMenu:
         self.state: int = self.initial_state
 
     def on_entry_delay_timer_end(self) -> None:
-        self.set_state(self.GOING_TO_INVISIBLE)
+        self.set_state(self.OPENING_SCENE_CURTAIN)
 
     def on_exit_delay_timer_end(self) -> None:
         if self.selected_button == self.exit_button:
@@ -130,10 +130,10 @@ class MainMenu:
             self.game.set_scene("AnimationJsonGenerator")
 
     def on_curtain_invisible(self) -> None:
-        self.set_state(self.REACHED_INVISIBLE)
+        self.set_state(self.SCENE_CURTAIN_OPENED)
 
     def on_curtain_opaque(self) -> None:
-        self.set_state(self.REACHED_OPAQUE)
+        self.set_state(self.SCENE_CURTAIN_CLOSED)
 
     def on_button_selected(self, selected_button: Button) -> None:
         """
@@ -154,10 +154,10 @@ class MainMenu:
             self.game.set_is_options_menu_active(True)
 
         elif self.exit_button == self.selected_button:
-            self.set_state(self.GOING_TO_OPAQUE)
+            self.set_state(self.CLOSING_SCENE_CURTAIN)
 
         elif self.animation_json_generator == self.selected_button:
-            self.set_state(self.GOING_TO_OPAQUE)
+            self.set_state(self.CLOSING_SCENE_CURTAIN)
 
     def draw(self) -> None:
         NATIVE_SURF.blit(self.background_surf, (0, 0))
@@ -173,45 +173,45 @@ class MainMenu:
                 "x": 0,
                 "y": 6,
                 "text": (
-                    f"main menu state "
-                    f"state: {self.state_names[self.state]}"
+                    f"main menu " f"state: {self.state_names[self.state]}"
                 ),
             }
         )
 
-        if self.state == self.JUST_ENTERED:
+        if self.state == self.JUST_ENTERED_SCENE:
             self.entry_delay_timer.update(dt)
 
-        elif self.state == self.GOING_TO_INVISIBLE:
+        elif self.state == self.OPENING_SCENE_CURTAIN:
             self.curtain.update(dt)
 
-        elif self.state == self.REACHED_INVISIBLE:
+        elif self.state == self.SCENE_CURTAIN_OPENED:
             self.button_container.event(self.game)
             self.button_container.update(dt)
 
-        elif self.state == self.GOING_TO_OPAQUE:
+        elif self.state == self.CLOSING_SCENE_CURTAIN:
             self.curtain.update(dt)
             self.button_container.update(dt)
 
-        elif self.state == self.REACHED_OPAQUE:
+        elif self.state == self.SCENE_CURTAIN_CLOSED:
             self.exit_delay_timer.update(dt)
 
     def set_state(self, value: int) -> None:
         old_state: int = self.state
         self.state = value
 
-        if old_state == self.JUST_ENTERED:
-            if self.state == self.GOING_TO_INVISIBLE:
+        if old_state == self.JUST_ENTERED_SCENE:
+            if self.state == self.OPENING_SCENE_CURTAIN:
                 self.curtain.go_to_invisible()
 
-        elif old_state == self.GOING_TO_INVISIBLE:
-            if self.state == self.REACHED_INVISIBLE:
+        elif old_state == self.OPENING_SCENE_CURTAIN:
+            if self.state == self.SCENE_CURTAIN_OPENED:
                 self.button_container.set_is_input_allowed(True)
 
-        elif old_state == self.REACHED_INVISIBLE:
-            if self.state == self.GOING_TO_OPAQUE:
+        elif old_state == self.SCENE_CURTAIN_OPENED:
+            if self.state == self.CLOSING_SCENE_CURTAIN:
                 self.button_container.set_is_input_allowed(False)
                 self.curtain.go_to_opaque()
+                # TODO: make the load screen be like the options screen.
                 # TODO: let music play on load screen.
                 # if self.selected_button == self.exit_button:
                 # Fades out music and stop after.
@@ -219,6 +219,6 @@ class MainMenu:
                     int(self.curtain_duration)
                 )
 
-        elif old_state == self.GOING_TO_OPAQUE:
-            if self.state == self.REACHED_OPAQUE:
+        elif old_state == self.CLOSING_SCENE_CURTAIN:
+            if self.state == self.SCENE_CURTAIN_CLOSED:
                 pass

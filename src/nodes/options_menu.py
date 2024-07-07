@@ -24,11 +24,11 @@ class OptionsMenu:
     Activate this to update this instead of current scene.
 
     States:
-    - JUST_ENTERED.
-    - GOING_TO_OPAQUE.
-    - REACHED_OPAQUE.
-    - GOING_TO_INVISIBLE.
-    - REACHED_INVISIBLE.
+    - JUST_ENTERED_SCENE.
+    - CLOSING_SCENE_CURTAIN.
+    - SCENE_CURTAIN_CLOSED.
+    - OPENING_SCENE_CURTAIN.
+    - SCENE_CURTAIN_OPENED.
 
     Parameters:
     - game:
@@ -51,21 +51,21 @@ class OptionsMenu:
     """
 
     # States.
-    JUST_ENTERED: int = 0
-    GOING_TO_OPAQUE: int = 1
-    REACHED_OPAQUE: int = 2
-    GOING_TO_INVISIBLE: int = 3
-    REACHED_INVISIBLE: int = 4
+    JUST_ENTERED_SCENE: int = 0
+    CLOSING_SCENE_CURTAIN: int = 1
+    SCENE_CURTAIN_CLOSED: int = 2
+    OPENING_SCENE_CURTAIN: int = 3
+    SCENE_CURTAIN_OPENED: int = 4
     REBIND: int = 5
 
     # REMOVE IN BUILD
     # For debug draw.
     state_names: list[str] = [
-        "JUST_ENTERED",
-        "GOING_TO_OPAQUE",
-        "REACHED_OPAQUE",
-        "GOING_TO_INVISIBLE",
-        "REACHED_INVISIBLE",
+        "JUST_ENTERED_SCENE",
+        "CLOSING_SCENE_CURTAIN",
+        "SCENE_CURTAIN_CLOSED",
+        "OPENING_SCENE_CURTAIN",
+        "SCENE_CURTAIN_OPENED",
         "REBIND",
     ]
 
@@ -74,7 +74,7 @@ class OptionsMenu:
         self.game = game
 
         # Set initial state.
-        self.initial_state: int = self.JUST_ENTERED
+        self.initial_state: int = self.JUST_ENTERED_SCENE
 
         # Background color and font color.
         self.curtain_clear_color: str = "#000000"
@@ -268,7 +268,7 @@ class OptionsMenu:
         self.resolution_text_rect.x -= self.resolution_button.rect.x
         self.resolution_text_rect.y -= self.resolution_button.rect.y
         # Draw it on button.
-        self.resolution_button.draw_text_on_surface(
+        self.resolution_button.draw_text_on_surf(
             self.resolution_text,
             self.resolution_text_rect.topleft,
         )
@@ -285,7 +285,7 @@ class OptionsMenu:
         self.up_input_text_rect.x -= self.up_input_button.rect.x
         self.up_input_text_rect.y -= self.up_input_button.rect.y
         # Draw it on button.
-        self.up_input_button.draw_text_on_surface(
+        self.up_input_button.draw_text_on_surf(
             self.up_input_text,
             self.up_input_text_rect.topleft,
         )
@@ -306,7 +306,7 @@ class OptionsMenu:
         self.down_input_text_rect.x -= self.down_input_button.rect.x
         self.down_input_text_rect.y -= self.down_input_button.rect.y
         # Draw it on button.
-        self.down_input_button.draw_text_on_surface(
+        self.down_input_button.draw_text_on_surf(
             self.down_input_text,
             self.down_input_text_rect.topleft,
         )
@@ -327,7 +327,7 @@ class OptionsMenu:
         self.left_input_text_rect.x -= self.left_input_button.rect.x
         self.left_input_text_rect.y -= self.left_input_button.rect.y
         # Draw it on button.
-        self.left_input_button.draw_text_on_surface(
+        self.left_input_button.draw_text_on_surf(
             self.left_input_text,
             self.left_input_text_rect.topleft,
         )
@@ -348,7 +348,7 @@ class OptionsMenu:
         self.right_input_text_rect.x -= self.right_input_button.rect.x
         self.right_input_text_rect.y -= self.right_input_button.rect.y
         # Draw it on button.
-        self.right_input_button.draw_text_on_surface(
+        self.right_input_button.draw_text_on_surf(
             self.right_input_text,
             self.right_input_text_rect.topleft,
         )
@@ -369,7 +369,7 @@ class OptionsMenu:
         self.enter_input_text_rect.x -= self.enter_input_button.rect.x
         self.enter_input_text_rect.y -= self.enter_input_button.rect.y
         # Draw it on button.
-        self.enter_input_button.draw_text_on_surface(
+        self.enter_input_button.draw_text_on_surf(
             self.enter_input_text,
             self.enter_input_text_rect.topleft,
         )
@@ -390,7 +390,7 @@ class OptionsMenu:
         self.pause_input_text_rect.x -= self.pause_input_button.rect.x
         self.pause_input_text_rect.y -= self.pause_input_button.rect.y
         # Draw it on button.
-        self.pause_input_button.draw_text_on_surface(
+        self.pause_input_button.draw_text_on_surf(
             self.pause_input_text,
             self.pause_input_text_rect.topleft,
         )
@@ -411,7 +411,7 @@ class OptionsMenu:
         self.jump_input_text_rect.x -= self.jump_input_button.rect.x
         self.jump_input_text_rect.y -= self.jump_input_button.rect.y
         # Draw it on button.
-        self.jump_input_button.draw_text_on_surface(
+        self.jump_input_button.draw_text_on_surf(
             self.jump_input_text,
             self.jump_input_text_rect.topleft,
         )
@@ -432,7 +432,7 @@ class OptionsMenu:
         self.attack_input_text_rect.x -= self.attack_input_button.rect.x
         self.attack_input_text_rect.y -= self.attack_input_button.rect.y
         # Draw it on button.
-        self.attack_input_button.draw_text_on_surface(
+        self.attack_input_button.draw_text_on_surf(
             self.attack_input_text,
             self.attack_input_text_rect.topleft,
         )
@@ -546,7 +546,7 @@ class OptionsMenu:
             self.up_input_text_rect.x -= self.up_input_button.rect.x
             self.up_input_text_rect.y -= self.up_input_button.rect.y
             # Draw it on button.
-            self.up_input_button.draw_text_on_surface(
+            self.up_input_button.draw_text_on_surf(
                 self.up_input_text,
                 self.up_input_text_rect.topleft,
             )
@@ -563,7 +563,7 @@ class OptionsMenu:
             self.down_input_text_rect.x -= self.down_input_button.rect.x
             self.down_input_text_rect.y -= self.down_input_button.rect.y
             # Draw it on button.
-            self.down_input_button.draw_text_on_surface(
+            self.down_input_button.draw_text_on_surf(
                 self.down_input_text,
                 self.down_input_text_rect.topleft,
             )
@@ -580,7 +580,7 @@ class OptionsMenu:
             self.left_input_text_rect.x -= self.left_input_button.rect.x
             self.left_input_text_rect.y -= self.left_input_button.rect.y
             # Draw it on button.
-            self.left_input_button.draw_text_on_surface(
+            self.left_input_button.draw_text_on_surf(
                 self.left_input_text,
                 self.left_input_text_rect.topleft,
             )
@@ -597,7 +597,7 @@ class OptionsMenu:
             self.right_input_text_rect.x -= self.right_input_button.rect.x
             self.right_input_text_rect.y -= self.right_input_button.rect.y
             # Draw it on button.
-            self.right_input_button.draw_text_on_surface(
+            self.right_input_button.draw_text_on_surf(
                 self.right_input_text,
                 self.right_input_text_rect.topleft,
             )
@@ -614,7 +614,7 @@ class OptionsMenu:
             self.enter_input_text_rect.x -= self.enter_input_button.rect.x
             self.enter_input_text_rect.y -= self.enter_input_button.rect.y
             # Draw it on button.
-            self.enter_input_button.draw_text_on_surface(
+            self.enter_input_button.draw_text_on_surf(
                 self.enter_input_text,
                 self.enter_input_text_rect.topleft,
             )
@@ -631,7 +631,7 @@ class OptionsMenu:
             self.pause_input_text_rect.x -= self.pause_input_button.rect.x
             self.pause_input_text_rect.y -= self.pause_input_button.rect.y
             # Draw it on button.
-            self.pause_input_button.draw_text_on_surface(
+            self.pause_input_button.draw_text_on_surf(
                 self.pause_input_text,
                 self.pause_input_text_rect.topleft,
             )
@@ -648,7 +648,7 @@ class OptionsMenu:
             self.jump_input_text_rect.x -= self.jump_input_button.rect.x
             self.jump_input_text_rect.y -= self.jump_input_button.rect.y
             # Draw it on button.
-            self.jump_input_button.draw_text_on_surface(
+            self.jump_input_button.draw_text_on_surf(
                 self.jump_input_text,
                 self.jump_input_text_rect.topleft,
             )
@@ -665,7 +665,7 @@ class OptionsMenu:
             self.attack_input_text_rect.x -= self.attack_input_button.rect.x
             self.attack_input_text_rect.y -= self.attack_input_button.rect.y
             # Draw it on button.
-            self.attack_input_button.draw_text_on_surface(
+            self.attack_input_button.draw_text_on_surf(
                 self.attack_input_text,
                 self.attack_input_text_rect.topleft,
             )
@@ -696,7 +696,7 @@ class OptionsMenu:
         self.resolution_text_rect.x -= self.resolution_button.rect.x
         self.resolution_text_rect.y -= self.resolution_button.rect.y
         # Draw it on button.
-        self.resolution_button.draw_text_on_surface(
+        self.resolution_button.draw_text_on_surf(
             self.resolution_text,
             self.resolution_text_rect.topleft,
         )
@@ -706,33 +706,33 @@ class OptionsMenu:
         Delay ends, starts going to opaque.
         """
 
-        self.set_state(self.GOING_TO_OPAQUE)
+        self.set_state(self.CLOSING_SCENE_CURTAIN)
 
     def on_exit_delay_timer_end(self) -> None:
         """
         Exit options here.
-        Set my state back to JUST_ENTERED for next entry here.
+        Set my state back to JUST_ENTERED_SCENE for next entry here.
         No need for setter, bypass setter.
         """
 
         self.exit_delay_timer.reset()
         self.entry_delay_timer.reset()
-        self.state = self.JUST_ENTERED
+        self.state = self.JUST_ENTERED_SCENE
         self.game.set_is_options_menu_active(False)
 
     def on_curtain_invisible(self) -> None:
         """
-        Set REACHED_INVISIBLE state.
+        Set SCENE_CURTAIN_OPENED state.
         """
 
-        self.set_state(self.REACHED_INVISIBLE)
+        self.set_state(self.SCENE_CURTAIN_OPENED)
 
     def on_curtain_opaque(self) -> None:
         """
-        Set REACHED_OPAQUE state.
+        Set SCENE_CURTAIN_CLOSED state.
         """
 
-        self.set_state(self.REACHED_OPAQUE)
+        self.set_state(self.SCENE_CURTAIN_CLOSED)
 
     def on_button_index_changed(self, focused_button: Button) -> None:
         """
@@ -759,9 +759,9 @@ class OptionsMenu:
 
         # Exit button selected?
         elif self.exit_button == self.selected_button:
-            # Exit state to GOING_TO_INVISIBLE.
+            # Exit state to OPENING_SCENE_CURTAIN.
             self.load_settings_and_update_ui()
-            self.set_state(self.GOING_TO_INVISIBLE)
+            self.set_state(self.OPENING_SCENE_CURTAIN)
 
         # Any input button selected?
         elif self.selected_button in [
@@ -842,16 +842,16 @@ class OptionsMenu:
             }
         )
 
-        # JUST_ENTERED state.
-        if self.state == self.JUST_ENTERED:
+        # JUST_ENTERED_SCENE state.
+        if self.state == self.JUST_ENTERED_SCENE:
             self.entry_delay_timer.update(dt)
 
-        # GOING_TO_OPAQUE state.
-        elif self.state == self.GOING_TO_OPAQUE:
+        # CLOSING_SCENE_CURTAIN state.
+        elif self.state == self.CLOSING_SCENE_CURTAIN:
             self.curtain.update(dt)
 
-        # REACHED_OPAQUE state.
-        elif self.state == self.REACHED_OPAQUE:
+        # SCENE_CURTAIN_CLOSED state.
+        elif self.state == self.SCENE_CURTAIN_CLOSED:
             # Update button index.
             self.button_container.event(self.game)
 
@@ -937,37 +937,37 @@ class OptionsMenu:
                 )
 
                 # Exit to normal state after rebind ok.
-                self.set_state(self.REACHED_OPAQUE)
+                self.set_state(self.SCENE_CURTAIN_CLOSED)
 
-        # GOING_TO_INVISIBLE state.
-        elif self.state == self.GOING_TO_INVISIBLE:
+        # OPENING_SCENE_CURTAIN state.
+        elif self.state == self.OPENING_SCENE_CURTAIN:
             self.curtain.update(dt)
             self.button_container.update(dt)
 
-        # REACHED_INVISIBLE state.
-        elif self.state == self.REACHED_INVISIBLE:
+        # SCENE_CURTAIN_OPENED state.
+        elif self.state == self.SCENE_CURTAIN_OPENED:
             self.exit_delay_timer.update(dt)
 
     def set_state(self, value: int) -> None:
         old_state: int = self.state
         self.state = value
 
-        # From JUST_ENTERED
-        if old_state == self.JUST_ENTERED:
-            # To GOING_TO_OPAQUE
-            if self.state == self.GOING_TO_OPAQUE:
+        # From JUST_ENTERED_SCENE
+        if old_state == self.JUST_ENTERED_SCENE:
+            # To CLOSING_SCENE_CURTAIN
+            if self.state == self.CLOSING_SCENE_CURTAIN:
                 self.curtain.go_to_opaque()
 
-        # From GOING_TO_OPAQUE
-        elif old_state == self.GOING_TO_OPAQUE:
-            # To REACHED_OPAQUE
-            if self.state == self.REACHED_OPAQUE:
+        # From CLOSING_SCENE_CURTAIN
+        elif old_state == self.CLOSING_SCENE_CURTAIN:
+            # To SCENE_CURTAIN_CLOSED
+            if self.state == self.SCENE_CURTAIN_CLOSED:
                 self.button_container.set_is_input_allowed(True)
 
-        # From REACHED_OPAQUE
-        elif old_state == self.REACHED_OPAQUE:
-            # To GOING_TO_INVISIBLE
-            if self.state == self.GOING_TO_INVISIBLE:
+        # From SCENE_CURTAIN_CLOSED
+        elif old_state == self.SCENE_CURTAIN_CLOSED:
+            # To OPENING_SCENE_CURTAIN
+            if self.state == self.OPENING_SCENE_CURTAIN:
                 self.button_container.set_is_input_allowed(False)
                 self.curtain.go_to_invisible()
             # To REBIND
@@ -977,13 +977,13 @@ class OptionsMenu:
 
         # From REBIND
         elif old_state == self.REBIND:
-            # To REACHED_OPAQUE
-            if self.state == self.REACHED_OPAQUE:
+            # To SCENE_CURTAIN_CLOSED
+            if self.state == self.SCENE_CURTAIN_CLOSED:
                 # Make the press any button stop fade in out.
                 pass
 
-        # From GOING_TO_INVISIBLE
-        elif old_state == self.GOING_TO_INVISIBLE:
-            # To REACHED_INVISIBLE
-            if self.state == self.REACHED_INVISIBLE:
+        # From OPENING_SCENE_CURTAIN
+        elif old_state == self.OPENING_SCENE_CURTAIN:
+            # To SCENE_CURTAIN_OPENED
+            if self.state == self.SCENE_CURTAIN_OPENED:
                 pass

@@ -60,8 +60,7 @@ OGGS_PATHS_DICT: Dict[str, str] = {
 FPS: int = 60
 
 # Fixed dimensions.
-TILE_WIDTH: int = 16
-TILE_HEIGHT: int = 16
+TILE_SIZE: int = 16
 
 WINDOW_WIDTH: int = 320
 WINDOW_HEIGHT: int = 180
@@ -74,6 +73,9 @@ NATIVE_HALF_HEIGHT: int = 80
 
 NATIVE_WIDTH_TU: int = 20
 NATIVE_HEIGHT_TU: int = 10
+
+NATIVE_WIDTH_TU_EXTRA_ONE: int = 21
+NATIVE_HEIGHT_TU_EXTRA_ONE: int = 11
 
 # Native surf and rect will never be mutated.
 NATIVE_SURF: pg.Surface = pg.Surface((NATIVE_WIDTH, NATIVE_HEIGHT))

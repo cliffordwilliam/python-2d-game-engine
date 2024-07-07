@@ -25,12 +25,12 @@ class TitleScreen:
     Player can skip for an early fade out if they input during fade in.
 
     States:
-    - JUST_ENTERED.
-    - GOING_TO_INVISIBLE.
-    - REACHED_INVISIBLE.
+    - JUST_ENTERED_SCENE.
+    - OPENING_SCENE_CURTAIN.
+    - SCENE_CURTAIN_OPENED.
     - LEAVE_FADE_PROMPT.
-    - GOING_TO_OPAQUE.
-    - REACHED_OPAQUE.
+    - CLOSING_SCENE_CURTAIN.
+    - SCENE_CURTAIN_CLOSED.
 
     Parameters:
     - game.
@@ -57,21 +57,21 @@ class TitleScreen:
         - set_state.
     """
 
-    JUST_ENTERED: int = 0
-    GOING_TO_INVISIBLE: int = 1
-    REACHED_INVISIBLE: int = 2
+    JUST_ENTERED_SCENE: int = 0
+    OPENING_SCENE_CURTAIN: int = 1
+    SCENE_CURTAIN_OPENED: int = 2
     LEAVE_FADE_PROMPT: int = 3
-    GOING_TO_OPAQUE: int = 4
-    REACHED_OPAQUE: int = 5
+    CLOSING_SCENE_CURTAIN: int = 4
+    SCENE_CURTAIN_CLOSED: int = 5
 
     # REMOVE IN BUILD
     state_names: List = [
-        "JUST_ENTERED",
-        "GOING_TO_INVISIBLE",
-        "REACHED_INVISIBLE",
+        "JUST_ENTERED_SCENE",
+        "OPENING_SCENE_CURTAIN",
+        "SCENE_CURTAIN_OPENED",
         "LEAVE_FADE_PROMPT",
-        "GOING_TO_OPAQUE",
-        "REACHED_OPAQUE",
+        "CLOSING_SCENE_CURTAIN",
+        "SCENE_CURTAIN_CLOSED",
     ]
 
     def __init__(self, game: "Game"):
@@ -81,7 +81,7 @@ class TitleScreen:
         self.game = game
 
         # Initial state.
-        self.initial_state: int = self.JUST_ENTERED
+        self.initial_state: int = self.JUST_ENTERED_SCENE
         # Null to initial state.
         self.state: int = self.initial_state
 
@@ -177,21 +177,21 @@ class TitleScreen:
 
     # Callbacks.
     def on_entry_delay_timer_end(self) -> None:
-        self.set_state(self.GOING_TO_INVISIBLE)
+        self.set_state(self.OPENING_SCENE_CURTAIN)
 
     def on_exit_delay_timer_end(self) -> None:
         self.game.set_scene("MainMenu")
 
     def on_curtain_invisible(self) -> None:
-        self.set_state(self.REACHED_INVISIBLE)
+        self.set_state(self.SCENE_CURTAIN_OPENED)
 
     def on_curtain_opaque(self) -> None:
-        self.set_state(self.REACHED_OPAQUE)
+        self.set_state(self.SCENE_CURTAIN_CLOSED)
 
     def on_prompt_curtain_invisible(self) -> None:
         # Exits to going to opaque.
         if self.state == self.LEAVE_FADE_PROMPT:
-            self.set_state(self.GOING_TO_OPAQUE)
+            self.set_state(self.CLOSING_SCENE_CURTAIN)
             return
 
         # Oscillates.
@@ -236,27 +236,26 @@ class TitleScreen:
                 "x": 0,
                 "y": 6,
                 "text": (
-                    f"title screen state "
-                    f"state: {self.state_names[self.state]}"
+                    f"title screen " f"state: {self.state_names[self.state]}"
                 ),
             }
         )
 
-        if self.state == self.JUST_ENTERED:
+        if self.state == self.JUST_ENTERED_SCENE:
             """
             - Counts up entry delay time.
             """
 
             self.entry_delay_timer.update(dt)
 
-        elif self.state == self.GOING_TO_INVISIBLE:
+        elif self.state == self.OPENING_SCENE_CURTAIN:
             """
             - Updates curtain alpha.
             """
 
             self.curtain.update(dt)
 
-        elif self.state == self.REACHED_INVISIBLE:
+        elif self.state == self.SCENE_CURTAIN_OPENED:
             """
             - Enter pressed? Exit to LEAVE_FADE_PROMPT state.
             - Updates curtain alpha.
@@ -278,14 +277,14 @@ class TitleScreen:
 
             self.prompt_curtain.update(dt)
 
-        elif self.state == self.GOING_TO_OPAQUE:
+        elif self.state == self.CLOSING_SCENE_CURTAIN:
             """
             - Updates curtain alpha.
             """
 
             self.curtain.update(dt)
 
-        elif self.state == self.REACHED_OPAQUE:
+        elif self.state == self.SCENE_CURTAIN_CLOSED:
             """
             - Counts up exit delay time.
             """
@@ -296,25 +295,25 @@ class TitleScreen:
         old_state: int = self.state
         self.state = value
 
-        # From JUST_ENTERED.
-        if old_state == self.JUST_ENTERED:
-            # To GOING_TO_INVISIBLE.
-            if self.state == self.GOING_TO_INVISIBLE:
+        # From JUST_ENTERED_SCENE.
+        if old_state == self.JUST_ENTERED_SCENE:
+            # To OPENING_SCENE_CURTAIN.
+            if self.state == self.OPENING_SCENE_CURTAIN:
                 self.curtain.go_to_invisible()
                 self.game.music_manager.play_music(-1, 0.0, 0)
 
-        # From GOING_TO_INVISIBLE.
-        elif old_state == self.GOING_TO_INVISIBLE:
-            # To GOING_TO_OPAQUE.
-            if self.state == self.GOING_TO_OPAQUE:
+        # From OPENING_SCENE_CURTAIN.
+        elif old_state == self.OPENING_SCENE_CURTAIN:
+            # To CLOSING_SCENE_CURTAIN.
+            if self.state == self.CLOSING_SCENE_CURTAIN:
                 self.curtain.go_to_opaque()
 
-            # To REACHED_INVISIBLE.
-            elif self.state == self.REACHED_INVISIBLE:
+            # To SCENE_CURTAIN_OPENED.
+            elif self.state == self.SCENE_CURTAIN_OPENED:
                 self.prompt_curtain.go_to_opaque()
 
-        # From REACHED_INVISIBLE.
-        elif old_state == self.REACHED_INVISIBLE:
+        # From SCENE_CURTAIN_OPENED.
+        elif old_state == self.SCENE_CURTAIN_OPENED:
             # To LEAVE_FADE_PROMPT.
             if self.state == self.LEAVE_FADE_PROMPT:
                 self.prompt_curtain.set_max_alpha(255)
@@ -323,12 +322,12 @@ class TitleScreen:
 
         # From LEAVE_FADE_PROMPT.
         elif old_state == self.LEAVE_FADE_PROMPT:
-            # To GOING_TO_OPAQUE.
-            if self.state == self.GOING_TO_OPAQUE:
+            # To CLOSING_SCENE_CURTAIN.
+            if self.state == self.CLOSING_SCENE_CURTAIN:
                 self.curtain.go_to_opaque()
 
-        # From GOING_TO_OPAQUE.
-        elif old_state == self.GOING_TO_OPAQUE:
-            # To REACHED_OPAQUE.
-            if self.state == self.REACHED_OPAQUE:
+        # From CLOSING_SCENE_CURTAIN.
+        elif old_state == self.CLOSING_SCENE_CURTAIN:
+            # To SCENE_CURTAIN_CLOSED.
+            if self.state == self.SCENE_CURTAIN_CLOSED:
                 NATIVE_SURF.fill("black")
