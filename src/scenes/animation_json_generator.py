@@ -1,18 +1,21 @@
+from json import dump
 from os.path import exists
+from os.path import join  # for OS agnostic paths.
 from typing import Any
+from typing import Dict
 from typing import List
 from typing import Tuple
 from typing import TYPE_CHECKING
 
 from constants import FONT
 from constants import FONT_HEIGHT
+from constants import JSONS_DIR_PATH
 from constants import NATIVE_HEIGHT
-from constants import NATIVE_HEIGHT_TU_EXTRA_ONE
 from constants import NATIVE_RECT
 from constants import NATIVE_SURF
 from constants import NATIVE_WIDTH
 from constants import NATIVE_WIDTH_TU
-from constants import NATIVE_WIDTH_TU_EXTRA_ONE
+from constants import OGGS_PATHS_DICT
 from constants import pg
 from constants import TILE_SIZE
 from nodes.camera import Camera
@@ -29,8 +32,11 @@ if TYPE_CHECKING:
 @typechecked
 class AnimationJsonGenerator:
     """
-    Fades in and out to show created by text.
-    Player can skip for an early fade out if they input during fade in.
+    Prefix the file name to be saved.
+    With the sprite sheet name.
+    Because for performance sake 1 json is for 1 sprite sheet.
+    Asks for file name to be saved to JSONS_DIR_PATH.
+    Careful for overriding data.
 
     States:
     - JUST_ENTERED_SCENE.
@@ -44,7 +50,8 @@ class AnimationJsonGenerator:
     - LOOP_QUERY.
     - NEXT_ANIMATION_QUERY.
     - DURATION_QUERY.
-    - ADD_FRAMES.
+    - ADD_SPRITES.
+    - SAVE_QUIT_REDO_QUERY.
 
     Parameters:
     - game.
@@ -80,7 +87,8 @@ class AnimationJsonGenerator:
     LOOP_QUERY: int = 8
     NEXT_ANIMATION_QUERY: int = 9
     DURATION_QUERY: int = 10
-    ADD_FRAMES: int = 11
+    ADD_SPRITES: int = 11
+    SAVE_QUIT_REDO_QUERY: int = 12
 
     # REMOVE IN BUILD
     state_names: List = [
@@ -95,7 +103,8 @@ class AnimationJsonGenerator:
         "LOOP_QUERY",
         "NEXT_ANIMATION_QUERY",
         "DURATION_QUERY",
-        "ADD_FRAMES",
+        "ADD_SPRITES",
+        "SAVE_QUIT_REDO_QUERY",
     ]
 
     def __init__(self, game: "Game"):
@@ -128,26 +137,18 @@ class AnimationJsonGenerator:
             self.curtain_is_invisible,
             self.curtain_color,
         )
-        self.curtain.add_event_listener(
-            self.on_curtain_invisible, Curtain.INVISIBLE_END
-        )
-        self.curtain.add_event_listener(
-            self.on_curtain_opaque, Curtain.OPAQUE_END
-        )
+        self.curtain.add_event_listener(self.on_curtain_invisible, Curtain.INVISIBLE_END)
+        self.curtain.add_event_listener(self.on_curtain_opaque, Curtain.OPAQUE_END)
 
         # Timers.
         # Entry delay.
         self.entry_delay_timer_duration: float = 1000
         self.entry_delay_timer: Timer = Timer(self.entry_delay_timer_duration)
-        self.entry_delay_timer.add_event_listener(
-            self.on_entry_delay_timer_end, Timer.END
-        )
+        self.entry_delay_timer.add_event_listener(self.on_entry_delay_timer_end, Timer.END)
         # Exit delay.
         self.exit_delay_timer_duration: float = 1000
         self.exit_delay_timer: Timer = Timer(self.exit_delay_timer_duration)
-        self.exit_delay_timer.add_event_listener(
-            self.on_exit_delay_timer_end, Timer.END
-        )
+        self.exit_delay_timer.add_event_listener(self.on_exit_delay_timer_end, Timer.END)
 
         # Texts.
         # Prompt.
@@ -160,14 +161,14 @@ class AnimationJsonGenerator:
 
         # Store user inputs.
         self.file_name: str = ""
-        self.sprite_size: int = TILE_SIZE
-        self.sprite_size_tu: int = int(self.sprite_size // TILE_SIZE)
+        self.animation_sprite_size: int = TILE_SIZE
+        self.sprite_size_tu: int = int(self.animation_sprite_size // TILE_SIZE)
         self.animation_name: str = ""
         self.animation_is_loop: int = 0
         self.next_animation_name: str = ""
         self.animation_duration: int = 0
         # Sprite sheet surf.
-        self.sprite_sheet_png_path: str | None = None
+        self.sprite_sheet_png_path: Any = None
         self.sprite_sheet_surf: Any = None
         self.sprite_sheet_rect: Any = None
 
@@ -197,28 +198,35 @@ class AnimationJsonGenerator:
         self.room_collision_map_height_tu: int = 0
 
         # To be saved json.
-        self.sprites_list: List = []
+        self.animation_json: Dict = {}
+        self.animation_sprites_list: List = []
 
         # Selected surf marker.
-        self.selected_surf: pg.Surface = pg.Surface((TILE_SIZE, TILE_SIZE))
-        self.selected_surf.fill("red")
+        self.selected_surf_marker: pg.Surface = pg.Surface((TILE_SIZE, TILE_SIZE))
+        self.selected_surf_marker.fill("red")
 
         # Grid surf.
-        self.grid_vertical_line_surf: pg.Surface = pg.Surface(
-            (NATIVE_HEIGHT, 1)
-        )
+        self.grid_vertical_line_surf: pg.Surface = pg.Surface((NATIVE_HEIGHT, 1))
         self.grid_vertical_line_surf.fill(self.grid_line_color)
-        self.grid_horizontal_line_surf: pg.Surface = pg.Surface(
-            (1, NATIVE_HEIGHT)
-        )
+        self.grid_horizontal_line_surf: pg.Surface = pg.Surface((1, NATIVE_HEIGHT))
         self.grid_horizontal_line_surf.fill(self.grid_line_color)
+
+        # Options after add sprites state.
+        self.selected_choice_after_add_sprites_state: int = 0
+        self.save_and_quit_choice_after_add_sprites_state: int = 1
+        self.save_and_redo_choice_after_add_sprites_state: int = 2
+        self.redo_choice_after_add_sprites_state: int = 3
+
+        # Load title screen music. Played in my set state.
+        self.game.music_manager.set_current_music_path(OGGS_PATHS_DICT["xdeviruchi_title_theme.ogg"])
 
     # Callbacks.
     def on_entry_delay_timer_end(self) -> None:
         self.set_state(self.OPENING_SCENE_CURTAIN)
 
     def on_exit_delay_timer_end(self) -> None:
-        self.game.set_scene("MadeWithSplashScreen")
+        self.game.music_manager.play_music(-1, 0.0, 0)
+        self.game.set_scene("MainMenu")
 
     def on_curtain_invisible(self) -> None:
         if self.state == self.OPENING_SCENE_CURTAIN:
@@ -251,23 +259,32 @@ class AnimationJsonGenerator:
             self.curtain.go_to_invisible()
             return
         elif self.state == self.DURATION_QUERY:
-            self.set_state(self.ADD_FRAMES)
+            self.set_state(self.ADD_SPRITES)
             self.curtain.go_to_invisible()
             return
-
-        # TODO: Set condition to go to opaque.
-        # self.set_state(self.SCENE_CURTAIN_CLOSED)
+        elif self.state == self.ADD_SPRITES:
+            self.set_state(self.SAVE_QUIT_REDO_QUERY)
+            self.curtain.go_to_invisible()
+            return
+        elif self.state == self.SAVE_QUIT_REDO_QUERY:
+            if self.selected_choice_after_add_sprites_state == (self.save_and_redo_choice_after_add_sprites_state):
+                self.set_state(self.ANIMATION_NAME_QUERY)
+                self.curtain.go_to_invisible()
+                return
+            elif self.selected_choice_after_add_sprites_state == (self.redo_choice_after_add_sprites_state):
+                self.set_state(self.ADD_SPRITES)
+                self.curtain.go_to_invisible()
+                return
+            elif self.selected_choice_after_add_sprites_state == (self.save_and_quit_choice_after_add_sprites_state):
+                self.set_state(self.SCENE_CURTAIN_CLOSED)
+                return
 
     # Helpers.
     def draw_grid(self) -> None:
         for i in range(NATIVE_WIDTH_TU):
             offset: int = TILE_SIZE * i
-            vertical_line_x_position: float = (
-                offset - self.camera.rect.x
-            ) % NATIVE_WIDTH
-            horizontal_line_y_position: float = (
-                offset - self.camera.rect.y
-            ) % NATIVE_HEIGHT
+            vertical_line_x_position: float = (offset - self.camera.rect.x) % NATIVE_WIDTH
+            horizontal_line_y_position: float = (offset - self.camera.rect.y) % NATIVE_HEIGHT
             NATIVE_SURF.blit(
                 self.grid_vertical_line_surf,
                 (vertical_line_x_position, 0),
@@ -298,13 +315,8 @@ class AnimationJsonGenerator:
         Returns -1 if out of bounds
         Because camera needs extra 1 and thus may get out of bound.
         """
-        if (
-            0 <= world_tu_x < self.room_collision_map_width_tu
-            and 0 <= world_tu_y < self.room_collision_map_height_tu
-        ):
-            return self.room_collision_map_list[
-                world_tu_y * self.room_collision_map_width_tu + world_tu_x
-            ]
+        if 0 <= world_tu_x < self.room_collision_map_width_tu and 0 <= world_tu_y < self.room_collision_map_height_tu:
+            return self.room_collision_map_list[world_tu_y * self.room_collision_map_width_tu + world_tu_x]
         else:
             return -1
 
@@ -318,13 +330,8 @@ class AnimationJsonGenerator:
         Returns -1 if out of bounds
         Because camera needs extra 1 and thus may get out of bound.
         """
-        if (
-            0 <= world_tu_x < self.room_collision_map_width_tu
-            and 0 <= world_tu_y < self.room_collision_map_height_tu
-        ):
-            self.room_collision_map_list[
-                world_tu_y * self.room_collision_map_width_tu + world_tu_x
-            ] = value
+        if 0 <= world_tu_x < self.room_collision_map_width_tu and 0 <= world_tu_y < self.room_collision_map_height_tu:
+            self.room_collision_map_list[world_tu_y * self.room_collision_map_width_tu + world_tu_x] = value
             return None
         else:
             return -1
@@ -337,11 +344,7 @@ class AnimationJsonGenerator:
         self.room_collision_map_width_tu = room_width_tu
         self.room_collision_map_height_tu = room_height_tu
         self.room_collision_map_list = [
-            0
-            for _ in range(
-                self.room_collision_map_width_tu
-                * self.room_collision_map_height_tu
-            )
+            0 for _ in range(self.room_collision_map_width_tu * self.room_collision_map_height_tu)
         ]
 
     def set_input_text(self, value: str) -> None:
@@ -350,11 +353,7 @@ class AnimationJsonGenerator:
         self.input_rect.center = NATIVE_RECT.center
 
     def set_prompt_text(self, value: str) -> None:
-        self.prompt_text = (
-            f"{value} "
-            f"hit {pg.key.name(self.game.local_settings_dict['enter'])} "
-            "to proceed"
-        )
+        self.prompt_text = f"{value} " f"hit {pg.key.name(self.game.local_settings_dict['enter'])} " "to proceed"
         self.prompt_rect = FONT.get_rect(self.prompt_text)
         self.prompt_rect.center = NATIVE_RECT.center
         self.prompt_rect.y -= FONT_HEIGHT + 1
@@ -379,6 +378,7 @@ class AnimationJsonGenerator:
             self.LOOP_QUERY,
             self.NEXT_ANIMATION_QUERY,
             self.DURATION_QUERY,
+            self.SAVE_QUIT_REDO_QUERY,
         ]:
             # Draw grid with camera offset.
             self.draw_grid()
@@ -396,10 +396,10 @@ class AnimationJsonGenerator:
                 self.font_color,
             )
 
-        elif self.state == self.ADD_FRAMES:
+        elif self.state == self.ADD_SPRITES:
             self.draw_grid()
 
-            # Draw sprite sheet with camera offset.
+            # Draw selected sprite sheet with camera offset.
             NATIVE_SURF.blit(
                 self.sprite_sheet_surf,
                 (
@@ -408,52 +408,18 @@ class AnimationJsonGenerator:
                 ),
             )
 
-            # Draw occupied tiles.
-            for camera_tu_xi in range(NATIVE_WIDTH_TU_EXTRA_ONE):
-                for camera_tu_yi in range(NATIVE_HEIGHT_TU_EXTRA_ONE):
-                    # Get tl tu.
-                    root_camera_tu_x: int = int(
-                        self.camera.rect.x // TILE_SIZE
-                    )
-                    root_camera_tu_y: int = int(
-                        self.camera.rect.y // TILE_SIZE
-                    )
-                    # Get this tu.
-                    camera_tu_x: int = root_camera_tu_x + camera_tu_xi
-                    camera_tu_y: int = root_camera_tu_y + camera_tu_yi
-                    # Get each one in room_collision_map_list.
-                    found_camera_tile: int = (
-                        self.get_tile_from_room_collision_map_list(
-                            camera_tu_x,
-                            camera_tu_y,
-                        )
-                    )
-                    # Draw.
-                    if found_camera_tile == 1:
-                        NATIVE_SURF.blit(
-                            self.selected_surf,
-                            (
-                                (camera_tu_x * TILE_SIZE) - self.camera.rect.x,
-                                (camera_tu_y * TILE_SIZE) - self.camera.rect.y,
-                            ),
-                        )
-
             # Draw cursor.
             # Get mouse position.
             mouse_position_tuple: Tuple[int, int] = pg.mouse.get_pos()
             mouse_position_x_tuple: int = mouse_position_tuple[0]
             # Set top left to be -y_offset instead of 0.
-            mouse_position_y_tuple: int = (
-                mouse_position_tuple[1] - self.game.native_y_offset
-            )
+            mouse_position_y_tuple: int = mouse_position_tuple[1] - self.game.native_y_offset
             # Scale mouse position.
             mouse_position_x_tuple_scaled: int | float = (
-                mouse_position_x_tuple
-                // self.game.local_settings_dict["resolution_scale"]
+                mouse_position_x_tuple // self.game.local_settings_dict["resolution_scale"]
             )
             mouse_position_y_tuple_scaled: int | float = (
-                mouse_position_y_tuple
-                // self.game.local_settings_dict["resolution_scale"]
+                mouse_position_y_tuple // self.game.local_settings_dict["resolution_scale"]
             )
             # Keep mouse inside scaled NATIVE_RECT.
             mouse_position_x_tuple_scaled = clamp(
@@ -471,38 +437,30 @@ class AnimationJsonGenerator:
                 NATIVE_RECT.bottom - 1,
             )
             # Convert positions.
-            self.world_mouse_x = (
-                mouse_position_x_tuple_scaled + self.camera.rect.x
-            )
-            self.world_mouse_y = (
-                mouse_position_y_tuple_scaled + self.camera.rect.y
-            )
+            self.world_mouse_x = mouse_position_x_tuple_scaled + self.camera.rect.x
+            self.world_mouse_y = mouse_position_y_tuple_scaled + self.camera.rect.y
             self.world_mouse_tu_x = int(self.world_mouse_x // TILE_SIZE)
             self.world_mouse_tu_y = int(self.world_mouse_y // TILE_SIZE)
             self.world_mouse_snapped_x = int(self.world_mouse_tu_x * TILE_SIZE)
             self.world_mouse_snapped_y = int(self.world_mouse_tu_y * TILE_SIZE)
             self.world_mouse_snapped_x = min(
                 self.world_mouse_snapped_x,
-                self.sprite_sheet_rect.right - self.sprite_size,
+                self.sprite_sheet_rect.right - self.animation_sprite_size,
             )
             self.world_mouse_snapped_y = min(
                 self.world_mouse_snapped_y,
-                self.sprite_sheet_rect.bottom - self.sprite_size,
+                self.sprite_sheet_rect.bottom - self.animation_sprite_size,
             )
-            self.screen_mouse_x = (
-                self.world_mouse_snapped_x - self.camera.rect.x
-            )
-            self.screen_mouse_y = (
-                self.world_mouse_snapped_y - self.camera.rect.y
-            )
+            self.screen_mouse_x = self.world_mouse_snapped_x - self.camera.rect.x
+            self.screen_mouse_y = self.world_mouse_snapped_y - self.camera.rect.y
             pg.draw.rect(
                 NATIVE_SURF,
                 "green",
                 [
                     self.screen_mouse_x,
                     self.screen_mouse_y,
-                    self.sprite_size,
-                    self.sprite_size,
+                    self.animation_sprite_size,
+                    self.animation_sprite_size,
                 ],
                 1,
             )
@@ -522,10 +480,7 @@ class AnimationJsonGenerator:
                 "layer": 6,
                 "x": 0,
                 "y": 6,
-                "text": (
-                    f"animation json generator "
-                    f"state: {self.state_names[self.state]}"
-                ),
+                "text": (f"animation json generator " f"state: {self.state_names[self.state]}"),
             }
         )
 
@@ -566,10 +521,7 @@ class AnimationJsonGenerator:
                             self.set_input_text(new_value)
                         # Add.
                         else:
-                            new_value = (
-                                self.input_text
-                                + self.game.this_frame_event.unicode
-                            )
+                            new_value = self.input_text + self.game.this_frame_event.unicode
                             self.set_input_text(new_value)
 
             # Update curtain.
@@ -587,17 +539,11 @@ class AnimationJsonGenerator:
                     if self.game.this_frame_event.type == pg.KEYDOWN:
                         # Accept.
                         if self.game.this_frame_event.key == pg.K_RETURN:
-                            if exists(
-                                self.input_text
-                            ) and self.input_text.endswith(".png"):
+                            if exists(self.input_text) and self.input_text.endswith(".png"):
                                 # Setup the sprite sheet data.
                                 self.sprite_sheet_png_path = self.input_text
-                                self.sprite_sheet_surf = pg.image.load(
-                                    self.sprite_sheet_png_path
-                                ).convert_alpha()
-                                self.sprite_sheet_rect = (
-                                    self.sprite_sheet_surf.get_rect()
-                                )
+                                self.sprite_sheet_surf = pg.image.load(self.sprite_sheet_png_path).convert_alpha()
+                                self.sprite_sheet_rect = self.sprite_sheet_surf.get_rect()
                                 # Setup camera limits.
                                 self.camera.set_rect_limit(
                                     float(self.sprite_sheet_rect.top),
@@ -606,12 +552,8 @@ class AnimationJsonGenerator:
                                     float(self.sprite_sheet_rect.right),
                                 )
                                 # Init room collision map list.
-                                sprite_sheet_width_tu: int = (
-                                    self.sprite_sheet_rect.width // TILE_SIZE
-                                )
-                                sprite_sheet_height_tu: int = (
-                                    self.sprite_sheet_rect.height // TILE_SIZE
-                                )
+                                sprite_sheet_width_tu: int = self.sprite_sheet_rect.width // TILE_SIZE
+                                sprite_sheet_height_tu: int = self.sprite_sheet_rect.height // TILE_SIZE
                                 self.init_room_collision_map_list(
                                     sprite_sheet_width_tu,
                                     sprite_sheet_height_tu,
@@ -627,10 +569,7 @@ class AnimationJsonGenerator:
                             self.set_input_text(new_value)
                         # Add.
                         else:
-                            new_value = (
-                                self.input_text
-                                + self.game.this_frame_event.unicode
-                            )
+                            new_value = self.input_text + self.game.this_frame_event.unicode
                             self.set_input_text(new_value)
 
             # Update curtain.
@@ -650,14 +589,10 @@ class AnimationJsonGenerator:
                         if self.game.this_frame_event.key == pg.K_RETURN:
                             if self.input_text.isdigit():
                                 # Setup the sprite_size.
-                                self.sprite_size = max(
-                                    int(self.input_text) * TILE_SIZE, 0
-                                )
-                                self.sprite_size_tu = int(
-                                    self.sprite_size // TILE_SIZE
-                                )
-                                # Exit to ADD_FRAMES.
-                                # Close curtain to exit to ADD_FRAMES.
+                                self.animation_sprite_size = max(int(self.input_text) * TILE_SIZE, 0)
+                                self.sprite_size_tu = int(self.animation_sprite_size // TILE_SIZE)
+                                # Exit to ADD_SPRITES.
+                                # Close curtain to exit to ADD_SPRITES.
                                 self.curtain.go_to_opaque()
                             else:
                                 self.set_input_text("type int only please!")
@@ -667,10 +602,7 @@ class AnimationJsonGenerator:
                             self.set_input_text(new_value)
                         # Add.
                         else:
-                            new_value = (
-                                self.input_text
-                                + self.game.this_frame_event.unicode
-                            )
+                            new_value = self.input_text + self.game.this_frame_event.unicode
                             self.set_input_text(new_value)
 
             # Update curtain.
@@ -700,10 +632,7 @@ class AnimationJsonGenerator:
                             self.set_input_text(new_value)
                         # Add.
                         else:
-                            new_value = (
-                                self.input_text
-                                + self.game.this_frame_event.unicode
-                            )
+                            new_value = self.input_text + self.game.this_frame_event.unicode
                             self.set_input_text(new_value)
 
             # Update curtain.
@@ -737,10 +666,7 @@ class AnimationJsonGenerator:
                             self.set_input_text(new_value)
                         # Add.
                         else:
-                            new_value = (
-                                self.input_text
-                                + self.game.this_frame_event.unicode
-                            )
+                            new_value = self.input_text + self.game.this_frame_event.unicode
                             self.set_input_text(new_value)
 
             # Update curtain.
@@ -760,7 +686,7 @@ class AnimationJsonGenerator:
                         if self.game.this_frame_event.key == pg.K_RETURN:
                             # TODO: Trim white space.
                             if self.input_text != "":
-                                self.animation_name = self.input_text
+                                self.next_animation_name = self.input_text
                                 # Close curtain.
                                 # Exit to SPRITE_SHEET_PNG_PATH_QUERY.
                                 self.curtain.go_to_opaque()
@@ -770,10 +696,7 @@ class AnimationJsonGenerator:
                             self.set_input_text(new_value)
                         # Add.
                         else:
-                            new_value = (
-                                self.input_text
-                                + self.game.this_frame_event.unicode
-                            )
+                            new_value = self.input_text + self.game.this_frame_event.unicode
                             self.set_input_text(new_value)
 
             # Update curtain.
@@ -794,8 +717,8 @@ class AnimationJsonGenerator:
                             if self.input_text.isdigit():
                                 # Setup the sprite_size.
                                 self.animation_duration = int(self.input_text)
-                                # Exit to ADD_FRAMES.
-                                # Close curtain to exit to ADD_FRAMES.
+                                # Exit to ADD_SPRITES.
+                                # Close curtain to exit to ADD_SPRITES.
                                 self.curtain.go_to_opaque()
                             else:
                                 self.set_input_text("type int only please!")
@@ -805,16 +728,13 @@ class AnimationJsonGenerator:
                             self.set_input_text(new_value)
                         # Add.
                         else:
-                            new_value = (
-                                self.input_text
-                                + self.game.this_frame_event.unicode
-                            )
+                            new_value = self.input_text + self.game.this_frame_event.unicode
                             self.set_input_text(new_value)
 
             # Update curtain.
             self.curtain.update(dt)
 
-        elif self.state == self.ADD_FRAMES:
+        elif self.state == self.ADD_SPRITES:
             """
             - Move camera and add frames to be saved.
             - Updates curtain alpha.
@@ -823,43 +743,163 @@ class AnimationJsonGenerator:
             if self.curtain.is_done:
                 # Camera movement.
                 # Get direction_horizontal.
-                direction_horizontal: int = (
-                    self.game.is_right_pressed - self.game.is_left_pressed
-                )
+                direction_horizontal: int = self.game.is_right_pressed - self.game.is_left_pressed
                 # Update camera anchor position with direction and speed.
-                self.camera_anchor_vector.x += (
-                    direction_horizontal * self.camera_speed * dt
-                )
+                self.camera_anchor_vector.x += direction_horizontal * self.camera_speed * dt
                 # Get direction_vertical.
-                direction_vertical: int = (
-                    self.game.is_down_pressed - self.game.is_up_pressed
-                )
+                direction_vertical: int = self.game.is_down_pressed - self.game.is_up_pressed
                 # Update camera anchor position with direction and speed.
-                self.camera_anchor_vector.y += (
-                    direction_vertical * self.camera_speed * dt
-                )
+                self.camera_anchor_vector.y += direction_vertical * self.camera_speed * dt
                 # Lerp camera position to target camera anchor.
                 self.camera.update(dt)
 
                 # Sprite selection.
                 # Lmb just pressed.
+                is_lmb_just_pressed_occupied: bool = False
                 if self.game.is_lmb_just_pressed:
-                    # Store selected rect.
-                    # Iterate size.
+                    # Check if selection is all empty cells.
+                    # Iterate size to check all empty.
                     for world_mouse_tu_xi in range(self.sprite_size_tu):
                         for world_mouse_tu_yi in range(self.sprite_size_tu):
-                            world_mouse_tu_x: int = (
-                                self.world_mouse_tu_x + world_mouse_tu_xi
-                            )
-                            world_mouse_tu_y: int = (
-                                self.world_mouse_tu_y + world_mouse_tu_yi
-                            )
-                            # Store each one in room_collision_map_list.
-                            self.set_tile_from_room_collision_map_list(
+                            world_mouse_tu_x: int = self.world_mouse_tu_x + world_mouse_tu_xi
+                            world_mouse_tu_y: int = self.world_mouse_tu_y + world_mouse_tu_yi
+                            # Get each one in room_collision_map_list.
+                            found_tile_lmb_pressed: int = self.get_tile_from_room_collision_map_list(
                                 world_mouse_tu_x,
                                 world_mouse_tu_y,
-                                1,
                             )
+                            # At least 1 of them is occupied? Return.
+                            if found_tile_lmb_pressed == 1:
+                                is_lmb_just_pressed_occupied = True
+                    # All cells are empty.
+                    if not is_lmb_just_pressed_occupied:
+                        # Fill it.
+                        # Iterate size to set 1.
+                        for world_mouse_tu_xi2 in range(self.sprite_size_tu):
+                            for world_mouse_tu_yi2 in range(self.sprite_size_tu):
+                                world_mouse_tu_x2: int = self.world_mouse_tu_x + world_mouse_tu_xi2
+                                world_mouse_tu_y2: int = self.world_mouse_tu_y + world_mouse_tu_yi2
+                                # Store each one in room_collision_map_list.
+                                self.set_tile_from_room_collision_map_list(
+                                    world_mouse_tu_x2,
+                                    world_mouse_tu_y2,
+                                    1,
+                                )
+                                # Draw marker on sprite sheet.
+                                self.sprite_sheet_surf.blit(
+                                    self.selected_surf_marker,
+                                    (
+                                        world_mouse_tu_x2 * TILE_SIZE,
+                                        world_mouse_tu_y2 * TILE_SIZE,
+                                    ),
+                                )
+                        # Add to list.
+                        self.animation_sprites_list.append(
+                            {
+                                "x": self.world_mouse_snapped_x,
+                                "y": self.world_mouse_snapped_y,
+                            }
+                        )
+
+                # Enter just pressed.
+                if self.game.is_enter_just_pressed:
+                    # Exit to ask save quit, save again, redo.
+                    self.curtain.go_to_opaque()
+
+            # Update curtain.
+            self.curtain.update(dt)
+
+        elif self.state == self.SAVE_QUIT_REDO_QUERY:
+            """
+            - Get user input for save quit, save again, redo.
+            - Updates curtain alpha.
+            """
+            # Wait for curtain to be fully invisible.
+            if self.curtain.is_done:
+                # Caught 1 key event this frame?
+                if self.game.this_frame_event:
+                    if self.game.this_frame_event.type == pg.KEYDOWN:
+                        # Accept.
+                        if self.game.this_frame_event.key == pg.K_RETURN:
+                            if self.input_text in [
+                                str(self.save_and_quit_choice_after_add_sprites_state),
+                                str(self.save_and_redo_choice_after_add_sprites_state),
+                                str(self.redo_choice_after_add_sprites_state),
+                            ]:
+                                # 1 = Save and quit.
+                                if self.input_text == str(self.save_and_quit_choice_after_add_sprites_state):
+                                    self.selected_choice_after_add_sprites_state = (
+                                        self.save_and_quit_choice_after_add_sprites_state
+                                    )
+                                    # Save this animation to local.
+                                    self.animation_json[self.animation_name] = {
+                                        "animation_is_loop": self.animation_is_loop,
+                                        "next_animation_name": self.next_animation_name,
+                                        "animation_duration": self.animation_duration,
+                                        "animation_sprite_size": self.animation_sprite_size,
+                                        "animation_sprites_list": self.animation_sprites_list,
+                                    }
+                                    # Write to json.
+                                    with open(
+                                        join(JSONS_DIR_PATH, f"{self.file_name}.json"),
+                                        "w",
+                                    ) as animation_json:
+                                        dump(self.animation_json, animation_json)
+                                    # Close curtain.
+                                    # Exit to main menu.
+                                    self.curtain.go_to_opaque()
+                                # 2 = Save and redo.
+                                elif self.input_text == str(self.save_and_redo_choice_after_add_sprites_state):
+                                    self.selected_choice_after_add_sprites_state = (
+                                        self.save_and_redo_choice_after_add_sprites_state
+                                    )
+                                    # Save this animation to local.
+                                    self.animation_json[self.animation_name] = {
+                                        "animation_is_loop": self.animation_is_loop,
+                                        "next_animation_name": self.next_animation_name,
+                                        "animation_duration": self.animation_duration,
+                                        "animation_sprite_size": self.animation_sprite_size,
+                                        "animation_sprites_list": self.animation_sprites_list,
+                                    }
+                                    # Get fresh selected sprite sheet again.
+                                    self.sprite_sheet_surf = pg.image.load(self.sprite_sheet_png_path).convert_alpha()
+                                    # Empty the selected sprites list.
+                                    self.animation_sprites_list = []
+                                    # Empty collision map.
+                                    self.init_room_collision_map_list(
+                                        self.room_collision_map_width_tu,
+                                        self.room_collision_map_height_tu,
+                                    )
+                                    # Close curtain.
+                                    # Exit to SPRITE_SIZE_QUERY.
+                                    self.curtain.go_to_opaque()
+                                # 3 = Redo.
+                                elif self.input_text == str(self.redo_choice_after_add_sprites_state):
+                                    self.selected_choice_after_add_sprites_state = (
+                                        self.redo_choice_after_add_sprites_state
+                                    )
+                                    # Get fresh selected sprite sheet again.
+                                    self.sprite_sheet_surf = pg.image.load(self.sprite_sheet_png_path).convert_alpha()
+                                    # Empty the selected sprites list.
+                                    self.animation_sprites_list = []
+                                    # Empty collision map.
+                                    self.init_room_collision_map_list(
+                                        self.room_collision_map_width_tu,
+                                        self.room_collision_map_height_tu,
+                                    )
+                                    # Close curtain.
+                                    # Exit to ADD_SPRITES.
+                                    self.curtain.go_to_opaque()
+                            else:
+                                self.set_input_text("type 1, 2 or 3 only please!")
+                        # Delete.
+                        elif self.game.this_frame_event.key == pg.K_BACKSPACE:
+                            new_value = self.input_text[:-1]
+                            self.set_input_text(new_value)
+                        # Add.
+                        else:
+                            new_value = self.input_text + self.game.this_frame_event.unicode
+                            self.set_input_text(new_value)
 
             # Update curtain.
             self.curtain.update(dt)
@@ -913,9 +953,7 @@ class AnimationJsonGenerator:
                 # Reset the input text.
                 self.set_input_text("")
                 # Set my prompt text:
-                self.set_prompt_text(
-                    "type the sprite size in tile units to be used,"
-                )
+                self.set_prompt_text("type the sprite size in tile units to be used,")
 
         # From SPRITE_SIZE_QUERY.
         elif old_state == self.SPRITE_SIZE_QUERY:
@@ -942,9 +980,7 @@ class AnimationJsonGenerator:
                 # Reset the input text.
                 self.set_input_text("")
                 # Set my prompt text:
-                self.set_prompt_text(
-                    "type the next animation name (optional),"
-                )
+                self.set_prompt_text("type the next animation name (optional),")
 
         # From NEXT_ANIMATION_QUERY.
         elif old_state == self.NEXT_ANIMATION_QUERY:
@@ -957,8 +993,32 @@ class AnimationJsonGenerator:
 
         # From DURATION_QUERY.
         elif old_state == self.DURATION_QUERY:
-            # To ADD_FRAMES.
-            if self.state == self.ADD_FRAMES:
+            # To ADD_SPRITES.
+            if self.state == self.ADD_SPRITES:
+                pass
+
+        # From ADD_SPRITES.
+        elif old_state == self.ADD_SPRITES:
+            # To SAVE_QUIT_REDO_QUERY.
+            if self.state == self.SAVE_QUIT_REDO_QUERY:
+                # Reset the input text.
+                self.set_input_text("")
+                # Set my prompt text:
+                self.set_prompt_text("save and quit, save and redo, redo (1/2/3)?")
+
+        # From SAVE_QUIT_REDO_QUERY.
+        elif old_state == self.SAVE_QUIT_REDO_QUERY:
+            # To ANIMATION_NAME_QUERY.
+            if self.state == self.ANIMATION_NAME_QUERY:
+                # Reset the input text.
+                self.set_input_text("")
+                # Set my prompt text:
+                self.set_prompt_text("type the animation name,")
+            # To ADD_SPRITES.
+            elif self.state == self.ADD_SPRITES:
+                pass
+            # To CLOSING_SCENE_CURTAIN.
+            elif self.state == self.CLOSING_SCENE_CURTAIN:
                 pass
 
         # From CLOSING_SCENE_CURTAIN.

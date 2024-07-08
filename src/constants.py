@@ -31,6 +31,7 @@ DEFAULT_SETTINGS_DICT: Dict[str, int] = {
     "rmb": 3,
 }
 
+# TODO: do not hard code, loop with os.
 # Path dictionaries.
 JSONS_DIR_PATH: str = "jsons"
 JSONS_PATHS_DICT: Dict[str, str] = {
@@ -39,19 +40,13 @@ JSONS_PATHS_DICT: Dict[str, str] = {
 
 PNGS_DIR_PATH: str = "pngs"
 PNGS_PATHS_DICT: Dict[str, str] = {
-    "main_menu_background.png": join(
-        PNGS_DIR_PATH, "main_menu_background.png"
-    ),
-    "gestalt_illusion_logo.png": join(
-        PNGS_DIR_PATH, "gestalt_illusion_logo.png"
-    ),
+    "main_menu_background.png": join(PNGS_DIR_PATH, "main_menu_background.png"),
+    "gestalt_illusion_logo.png": join(PNGS_DIR_PATH, "gestalt_illusion_logo.png"),
 }
 
 OGGS_DIR_PATH: str = "oggs"
 OGGS_PATHS_DICT: Dict[str, str] = {
-    "xdeviruchi_title_theme.ogg": join(
-        OGGS_DIR_PATH, "xdeviruchi_title_theme.ogg"
-    ),
+    "xdeviruchi_title_theme.ogg": join(OGGS_DIR_PATH, "xdeviruchi_title_theme.ogg"),
     "001_hover_01.ogg": join(OGGS_DIR_PATH, "001_hover_01.ogg"),
     "confirm.ogg": join(OGGS_DIR_PATH, "confirm.ogg"),
 }
