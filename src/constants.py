@@ -1,4 +1,6 @@
 from os import environ
+from os import listdir
+from os.path import isfile
 from os.path import join  # for OS agnostic paths.
 from typing import Dict
 from typing import List
@@ -31,25 +33,26 @@ DEFAULT_SETTINGS_DICT: Dict[str, int] = {
     "rmb": 3,
 }
 
-# TODO: do not hard code, loop with os.
-# Path dictionaries.
+
+# Function to create a dictionary of file paths.
+# TODO: Add explicit _ private func.
+def _create_paths_dict(directory: str) -> Dict[str, str]:
+    paths_dict = {}
+    for filename in listdir(directory):
+        if isfile(join(directory, filename)):
+            paths_dict[filename] = join(directory, filename)
+    return paths_dict
+
+
+# Directory paths.
 JSONS_DIR_PATH: str = "jsons"
-JSONS_PATHS_DICT: Dict[str, str] = {
-    "settings.json": join(JSONS_DIR_PATH, "settings.json"),
-}
-
 PNGS_DIR_PATH: str = "pngs"
-PNGS_PATHS_DICT: Dict[str, str] = {
-    "main_menu_background.png": join(PNGS_DIR_PATH, "main_menu_background.png"),
-    "gestalt_illusion_logo.png": join(PNGS_DIR_PATH, "gestalt_illusion_logo.png"),
-}
-
 OGGS_DIR_PATH: str = "oggs"
-OGGS_PATHS_DICT: Dict[str, str] = {
-    "xdeviruchi_title_theme.ogg": join(OGGS_DIR_PATH, "xdeviruchi_title_theme.ogg"),
-    "001_hover_01.ogg": join(OGGS_DIR_PATH, "001_hover_01.ogg"),
-    "confirm.ogg": join(OGGS_DIR_PATH, "confirm.ogg"),
-}
+
+# Creating the dictionaries.
+JSONS_PATHS_DICT: Dict[str, str] = _create_paths_dict(JSONS_DIR_PATH)
+PNGS_PATHS_DICT: Dict[str, str] = _create_paths_dict(PNGS_DIR_PATH)
+OGGS_PATHS_DICT: Dict[str, str] = _create_paths_dict(OGGS_DIR_PATH)
 
 # FPS.
 FPS: int = 60

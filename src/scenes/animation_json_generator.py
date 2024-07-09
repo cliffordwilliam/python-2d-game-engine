@@ -87,16 +87,14 @@ class AnimationJsonGenerator:
     DURATION_QUERY: int = 8
     ADD_SPRITES: int = 9
     SAVE_QUIT_REDO_QUERY: int = 10
-    CLOSING_SCENE_CURTAIN: int = 3
-    SCENE_CURTAIN_CLOSED: int = 4
+    CLOSING_SCENE_CURTAIN: int = 11
+    SCENE_CURTAIN_CLOSED: int = 12
 
     # REMOVE IN BUILD
     state_names: List = [
         "JUST_ENTERED_SCENE",
         "OPENING_SCENE_CURTAIN",
         "SCENE_CURTAIN_OPENED",
-        "CLOSING_SCENE_CURTAIN",
-        "SCENE_CURTAIN_CLOSED",
         "SPRITE_SHEET_PNG_PATH_QUERY",
         "SPRITE_SIZE_QUERY",
         "ANIMATION_NAME_QUERY",
@@ -105,6 +103,8 @@ class AnimationJsonGenerator:
         "DURATION_QUERY",
         "ADD_SPRITES",
         "SAVE_QUIT_REDO_QUERY",
+        "CLOSING_SCENE_CURTAIN",
+        "SCENE_CURTAIN_CLOSED",
     ]
 
     def __init__(self, game: "Game"):
@@ -211,6 +211,7 @@ class AnimationJsonGenerator:
         self.save_and_quit_choice_after_add_sprites_state: int = 1
         self.save_and_redo_choice_after_add_sprites_state: int = 2
         self.redo_choice_after_add_sprites_state: int = 3
+        self.quit_choice_after_add_sprites_state: int = 4
 
         # Load title screen music. Played in my set state.
         self.game.music_manager.set_current_music_path(OGGS_PATHS_DICT["xdeviruchi_title_theme.ogg"])
@@ -272,10 +273,14 @@ class AnimationJsonGenerator:
                     elif self.game.this_frame_event.key == pg.K_BACKSPACE:
                         new_value = self.input_text[:-1]
                         self.set_input_text(new_value)
+                        # Play text.
+                        self.game.sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
                     # Add.
                     else:
                         new_value = self.input_text + self.game.this_frame_event.unicode
                         self.set_input_text(new_value)
+                        # Play text.
+                        self.game.sound_manager.play_sound("text_1.ogg", 0, 0, 0)
 
         # Update curtain.
         self.curtain.update(dt)
@@ -320,10 +325,14 @@ class AnimationJsonGenerator:
                     elif self.game.this_frame_event.key == pg.K_BACKSPACE:
                         new_value = self.input_text[:-1]
                         self.set_input_text(new_value)
+                        # Play text.
+                        self.game.sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
                     # Add.
                     else:
                         new_value = self.input_text + self.game.this_frame_event.unicode
                         self.set_input_text(new_value)
+                        # Play text.
+                        self.game.sound_manager.play_sound("text_1.ogg", 0, 0, 0)
 
         # Update curtain.
         self.curtain.update(dt)
@@ -353,10 +362,14 @@ class AnimationJsonGenerator:
                     elif self.game.this_frame_event.key == pg.K_BACKSPACE:
                         new_value = self.input_text[:-1]
                         self.set_input_text(new_value)
+                        # Play text.
+                        self.game.sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
                     # Add.
                     else:
                         new_value = self.input_text + self.game.this_frame_event.unicode
                         self.set_input_text(new_value)
+                        # Play text.
+                        self.game.sound_manager.play_sound("text_1.ogg", 0, 0, 0)
 
         # Update curtain.
         self.curtain.update(dt)
@@ -383,10 +396,14 @@ class AnimationJsonGenerator:
                     elif self.game.this_frame_event.key == pg.K_BACKSPACE:
                         new_value = self.input_text[:-1]
                         self.set_input_text(new_value)
+                        # Play text.
+                        self.game.sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
                     # Add.
                     else:
                         new_value = self.input_text + self.game.this_frame_event.unicode
                         self.set_input_text(new_value)
+                        # Play text.
+                        self.game.sound_manager.play_sound("text_1.ogg", 0, 0, 0)
 
         # Update curtain.
         self.curtain.update(dt)
@@ -417,10 +434,14 @@ class AnimationJsonGenerator:
                     elif self.game.this_frame_event.key == pg.K_BACKSPACE:
                         new_value = self.input_text[:-1]
                         self.set_input_text(new_value)
+                        # Play text.
+                        self.game.sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
                     # Add.
                     else:
                         new_value = self.input_text + self.game.this_frame_event.unicode
                         self.set_input_text(new_value)
+                        # Play text.
+                        self.game.sound_manager.play_sound("text_1.ogg", 0, 0, 0)
 
         # Update curtain.
         self.curtain.update(dt)
@@ -447,10 +468,14 @@ class AnimationJsonGenerator:
                     elif self.game.this_frame_event.key == pg.K_BACKSPACE:
                         new_value = self.input_text[:-1]
                         self.set_input_text(new_value)
+                        # Play text.
+                        self.game.sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
                     # Add.
                     else:
                         new_value = self.input_text + self.game.this_frame_event.unicode
                         self.set_input_text(new_value)
+                        # Play text.
+                        self.game.sound_manager.play_sound("text_1.ogg", 0, 0, 0)
 
         # Update curtain.
         self.curtain.update(dt)
@@ -479,10 +504,14 @@ class AnimationJsonGenerator:
                     elif self.game.this_frame_event.key == pg.K_BACKSPACE:
                         new_value = self.input_text[:-1]
                         self.set_input_text(new_value)
+                        # Play text.
+                        self.game.sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
                     # Add.
                     else:
                         new_value = self.input_text + self.game.this_frame_event.unicode
                         self.set_input_text(new_value)
+                        # Play text.
+                        self.game.sound_manager.play_sound("text_1.ogg", 0, 0, 0)
 
         # Update curtain.
         self.curtain.update(dt)
@@ -578,6 +607,7 @@ class AnimationJsonGenerator:
                             str(self.save_and_quit_choice_after_add_sprites_state),
                             str(self.save_and_redo_choice_after_add_sprites_state),
                             str(self.redo_choice_after_add_sprites_state),
+                            str(self.quit_choice_after_add_sprites_state),
                         ]:
                             # 1 = Save and quit.
                             if self.input_text == str(self.save_and_quit_choice_after_add_sprites_state):
@@ -641,16 +671,26 @@ class AnimationJsonGenerator:
                                 # Close curtain.
                                 # Exit to ADD_SPRITES.
                                 self.curtain.go_to_opaque()
+                            # 4 = Quit.
+                            elif self.input_text == str(self.quit_choice_after_add_sprites_state):
+                                self.selected_choice_after_add_sprites_state = self.quit_choice_after_add_sprites_state
+                                # Close curtain.
+                                # Exit to main menu.
+                                self.curtain.go_to_opaque()
                         else:
-                            self.set_input_text("type 1, 2 or 3 only please!")
+                            self.set_input_text("type 1, 2, 3 or 4 only please!")
                     # Delete.
                     elif self.game.this_frame_event.key == pg.K_BACKSPACE:
                         new_value = self.input_text[:-1]
                         self.set_input_text(new_value)
+                        # Play text.
+                        self.game.sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
                     # Add.
                     else:
                         new_value = self.input_text + self.game.this_frame_event.unicode
                         self.set_input_text(new_value)
+                        # Play text.
+                        self.game.sound_manager.play_sound("text_1.ogg", 0, 0, 0)
 
         # Update curtain.
         self.curtain.update(dt)
@@ -727,6 +767,11 @@ class AnimationJsonGenerator:
             elif self.selected_choice_after_add_sprites_state == (self.save_and_quit_choice_after_add_sprites_state):
                 self.set_state(self.SCENE_CURTAIN_CLOSED)
                 return
+            elif self.selected_choice_after_add_sprites_state == (self.quit_choice_after_add_sprites_state):
+                self.set_state(self.SCENE_CURTAIN_CLOSED)
+                return
+        elif self.state == self.CLOSING_SCENE_CURTAIN:
+            self.set_state(self.SCENE_CURTAIN_CLOSED)
 
     # Helpers.
     def draw_grid(self) -> None:
@@ -933,6 +978,11 @@ class AnimationJsonGenerator:
             }
         )
 
+        # All states here can go to options
+        if self.game.is_pause_just_pressed:
+            # Update and draw options menu, stop my update
+            self.game.set_is_options_menu_active(True)
+
         self.state_logics[self.state](dt)
 
     def set_state(self, value: int) -> None:
@@ -1021,7 +1071,7 @@ class AnimationJsonGenerator:
                 # Reset the input text.
                 self.set_input_text("")
                 # Set my prompt text:
-                self.set_prompt_text("save and quit, save and redo, redo (1/2/3)?")
+                self.set_prompt_text("save and quit, save and redo, redo, quit (1/2/3/4)?")
 
         # From SAVE_QUIT_REDO_QUERY.
         elif old_state == self.SAVE_QUIT_REDO_QUERY:
