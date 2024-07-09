@@ -213,8 +213,11 @@ class AnimationJsonGenerator:
         self.redo_choice_after_add_sprites_state: int = 3
         self.quit_choice_after_add_sprites_state: int = 4
 
-        # Load title screen music. Played in my set state.
-        self.game.music_manager.set_current_music_path(OGGS_PATHS_DICT["xdeviruchi_title_theme.ogg"])
+        # Load editor screen music. Played in my set state.
+        self.game.music_manager.set_current_music_path(
+            OGGS_PATHS_DICT["xdeviruchi_take_some_rest_and_eat_some_food.ogg"]
+        )
+        self.game.music_manager.play_music(-1, 0.0, 0)
 
         # Initial state.
         self.initial_state: int = self.JUST_ENTERED_SCENE
@@ -630,6 +633,7 @@ class AnimationJsonGenerator:
                                     dump(self.animation_json, animation_json)
                                 # Close curtain.
                                 # Exit to main menu.
+                                self.game.music_manager.fade_out_music(int(self.curtain_duration))
                                 self.curtain.go_to_opaque()
                             # 2 = Save and redo.
                             elif self.input_text == str(self.save_and_redo_choice_after_add_sprites_state):
@@ -676,6 +680,7 @@ class AnimationJsonGenerator:
                                 self.selected_choice_after_add_sprites_state = self.quit_choice_after_add_sprites_state
                                 # Close curtain.
                                 # Exit to main menu.
+                                self.game.music_manager.fade_out_music(int(self.curtain_duration))
                                 self.curtain.go_to_opaque()
                         else:
                             self.set_input_text("type 1, 2, 3 or 4 only please!")
@@ -714,6 +719,8 @@ class AnimationJsonGenerator:
         self.set_state(self.OPENING_SCENE_CURTAIN)
 
     def on_exit_delay_timer_end(self) -> None:
+        # Load title screen music. Played in my set state.
+        self.game.music_manager.set_current_music_path(OGGS_PATHS_DICT["xdeviruchi_title_theme.ogg"])
         self.game.music_manager.play_music(-1, 0.0, 0)
         self.game.set_scene("MainMenu")
 
@@ -1083,9 +1090,6 @@ class AnimationJsonGenerator:
                 self.set_prompt_text("type the animation name,")
             # To ADD_SPRITES.
             elif self.state == self.ADD_SPRITES:
-                pass
-            # To CLOSING_SCENE_CURTAIN.
-            elif self.state == self.CLOSING_SCENE_CURTAIN:
                 pass
 
         # From CLOSING_SCENE_CURTAIN.
