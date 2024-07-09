@@ -80,11 +80,6 @@ class TitleScreen:
         # - Events.
         self.game = game
 
-        # Initial state.
-        self.initial_state: int = self.JUST_ENTERED_SCENE
-        # Null to initial state.
-        self.state: int = self.initial_state
-
         # Colors.
         self.native_clear_color: str = "#000000"
         self.font_color: str = "#ffffff"
@@ -102,35 +97,23 @@ class TitleScreen:
             self.curtain_is_invisible,
             self.native_clear_color,
         )
-        self.curtain.add_event_listener(
-            self.on_curtain_invisible, Curtain.INVISIBLE_END
-        )
-        self.curtain.add_event_listener(
-            self.on_curtain_opaque, Curtain.OPAQUE_END
-        )
+        self.curtain.add_event_listener(self.on_curtain_invisible, Curtain.INVISIBLE_END)
+        self.curtain.add_event_listener(self.on_curtain_opaque, Curtain.OPAQUE_END)
 
         # Timers.
         # Entry delay.
         self.entry_delay_timer_duration: float = 1000
         self.entry_delay_timer: Timer = Timer(self.entry_delay_timer_duration)
-        self.entry_delay_timer.add_event_listener(
-            self.on_entry_delay_timer_end, Timer.END
-        )
+        self.entry_delay_timer.add_event_listener(self.on_entry_delay_timer_end, Timer.END)
         # Exit delay.
         self.exit_delay_timer_duration: float = 1000
         self.exit_delay_timer: Timer = Timer(self.exit_delay_timer_duration)
-        self.exit_delay_timer.add_event_listener(
-            self.on_exit_delay_timer_end, Timer.END
-        )
+        self.exit_delay_timer.add_event_listener(self.on_exit_delay_timer_end, Timer.END)
 
         # Surfaces.
         # Logo.
-        self.gestalt_illusion_logo_surf: pg.Surface = pg.image.load(
-            PNGS_PATHS_DICT["gestalt_illusion_logo.png"]
-        )
-        self.gestalt_illusion_logo_rect: pg.Rect = (
-            self.gestalt_illusion_logo_surf.get_rect()
-        )
+        self.gestalt_illusion_logo_surf: pg.Surface = pg.image.load(PNGS_PATHS_DICT["gestalt_illusion_logo.png"])
+        self.gestalt_illusion_logo_rect: pg.Rect = self.gestalt_illusion_logo_surf.get_rect()
         self.gestalt_illusion_logo_rect.topleft = (77, 74)
 
         # Texts.
@@ -156,12 +139,8 @@ class TitleScreen:
             True,
             "black",
         )
-        self.prompt_curtain.add_event_listener(
-            self.on_prompt_curtain_invisible, Curtain.INVISIBLE_END
-        )
-        self.prompt_curtain.add_event_listener(
-            self.on_prompt_curtain_opaque, Curtain.OPAQUE_END
-        )
+        self.prompt_curtain.add_event_listener(self.on_prompt_curtain_invisible, Curtain.INVISIBLE_END)
+        self.prompt_curtain.add_event_listener(self.on_prompt_curtain_opaque, Curtain.OPAQUE_END)
         self.prompt_curtain.rect.center = self.prompt_rect.center
         FONT.render_to(
             self.prompt_curtain.surf,
@@ -171,9 +150,72 @@ class TitleScreen:
         )
 
         # Load title screen music. Played in my set state.
-        self.game.music_manager.set_current_music_path(
-            OGGS_PATHS_DICT["xdeviruchi_title_theme.ogg"]
-        )
+        self.game.music_manager.set_current_music_path(OGGS_PATHS_DICT["xdeviruchi_title_theme.ogg"])
+
+        # Initial state.
+        self.initial_state: int = self.JUST_ENTERED_SCENE
+        # Null to initial state.
+        self.state: int = self.initial_state
+        # State logics.
+        self.state_logics: List = [
+            self.just_entered_scene_state,
+            self.opening_scene_curtain_state,
+            self.scene_curtain_opened_state,
+            self.leave_fade_prompt_state,
+            self.closing_scene_curtain_state,
+            self.scene_curtain_closed_state,
+        ]
+
+    # State logics.
+    def just_entered_scene_state(self, dt: int) -> None:
+        """
+        - Counts up entry delay time.
+        """
+
+        self.entry_delay_timer.update(dt)
+
+    def opening_scene_curtain_state(self, dt: int) -> None:
+        """
+        - Updates curtain alpha.
+        """
+
+        self.curtain.update(dt)
+
+    def scene_curtain_opened_state(self, dt: int) -> None:
+        """
+        - Enter pressed? Exit to LEAVE_FADE_PROMPT state.
+        - Updates curtain alpha.
+        """
+
+        if self.game.is_any_key_just_pressed:
+            # Play confirm sound.
+            self.game.sound_manager.play_sound("confirm.ogg", 0, 0, 0)
+            # Exit to LEAVE_FADE_PROMPT.
+            self.set_state(self.LEAVE_FADE_PROMPT)
+            return
+
+        self.prompt_curtain.update(dt)
+
+    def leave_fade_prompt_state(self, dt: int) -> None:
+        """
+        - Updates curtain alpha.
+        """
+
+        self.prompt_curtain.update(dt)
+
+    def closing_scene_curtain_state(self, dt: int) -> None:
+        """
+        - Updates curtain alpha.
+        """
+
+        self.curtain.update(dt)
+
+    def scene_curtain_closed_state(self, dt: int) -> None:
+        """
+        - Counts up exit delay time.
+        """
+
+        self.exit_delay_timer.update(dt)
 
     # Callbacks.
     def on_entry_delay_timer_end(self) -> None:
@@ -235,61 +277,11 @@ class TitleScreen:
                 "layer": 6,
                 "x": 0,
                 "y": 6,
-                "text": (
-                    f"title screen " f"state: {self.state_names[self.state]}"
-                ),
+                "text": (f"title screen " f"state: {self.state_names[self.state]}"),
             }
         )
 
-        if self.state == self.JUST_ENTERED_SCENE:
-            """
-            - Counts up entry delay time.
-            """
-
-            self.entry_delay_timer.update(dt)
-
-        elif self.state == self.OPENING_SCENE_CURTAIN:
-            """
-            - Updates curtain alpha.
-            """
-
-            self.curtain.update(dt)
-
-        elif self.state == self.SCENE_CURTAIN_OPENED:
-            """
-            - Enter pressed? Exit to LEAVE_FADE_PROMPT state.
-            - Updates curtain alpha.
-            """
-
-            if self.game.is_any_key_just_pressed:
-                # Play confirm sound.
-                self.game.sound_manager.play_sound("confirm.ogg", 0, 0, 0)
-                # Exit to LEAVE_FADE_PROMPT.
-                self.set_state(self.LEAVE_FADE_PROMPT)
-                return
-
-            self.prompt_curtain.update(dt)
-
-        elif self.state == self.LEAVE_FADE_PROMPT:
-            """
-            - Updates curtain alpha.
-            """
-
-            self.prompt_curtain.update(dt)
-
-        elif self.state == self.CLOSING_SCENE_CURTAIN:
-            """
-            - Updates curtain alpha.
-            """
-
-            self.curtain.update(dt)
-
-        elif self.state == self.SCENE_CURTAIN_CLOSED:
-            """
-            - Counts up exit delay time.
-            """
-
-            self.exit_delay_timer.update(dt)
+        self.state_logics[self.state](dt)
 
     def set_state(self, value: int) -> None:
         old_state: int = self.state

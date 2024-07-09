@@ -79,16 +79,16 @@ class AnimationJsonGenerator:
     JUST_ENTERED_SCENE: int = 0
     OPENING_SCENE_CURTAIN: int = 1
     SCENE_CURTAIN_OPENED: int = 2
+    SPRITE_SHEET_PNG_PATH_QUERY: int = 3
+    SPRITE_SIZE_QUERY: int = 4
+    ANIMATION_NAME_QUERY: int = 5
+    LOOP_QUERY: int = 6
+    NEXT_ANIMATION_QUERY: int = 7
+    DURATION_QUERY: int = 8
+    ADD_SPRITES: int = 9
+    SAVE_QUIT_REDO_QUERY: int = 10
     CLOSING_SCENE_CURTAIN: int = 3
     SCENE_CURTAIN_CLOSED: int = 4
-    SPRITE_SHEET_PNG_PATH_QUERY: int = 5
-    SPRITE_SIZE_QUERY: int = 6
-    ANIMATION_NAME_QUERY: int = 7
-    LOOP_QUERY: int = 8
-    NEXT_ANIMATION_QUERY: int = 9
-    DURATION_QUERY: int = 10
-    ADD_SPRITES: int = 11
-    SAVE_QUIT_REDO_QUERY: int = 12
 
     # REMOVE IN BUILD
     state_names: List = [
@@ -112,11 +112,6 @@ class AnimationJsonGenerator:
         # - Debug draw.
         # - Events.
         self.game = game
-
-        # Initial state.
-        self.initial_state: int = self.JUST_ENTERED_SCENE
-        # Null to initial state.
-        self.state: int = self.initial_state
 
         # Colors.
         self.native_clear_color: str = "#7f7f7f"
@@ -219,6 +214,460 @@ class AnimationJsonGenerator:
 
         # Load title screen music. Played in my set state.
         self.game.music_manager.set_current_music_path(OGGS_PATHS_DICT["xdeviruchi_title_theme.ogg"])
+
+        # Initial state.
+        self.initial_state: int = self.JUST_ENTERED_SCENE
+        # Null to initial state.
+        self.state: int = self.initial_state
+        # State logics.
+        self.state_logics: List = [
+            self.just_entered_scene_state,
+            self.opening_scene_curtain_state,
+            self.scene_curtain_opened_state,
+            self.sprite_sheet_png_path_query_state,
+            self.sprite_size_query_state,
+            self.animation_name_query_state,
+            self.loop_query_state,
+            self.next_animation_query_state,
+            self.duration_query_state,
+            self.add_sprites_state,
+            self.save_quit_redo_query_state,
+            self.closing_scene_curtain_state,
+            self.scene_curtain_closed_state,
+        ]
+
+    # State logics.
+    def just_entered_scene_state(self, dt: int) -> None:
+        """
+        - Counts up entry delay time.
+        """
+
+        self.entry_delay_timer.update(dt)
+
+    def opening_scene_curtain_state(self, dt: int) -> None:
+        """
+        - Updates curtain alpha.
+        """
+
+        self.curtain.update(dt)
+
+    def scene_curtain_opened_state(self, dt: int) -> None:
+        """
+        - Get user input for file name.
+        - Updates curtain alpha.
+        """
+        # Wait for curtain to be fully invisible.
+        if self.curtain.is_done:
+            # Caught 1 key event this frame?
+            if self.game.this_frame_event:
+                if self.game.this_frame_event.type == pg.KEYDOWN:
+                    # Accept.
+                    if self.game.this_frame_event.key == pg.K_RETURN:
+                        if self.input_text != "":
+                            self.file_name = self.input_text
+                            # Close curtain.
+                            # Exit to SPRITE_SHEET_PNG_PATH_QUERY.
+                            self.curtain.go_to_opaque()
+                    # Delete.
+                    elif self.game.this_frame_event.key == pg.K_BACKSPACE:
+                        new_value = self.input_text[:-1]
+                        self.set_input_text(new_value)
+                    # Add.
+                    else:
+                        new_value = self.input_text + self.game.this_frame_event.unicode
+                        self.set_input_text(new_value)
+
+        # Update curtain.
+        self.curtain.update(dt)
+
+    def sprite_sheet_png_path_query_state(self, dt: int) -> None:
+        """
+        - Get user input for png path.
+        - Updates curtain alpha.
+        """
+        # Wait for curtain to be fully invisible.
+        if self.curtain.is_done:
+            # Caught 1 key event this frame?
+            if self.game.this_frame_event:
+                if self.game.this_frame_event.type == pg.KEYDOWN:
+                    # Accept.
+                    if self.game.this_frame_event.key == pg.K_RETURN:
+                        if exists(self.input_text) and self.input_text.endswith(".png"):
+                            # Setup the sprite sheet data.
+                            self.sprite_sheet_png_path = self.input_text
+                            self.sprite_sheet_surf = pg.image.load(self.sprite_sheet_png_path).convert_alpha()
+                            self.sprite_sheet_rect = self.sprite_sheet_surf.get_rect()
+                            # Setup camera limits.
+                            self.camera.set_rect_limit(
+                                float(self.sprite_sheet_rect.top),
+                                float(self.sprite_sheet_rect.bottom),
+                                float(self.sprite_sheet_rect.left),
+                                float(self.sprite_sheet_rect.right),
+                            )
+                            # Init room collision map list.
+                            sprite_sheet_width_tu: int = self.sprite_sheet_rect.width // TILE_SIZE
+                            sprite_sheet_height_tu: int = self.sprite_sheet_rect.height // TILE_SIZE
+                            self.init_room_collision_map_list(
+                                sprite_sheet_width_tu,
+                                sprite_sheet_height_tu,
+                            )
+                            # Exit to SPRITE_SIZE_QUERY.
+                            # Close curtain to exit to SPRITE_SIZE_QUERY.
+                            self.curtain.go_to_opaque()
+                        else:
+                            self.set_input_text("png path does not exist!")
+                    # Delete.
+                    elif self.game.this_frame_event.key == pg.K_BACKSPACE:
+                        new_value = self.input_text[:-1]
+                        self.set_input_text(new_value)
+                    # Add.
+                    else:
+                        new_value = self.input_text + self.game.this_frame_event.unicode
+                        self.set_input_text(new_value)
+
+        # Update curtain.
+        self.curtain.update(dt)
+
+    def sprite_size_query_state(self, dt: int) -> None:
+        """
+        - Get user input for sprite size.
+        - Updates curtain alpha.
+        """
+        # Wait for curtain to be fully invisible.
+        if self.curtain.is_done:
+            # Caught 1 key event this frame?
+            if self.game.this_frame_event:
+                if self.game.this_frame_event.type == pg.KEYDOWN:
+                    # Accept.
+                    if self.game.this_frame_event.key == pg.K_RETURN:
+                        if self.input_text.isdigit():
+                            # Setup the sprite_size.
+                            self.animation_sprite_size = max(int(self.input_text) * TILE_SIZE, 0)
+                            self.sprite_size_tu = int(self.animation_sprite_size // TILE_SIZE)
+                            # Exit to ADD_SPRITES.
+                            # Close curtain to exit to ADD_SPRITES.
+                            self.curtain.go_to_opaque()
+                        else:
+                            self.set_input_text("type int only please!")
+                    # Delete.
+                    elif self.game.this_frame_event.key == pg.K_BACKSPACE:
+                        new_value = self.input_text[:-1]
+                        self.set_input_text(new_value)
+                    # Add.
+                    else:
+                        new_value = self.input_text + self.game.this_frame_event.unicode
+                        self.set_input_text(new_value)
+
+        # Update curtain.
+        self.curtain.update(dt)
+
+    def animation_name_query_state(self, dt: int) -> None:
+        """
+        - Get user input for sprite size.
+        - Updates curtain alpha.
+        """
+        # Wait for curtain to be fully invisible.
+        if self.curtain.is_done:
+            # Caught 1 key event this frame?
+            if self.game.this_frame_event:
+                if self.game.this_frame_event.type == pg.KEYDOWN:
+                    # Accept.
+                    if self.game.this_frame_event.key == pg.K_RETURN:
+                        # TODO: Trim white space.
+                        if self.input_text != "":
+                            self.animation_name = self.input_text
+                            # Close curtain.
+                            # Exit to SPRITE_SHEET_PNG_PATH_QUERY.
+                            self.curtain.go_to_opaque()
+                    # Delete.
+                    elif self.game.this_frame_event.key == pg.K_BACKSPACE:
+                        new_value = self.input_text[:-1]
+                        self.set_input_text(new_value)
+                    # Add.
+                    else:
+                        new_value = self.input_text + self.game.this_frame_event.unicode
+                        self.set_input_text(new_value)
+
+        # Update curtain.
+        self.curtain.update(dt)
+
+    def loop_query_state(self, dt: int) -> None:
+        """
+        - Get user input for sprite size.
+        - Updates curtain alpha.
+        """
+        # Wait for curtain to be fully invisible.
+        if self.curtain.is_done:
+            # Caught 1 key event this frame?
+            if self.game.this_frame_event:
+                if self.game.this_frame_event.type == pg.KEYDOWN:
+                    # Accept.
+                    if self.game.this_frame_event.key == pg.K_RETURN:
+                        if self.input_text in ["y", "n"]:
+                            if self.input_text == "y":
+                                self.animation_is_loop = 1
+                            elif self.input_text == "n":
+                                self.animation_is_loop = 0
+                            # Close curtain.
+                            # Exit to SPRITE_SHEET_PNG_PATH_QUERY.
+                            self.curtain.go_to_opaque()
+                        else:
+                            self.set_input_text("type y or n only please!")
+                    # Delete.
+                    elif self.game.this_frame_event.key == pg.K_BACKSPACE:
+                        new_value = self.input_text[:-1]
+                        self.set_input_text(new_value)
+                    # Add.
+                    else:
+                        new_value = self.input_text + self.game.this_frame_event.unicode
+                        self.set_input_text(new_value)
+
+        # Update curtain.
+        self.curtain.update(dt)
+
+    def next_animation_query_state(self, dt: int) -> None:
+        """
+        - Get user input for sprite size.
+        - Updates curtain alpha.
+        """
+        # Wait for curtain to be fully invisible.
+        if self.curtain.is_done:
+            # Caught 1 key event this frame?
+            if self.game.this_frame_event:
+                if self.game.this_frame_event.type == pg.KEYDOWN:
+                    # Accept.
+                    if self.game.this_frame_event.key == pg.K_RETURN:
+                        # TODO: Trim white space.
+                        if self.input_text != "":
+                            self.next_animation_name = self.input_text
+                            # Close curtain.
+                            # Exit to SPRITE_SHEET_PNG_PATH_QUERY.
+                            self.curtain.go_to_opaque()
+                    # Delete.
+                    elif self.game.this_frame_event.key == pg.K_BACKSPACE:
+                        new_value = self.input_text[:-1]
+                        self.set_input_text(new_value)
+                    # Add.
+                    else:
+                        new_value = self.input_text + self.game.this_frame_event.unicode
+                        self.set_input_text(new_value)
+
+        # Update curtain.
+        self.curtain.update(dt)
+
+    def duration_query_state(self, dt: int) -> None:
+        """
+        - Get user input for sprite size.
+        - Updates curtain alpha.
+        """
+        # Wait for curtain to be fully invisible.
+        if self.curtain.is_done:
+            # Caught 1 key event this frame?
+            if self.game.this_frame_event:
+                if self.game.this_frame_event.type == pg.KEYDOWN:
+                    # Accept.
+                    if self.game.this_frame_event.key == pg.K_RETURN:
+                        if self.input_text.isdigit():
+                            # Setup the sprite_size.
+                            self.animation_duration = int(self.input_text)
+                            # Exit to ADD_SPRITES.
+                            # Close curtain to exit to ADD_SPRITES.
+                            self.curtain.go_to_opaque()
+                        else:
+                            self.set_input_text("type int only please!")
+                    # Delete.
+                    elif self.game.this_frame_event.key == pg.K_BACKSPACE:
+                        new_value = self.input_text[:-1]
+                        self.set_input_text(new_value)
+                    # Add.
+                    else:
+                        new_value = self.input_text + self.game.this_frame_event.unicode
+                        self.set_input_text(new_value)
+
+        # Update curtain.
+        self.curtain.update(dt)
+
+    def add_sprites_state(self, dt: int) -> None:
+        """
+        - Move camera and add frames to be saved.
+        - Updates curtain alpha.
+        """
+        # Wait for curtain to be fully invisible.
+        if self.curtain.is_done:
+            # Camera movement.
+            # Get direction_horizontal.
+            direction_horizontal: int = self.game.is_right_pressed - self.game.is_left_pressed
+            # Update camera anchor position with direction and speed.
+            self.camera_anchor_vector.x += direction_horizontal * self.camera_speed * dt
+            # Get direction_vertical.
+            direction_vertical: int = self.game.is_down_pressed - self.game.is_up_pressed
+            # Update camera anchor position with direction and speed.
+            self.camera_anchor_vector.y += direction_vertical * self.camera_speed * dt
+            # Lerp camera position to target camera anchor.
+            self.camera.update(dt)
+
+            # Sprite selection.
+            # Lmb just pressed.
+            is_lmb_just_pressed_occupied: bool = False
+            if self.game.is_lmb_just_pressed:
+                # Check if selection is all empty cells.
+                # Iterate size to check all empty.
+                for world_mouse_tu_xi in range(self.sprite_size_tu):
+                    for world_mouse_tu_yi in range(self.sprite_size_tu):
+                        world_mouse_tu_x: int = self.world_mouse_tu_x + world_mouse_tu_xi
+                        world_mouse_tu_y: int = self.world_mouse_tu_y + world_mouse_tu_yi
+                        # Get each one in room_collision_map_list.
+                        found_tile_lmb_pressed: int = self.get_tile_from_room_collision_map_list(
+                            world_mouse_tu_x,
+                            world_mouse_tu_y,
+                        )
+                        # At least 1 of them is occupied? Return.
+                        if found_tile_lmb_pressed == 1:
+                            is_lmb_just_pressed_occupied = True
+                # All cells are empty.
+                if not is_lmb_just_pressed_occupied:
+                    # Fill it.
+                    # Iterate size to set 1.
+                    for world_mouse_tu_xi2 in range(self.sprite_size_tu):
+                        for world_mouse_tu_yi2 in range(self.sprite_size_tu):
+                            world_mouse_tu_x2: int = self.world_mouse_tu_x + world_mouse_tu_xi2
+                            world_mouse_tu_y2: int = self.world_mouse_tu_y + world_mouse_tu_yi2
+                            # Store each one in room_collision_map_list.
+                            self.set_tile_from_room_collision_map_list(
+                                world_mouse_tu_x2,
+                                world_mouse_tu_y2,
+                                1,
+                            )
+                            # Draw marker on sprite sheet.
+                            self.sprite_sheet_surf.blit(
+                                self.selected_surf_marker,
+                                (
+                                    world_mouse_tu_x2 * TILE_SIZE,
+                                    world_mouse_tu_y2 * TILE_SIZE,
+                                ),
+                            )
+                    # Add to list.
+                    self.animation_sprites_list.append(
+                        {
+                            "x": self.world_mouse_snapped_x,
+                            "y": self.world_mouse_snapped_y,
+                        }
+                    )
+
+            # Enter just pressed.
+            if self.game.is_enter_just_pressed:
+                # Exit to ask save quit, save again, redo.
+                self.curtain.go_to_opaque()
+
+        # Update curtain.
+        self.curtain.update(dt)
+
+    def save_quit_redo_query_state(self, dt: int) -> None:
+        """
+        - Get user input for save quit, save again, redo.
+        - Updates curtain alpha.
+        """
+        # Wait for curtain to be fully invisible.
+        if self.curtain.is_done:
+            # Caught 1 key event this frame?
+            if self.game.this_frame_event:
+                if self.game.this_frame_event.type == pg.KEYDOWN:
+                    # Accept.
+                    if self.game.this_frame_event.key == pg.K_RETURN:
+                        if self.input_text in [
+                            str(self.save_and_quit_choice_after_add_sprites_state),
+                            str(self.save_and_redo_choice_after_add_sprites_state),
+                            str(self.redo_choice_after_add_sprites_state),
+                        ]:
+                            # 1 = Save and quit.
+                            if self.input_text == str(self.save_and_quit_choice_after_add_sprites_state):
+                                self.selected_choice_after_add_sprites_state = (
+                                    self.save_and_quit_choice_after_add_sprites_state
+                                )
+                                # Save this animation to local.
+                                self.animation_json[self.animation_name] = {
+                                    "animation_is_loop": self.animation_is_loop,
+                                    "next_animation_name": self.next_animation_name,
+                                    "animation_duration": self.animation_duration,
+                                    "animation_sprite_size": self.animation_sprite_size,
+                                    "animation_sprites_list": self.animation_sprites_list,
+                                }
+                                # Write to json.
+                                with open(
+                                    join(JSONS_DIR_PATH, f"{self.file_name}.json"),
+                                    "w",
+                                ) as animation_json:
+                                    dump(self.animation_json, animation_json)
+                                # Close curtain.
+                                # Exit to main menu.
+                                self.curtain.go_to_opaque()
+                            # 2 = Save and redo.
+                            elif self.input_text == str(self.save_and_redo_choice_after_add_sprites_state):
+                                self.selected_choice_after_add_sprites_state = (
+                                    self.save_and_redo_choice_after_add_sprites_state
+                                )
+                                # Save this animation to local.
+                                self.animation_json[self.animation_name] = {
+                                    "animation_is_loop": self.animation_is_loop,
+                                    "next_animation_name": self.next_animation_name,
+                                    "animation_duration": self.animation_duration,
+                                    "animation_sprite_size": self.animation_sprite_size,
+                                    "animation_sprites_list": self.animation_sprites_list,
+                                }
+                                # Get fresh selected sprite sheet again.
+                                self.sprite_sheet_surf = pg.image.load(self.sprite_sheet_png_path).convert_alpha()
+                                # Empty the selected sprites list.
+                                self.animation_sprites_list = []
+                                # Empty collision map.
+                                self.init_room_collision_map_list(
+                                    self.room_collision_map_width_tu,
+                                    self.room_collision_map_height_tu,
+                                )
+                                # Close curtain.
+                                # Exit to SPRITE_SIZE_QUERY.
+                                self.curtain.go_to_opaque()
+                            # 3 = Redo.
+                            elif self.input_text == str(self.redo_choice_after_add_sprites_state):
+                                self.selected_choice_after_add_sprites_state = self.redo_choice_after_add_sprites_state
+                                # Get fresh selected sprite sheet again.
+                                self.sprite_sheet_surf = pg.image.load(self.sprite_sheet_png_path).convert_alpha()
+                                # Empty the selected sprites list.
+                                self.animation_sprites_list = []
+                                # Empty collision map.
+                                self.init_room_collision_map_list(
+                                    self.room_collision_map_width_tu,
+                                    self.room_collision_map_height_tu,
+                                )
+                                # Close curtain.
+                                # Exit to ADD_SPRITES.
+                                self.curtain.go_to_opaque()
+                        else:
+                            self.set_input_text("type 1, 2 or 3 only please!")
+                    # Delete.
+                    elif self.game.this_frame_event.key == pg.K_BACKSPACE:
+                        new_value = self.input_text[:-1]
+                        self.set_input_text(new_value)
+                    # Add.
+                    else:
+                        new_value = self.input_text + self.game.this_frame_event.unicode
+                        self.set_input_text(new_value)
+
+        # Update curtain.
+        self.curtain.update(dt)
+
+    def closing_scene_curtain_state(self, dt: int) -> None:
+        """
+        - Updates curtain alpha.
+        """
+
+        self.curtain.update(dt)
+
+    def scene_curtain_closed_state(self, dt: int) -> None:
+        """
+        - Counts up exit delay time.
+        """
+
+        self.exit_delay_timer.update(dt)
 
     # Callbacks.
     def on_entry_delay_timer_end(self) -> None:
@@ -439,18 +888,18 @@ class AnimationJsonGenerator:
             # Convert positions.
             self.world_mouse_x = mouse_position_x_tuple_scaled + self.camera.rect.x
             self.world_mouse_y = mouse_position_y_tuple_scaled + self.camera.rect.y
+            self.world_mouse_x = min(
+                self.world_mouse_x,
+                self.sprite_sheet_rect.right - self.animation_sprite_size,
+            )
+            self.world_mouse_y = min(
+                self.world_mouse_y,
+                self.sprite_sheet_rect.bottom - self.animation_sprite_size,
+            )
             self.world_mouse_tu_x = int(self.world_mouse_x // TILE_SIZE)
             self.world_mouse_tu_y = int(self.world_mouse_y // TILE_SIZE)
             self.world_mouse_snapped_x = int(self.world_mouse_tu_x * TILE_SIZE)
             self.world_mouse_snapped_y = int(self.world_mouse_tu_y * TILE_SIZE)
-            self.world_mouse_snapped_x = min(
-                self.world_mouse_snapped_x,
-                self.sprite_sheet_rect.right - self.animation_sprite_size,
-            )
-            self.world_mouse_snapped_y = min(
-                self.world_mouse_snapped_y,
-                self.sprite_sheet_rect.bottom - self.animation_sprite_size,
-            )
             self.screen_mouse_x = self.world_mouse_snapped_x - self.camera.rect.x
             self.screen_mouse_y = self.world_mouse_snapped_y - self.camera.rect.y
             pg.draw.rect(
@@ -484,439 +933,7 @@ class AnimationJsonGenerator:
             }
         )
 
-        if self.state == self.JUST_ENTERED_SCENE:
-            """
-            - Counts up entry delay time.
-            """
-
-            self.entry_delay_timer.update(dt)
-
-        elif self.state == self.OPENING_SCENE_CURTAIN:
-            """
-            - Updates curtain alpha.
-            """
-
-            self.curtain.update(dt)
-
-        elif self.state == self.SCENE_CURTAIN_OPENED:
-            """
-            - Get user input for file name.
-            - Updates curtain alpha.
-            """
-            # Wait for curtain to be fully invisible.
-            if self.curtain.is_done:
-                # Caught 1 key event this frame?
-                if self.game.this_frame_event:
-                    if self.game.this_frame_event.type == pg.KEYDOWN:
-                        # Accept.
-                        if self.game.this_frame_event.key == pg.K_RETURN:
-                            if self.input_text != "":
-                                self.file_name = self.input_text
-                                # Close curtain.
-                                # Exit to SPRITE_SHEET_PNG_PATH_QUERY.
-                                self.curtain.go_to_opaque()
-                        # Delete.
-                        elif self.game.this_frame_event.key == pg.K_BACKSPACE:
-                            new_value = self.input_text[:-1]
-                            self.set_input_text(new_value)
-                        # Add.
-                        else:
-                            new_value = self.input_text + self.game.this_frame_event.unicode
-                            self.set_input_text(new_value)
-
-            # Update curtain.
-            self.curtain.update(dt)
-
-        elif self.state == self.SPRITE_SHEET_PNG_PATH_QUERY:
-            """
-            - Get user input for png path.
-            - Updates curtain alpha.
-            """
-            # Wait for curtain to be fully invisible.
-            if self.curtain.is_done:
-                # Caught 1 key event this frame?
-                if self.game.this_frame_event:
-                    if self.game.this_frame_event.type == pg.KEYDOWN:
-                        # Accept.
-                        if self.game.this_frame_event.key == pg.K_RETURN:
-                            if exists(self.input_text) and self.input_text.endswith(".png"):
-                                # Setup the sprite sheet data.
-                                self.sprite_sheet_png_path = self.input_text
-                                self.sprite_sheet_surf = pg.image.load(self.sprite_sheet_png_path).convert_alpha()
-                                self.sprite_sheet_rect = self.sprite_sheet_surf.get_rect()
-                                # Setup camera limits.
-                                self.camera.set_rect_limit(
-                                    float(self.sprite_sheet_rect.top),
-                                    float(self.sprite_sheet_rect.bottom),
-                                    float(self.sprite_sheet_rect.left),
-                                    float(self.sprite_sheet_rect.right),
-                                )
-                                # Init room collision map list.
-                                sprite_sheet_width_tu: int = self.sprite_sheet_rect.width // TILE_SIZE
-                                sprite_sheet_height_tu: int = self.sprite_sheet_rect.height // TILE_SIZE
-                                self.init_room_collision_map_list(
-                                    sprite_sheet_width_tu,
-                                    sprite_sheet_height_tu,
-                                )
-                                # Exit to SPRITE_SIZE_QUERY.
-                                # Close curtain to exit to SPRITE_SIZE_QUERY.
-                                self.curtain.go_to_opaque()
-                            else:
-                                self.set_input_text("png path does not exist!")
-                        # Delete.
-                        elif self.game.this_frame_event.key == pg.K_BACKSPACE:
-                            new_value = self.input_text[:-1]
-                            self.set_input_text(new_value)
-                        # Add.
-                        else:
-                            new_value = self.input_text + self.game.this_frame_event.unicode
-                            self.set_input_text(new_value)
-
-            # Update curtain.
-            self.curtain.update(dt)
-
-        elif self.state == self.SPRITE_SIZE_QUERY:
-            """
-            - Get user input for sprite size.
-            - Updates curtain alpha.
-            """
-            # Wait for curtain to be fully invisible.
-            if self.curtain.is_done:
-                # Caught 1 key event this frame?
-                if self.game.this_frame_event:
-                    if self.game.this_frame_event.type == pg.KEYDOWN:
-                        # Accept.
-                        if self.game.this_frame_event.key == pg.K_RETURN:
-                            if self.input_text.isdigit():
-                                # Setup the sprite_size.
-                                self.animation_sprite_size = max(int(self.input_text) * TILE_SIZE, 0)
-                                self.sprite_size_tu = int(self.animation_sprite_size // TILE_SIZE)
-                                # Exit to ADD_SPRITES.
-                                # Close curtain to exit to ADD_SPRITES.
-                                self.curtain.go_to_opaque()
-                            else:
-                                self.set_input_text("type int only please!")
-                        # Delete.
-                        elif self.game.this_frame_event.key == pg.K_BACKSPACE:
-                            new_value = self.input_text[:-1]
-                            self.set_input_text(new_value)
-                        # Add.
-                        else:
-                            new_value = self.input_text + self.game.this_frame_event.unicode
-                            self.set_input_text(new_value)
-
-            # Update curtain.
-            self.curtain.update(dt)
-
-        elif self.state == self.ANIMATION_NAME_QUERY:
-            """
-            - Get user input for sprite size.
-            - Updates curtain alpha.
-            """
-            # Wait for curtain to be fully invisible.
-            if self.curtain.is_done:
-                # Caught 1 key event this frame?
-                if self.game.this_frame_event:
-                    if self.game.this_frame_event.type == pg.KEYDOWN:
-                        # Accept.
-                        if self.game.this_frame_event.key == pg.K_RETURN:
-                            # TODO: Trim white space.
-                            if self.input_text != "":
-                                self.animation_name = self.input_text
-                                # Close curtain.
-                                # Exit to SPRITE_SHEET_PNG_PATH_QUERY.
-                                self.curtain.go_to_opaque()
-                        # Delete.
-                        elif self.game.this_frame_event.key == pg.K_BACKSPACE:
-                            new_value = self.input_text[:-1]
-                            self.set_input_text(new_value)
-                        # Add.
-                        else:
-                            new_value = self.input_text + self.game.this_frame_event.unicode
-                            self.set_input_text(new_value)
-
-            # Update curtain.
-            self.curtain.update(dt)
-
-        elif self.state == self.LOOP_QUERY:
-            """
-            - Get user input for sprite size.
-            - Updates curtain alpha.
-            """
-            # Wait for curtain to be fully invisible.
-            if self.curtain.is_done:
-                # Caught 1 key event this frame?
-                if self.game.this_frame_event:
-                    if self.game.this_frame_event.type == pg.KEYDOWN:
-                        # Accept.
-                        if self.game.this_frame_event.key == pg.K_RETURN:
-                            if self.input_text in ["y", "n"]:
-                                if self.input_text == "y":
-                                    self.animation_is_loop = 1
-                                elif self.input_text == "n":
-                                    self.animation_is_loop = 0
-                                # Close curtain.
-                                # Exit to SPRITE_SHEET_PNG_PATH_QUERY.
-                                self.curtain.go_to_opaque()
-                            else:
-                                self.set_input_text("type y or n only please!")
-                        # Delete.
-                        elif self.game.this_frame_event.key == pg.K_BACKSPACE:
-                            new_value = self.input_text[:-1]
-                            self.set_input_text(new_value)
-                        # Add.
-                        else:
-                            new_value = self.input_text + self.game.this_frame_event.unicode
-                            self.set_input_text(new_value)
-
-            # Update curtain.
-            self.curtain.update(dt)
-
-        elif self.state == self.NEXT_ANIMATION_QUERY:
-            """
-            - Get user input for sprite size.
-            - Updates curtain alpha.
-            """
-            # Wait for curtain to be fully invisible.
-            if self.curtain.is_done:
-                # Caught 1 key event this frame?
-                if self.game.this_frame_event:
-                    if self.game.this_frame_event.type == pg.KEYDOWN:
-                        # Accept.
-                        if self.game.this_frame_event.key == pg.K_RETURN:
-                            # TODO: Trim white space.
-                            if self.input_text != "":
-                                self.next_animation_name = self.input_text
-                                # Close curtain.
-                                # Exit to SPRITE_SHEET_PNG_PATH_QUERY.
-                                self.curtain.go_to_opaque()
-                        # Delete.
-                        elif self.game.this_frame_event.key == pg.K_BACKSPACE:
-                            new_value = self.input_text[:-1]
-                            self.set_input_text(new_value)
-                        # Add.
-                        else:
-                            new_value = self.input_text + self.game.this_frame_event.unicode
-                            self.set_input_text(new_value)
-
-            # Update curtain.
-            self.curtain.update(dt)
-
-        elif self.state == self.DURATION_QUERY:
-            """
-            - Get user input for sprite size.
-            - Updates curtain alpha.
-            """
-            # Wait for curtain to be fully invisible.
-            if self.curtain.is_done:
-                # Caught 1 key event this frame?
-                if self.game.this_frame_event:
-                    if self.game.this_frame_event.type == pg.KEYDOWN:
-                        # Accept.
-                        if self.game.this_frame_event.key == pg.K_RETURN:
-                            if self.input_text.isdigit():
-                                # Setup the sprite_size.
-                                self.animation_duration = int(self.input_text)
-                                # Exit to ADD_SPRITES.
-                                # Close curtain to exit to ADD_SPRITES.
-                                self.curtain.go_to_opaque()
-                            else:
-                                self.set_input_text("type int only please!")
-                        # Delete.
-                        elif self.game.this_frame_event.key == pg.K_BACKSPACE:
-                            new_value = self.input_text[:-1]
-                            self.set_input_text(new_value)
-                        # Add.
-                        else:
-                            new_value = self.input_text + self.game.this_frame_event.unicode
-                            self.set_input_text(new_value)
-
-            # Update curtain.
-            self.curtain.update(dt)
-
-        elif self.state == self.ADD_SPRITES:
-            """
-            - Move camera and add frames to be saved.
-            - Updates curtain alpha.
-            """
-            # Wait for curtain to be fully invisible.
-            if self.curtain.is_done:
-                # Camera movement.
-                # Get direction_horizontal.
-                direction_horizontal: int = self.game.is_right_pressed - self.game.is_left_pressed
-                # Update camera anchor position with direction and speed.
-                self.camera_anchor_vector.x += direction_horizontal * self.camera_speed * dt
-                # Get direction_vertical.
-                direction_vertical: int = self.game.is_down_pressed - self.game.is_up_pressed
-                # Update camera anchor position with direction and speed.
-                self.camera_anchor_vector.y += direction_vertical * self.camera_speed * dt
-                # Lerp camera position to target camera anchor.
-                self.camera.update(dt)
-
-                # Sprite selection.
-                # Lmb just pressed.
-                is_lmb_just_pressed_occupied: bool = False
-                if self.game.is_lmb_just_pressed:
-                    # Check if selection is all empty cells.
-                    # Iterate size to check all empty.
-                    for world_mouse_tu_xi in range(self.sprite_size_tu):
-                        for world_mouse_tu_yi in range(self.sprite_size_tu):
-                            world_mouse_tu_x: int = self.world_mouse_tu_x + world_mouse_tu_xi
-                            world_mouse_tu_y: int = self.world_mouse_tu_y + world_mouse_tu_yi
-                            # Get each one in room_collision_map_list.
-                            found_tile_lmb_pressed: int = self.get_tile_from_room_collision_map_list(
-                                world_mouse_tu_x,
-                                world_mouse_tu_y,
-                            )
-                            # At least 1 of them is occupied? Return.
-                            if found_tile_lmb_pressed == 1:
-                                is_lmb_just_pressed_occupied = True
-                    # All cells are empty.
-                    if not is_lmb_just_pressed_occupied:
-                        # Fill it.
-                        # Iterate size to set 1.
-                        for world_mouse_tu_xi2 in range(self.sprite_size_tu):
-                            for world_mouse_tu_yi2 in range(self.sprite_size_tu):
-                                world_mouse_tu_x2: int = self.world_mouse_tu_x + world_mouse_tu_xi2
-                                world_mouse_tu_y2: int = self.world_mouse_tu_y + world_mouse_tu_yi2
-                                # Store each one in room_collision_map_list.
-                                self.set_tile_from_room_collision_map_list(
-                                    world_mouse_tu_x2,
-                                    world_mouse_tu_y2,
-                                    1,
-                                )
-                                # Draw marker on sprite sheet.
-                                self.sprite_sheet_surf.blit(
-                                    self.selected_surf_marker,
-                                    (
-                                        world_mouse_tu_x2 * TILE_SIZE,
-                                        world_mouse_tu_y2 * TILE_SIZE,
-                                    ),
-                                )
-                        # Add to list.
-                        self.animation_sprites_list.append(
-                            {
-                                "x": self.world_mouse_snapped_x,
-                                "y": self.world_mouse_snapped_y,
-                            }
-                        )
-
-                # Enter just pressed.
-                if self.game.is_enter_just_pressed:
-                    # Exit to ask save quit, save again, redo.
-                    self.curtain.go_to_opaque()
-
-            # Update curtain.
-            self.curtain.update(dt)
-
-        elif self.state == self.SAVE_QUIT_REDO_QUERY:
-            """
-            - Get user input for save quit, save again, redo.
-            - Updates curtain alpha.
-            """
-            # Wait for curtain to be fully invisible.
-            if self.curtain.is_done:
-                # Caught 1 key event this frame?
-                if self.game.this_frame_event:
-                    if self.game.this_frame_event.type == pg.KEYDOWN:
-                        # Accept.
-                        if self.game.this_frame_event.key == pg.K_RETURN:
-                            if self.input_text in [
-                                str(self.save_and_quit_choice_after_add_sprites_state),
-                                str(self.save_and_redo_choice_after_add_sprites_state),
-                                str(self.redo_choice_after_add_sprites_state),
-                            ]:
-                                # 1 = Save and quit.
-                                if self.input_text == str(self.save_and_quit_choice_after_add_sprites_state):
-                                    self.selected_choice_after_add_sprites_state = (
-                                        self.save_and_quit_choice_after_add_sprites_state
-                                    )
-                                    # Save this animation to local.
-                                    self.animation_json[self.animation_name] = {
-                                        "animation_is_loop": self.animation_is_loop,
-                                        "next_animation_name": self.next_animation_name,
-                                        "animation_duration": self.animation_duration,
-                                        "animation_sprite_size": self.animation_sprite_size,
-                                        "animation_sprites_list": self.animation_sprites_list,
-                                    }
-                                    # Write to json.
-                                    with open(
-                                        join(JSONS_DIR_PATH, f"{self.file_name}.json"),
-                                        "w",
-                                    ) as animation_json:
-                                        dump(self.animation_json, animation_json)
-                                    # Close curtain.
-                                    # Exit to main menu.
-                                    self.curtain.go_to_opaque()
-                                # 2 = Save and redo.
-                                elif self.input_text == str(self.save_and_redo_choice_after_add_sprites_state):
-                                    self.selected_choice_after_add_sprites_state = (
-                                        self.save_and_redo_choice_after_add_sprites_state
-                                    )
-                                    # Save this animation to local.
-                                    self.animation_json[self.animation_name] = {
-                                        "animation_is_loop": self.animation_is_loop,
-                                        "next_animation_name": self.next_animation_name,
-                                        "animation_duration": self.animation_duration,
-                                        "animation_sprite_size": self.animation_sprite_size,
-                                        "animation_sprites_list": self.animation_sprites_list,
-                                    }
-                                    # Get fresh selected sprite sheet again.
-                                    self.sprite_sheet_surf = pg.image.load(self.sprite_sheet_png_path).convert_alpha()
-                                    # Empty the selected sprites list.
-                                    self.animation_sprites_list = []
-                                    # Empty collision map.
-                                    self.init_room_collision_map_list(
-                                        self.room_collision_map_width_tu,
-                                        self.room_collision_map_height_tu,
-                                    )
-                                    # Close curtain.
-                                    # Exit to SPRITE_SIZE_QUERY.
-                                    self.curtain.go_to_opaque()
-                                # 3 = Redo.
-                                elif self.input_text == str(self.redo_choice_after_add_sprites_state):
-                                    self.selected_choice_after_add_sprites_state = (
-                                        self.redo_choice_after_add_sprites_state
-                                    )
-                                    # Get fresh selected sprite sheet again.
-                                    self.sprite_sheet_surf = pg.image.load(self.sprite_sheet_png_path).convert_alpha()
-                                    # Empty the selected sprites list.
-                                    self.animation_sprites_list = []
-                                    # Empty collision map.
-                                    self.init_room_collision_map_list(
-                                        self.room_collision_map_width_tu,
-                                        self.room_collision_map_height_tu,
-                                    )
-                                    # Close curtain.
-                                    # Exit to ADD_SPRITES.
-                                    self.curtain.go_to_opaque()
-                            else:
-                                self.set_input_text("type 1, 2 or 3 only please!")
-                        # Delete.
-                        elif self.game.this_frame_event.key == pg.K_BACKSPACE:
-                            new_value = self.input_text[:-1]
-                            self.set_input_text(new_value)
-                        # Add.
-                        else:
-                            new_value = self.input_text + self.game.this_frame_event.unicode
-                            self.set_input_text(new_value)
-
-            # Update curtain.
-            self.curtain.update(dt)
-
-        elif self.state == self.CLOSING_SCENE_CURTAIN:
-            """
-            - Updates curtain alpha.
-            """
-
-            self.curtain.update(dt)
-
-        elif self.state == self.SCENE_CURTAIN_CLOSED:
-            """
-            - Counts up exit delay time.
-            """
-
-            self.exit_delay_timer.update(dt)
+        self.state_logics[self.state](dt)
 
     def set_state(self, value: int) -> None:
         old_state: int = self.state

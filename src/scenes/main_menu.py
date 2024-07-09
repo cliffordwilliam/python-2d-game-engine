@@ -42,8 +42,6 @@ class MainMenu:
     def __init__(self, game: "Game"):
         self.game = game
 
-        self.initial_state: int = self.JUST_ENTERED_SCENE
-
         self.native_clear_color: str = "#000000"
         self.font_color: str = "#ffffff"
 
@@ -59,41 +57,23 @@ class MainMenu:
             self.curtain_is_invisible,
             self.native_clear_color,
         )
-        self.curtain.add_event_listener(
-            self.on_curtain_invisible, Curtain.INVISIBLE_END
-        )
-        self.curtain.add_event_listener(
-            self.on_curtain_opaque, Curtain.OPAQUE_END
-        )
+        self.curtain.add_event_listener(self.on_curtain_invisible, Curtain.INVISIBLE_END)
+        self.curtain.add_event_listener(self.on_curtain_opaque, Curtain.OPAQUE_END)
 
         self.entry_delay_timer_duration: float = 1000
         self.entry_delay_timer: Timer = Timer(self.entry_delay_timer_duration)
-        self.entry_delay_timer.add_event_listener(
-            self.on_entry_delay_timer_end, Timer.END
-        )
+        self.entry_delay_timer.add_event_listener(self.on_entry_delay_timer_end, Timer.END)
 
         self.exit_delay_timer_duration: float = 1000
         self.exit_delay_timer: Timer = Timer(self.exit_delay_timer_duration)
-        self.exit_delay_timer.add_event_listener(
-            self.on_exit_delay_timer_end, Timer.END
-        )
+        self.exit_delay_timer.add_event_listener(self.on_exit_delay_timer_end, Timer.END)
 
-        self.background_surf: pg.Surface = pg.image.load(
-            PNGS_PATHS_DICT["main_menu_background.png"]
-        )
+        self.background_surf: pg.Surface = pg.image.load(PNGS_PATHS_DICT["main_menu_background.png"])
 
-        self.new_game_button: Button = Button(
-            (48, 9), (30, 94), "new game", (4, 2), "start a new game"
-        )
-        self.continue_button: Button = Button(
-            (48, 9), (30, 94), "continue", (4, 2), "continue from last save"
-        )
-        self.options_button: Button = Button(
-            (48, 9), (30, 94), "options", (4, 2), "adjust game settings"
-        )
-        self.exit_button: Button = Button(
-            (48, 9), (30, 94), "exit", (4, 2), "exit game"
-        )
+        self.new_game_button: Button = Button((48, 9), (30, 94), "new game", (4, 2), "start a new game")
+        self.continue_button: Button = Button((48, 9), (30, 94), "continue", (4, 2), "continue from last save")
+        self.options_button: Button = Button((48, 9), (30, 94), "options", (4, 2), "adjust game settings")
+        self.exit_button: Button = Button((48, 9), (30, 94), "exit", (4, 2), "exit game")
         self.animation_json_generator: Button = Button(
             (48, 9), (30, 94), "animation", (4, 2), "animation json generator"
         )
@@ -111,13 +91,42 @@ class MainMenu:
             self.game,
         )
 
-        self.button_container.add_event_listener(
-            self.on_button_selected, ButtonContainer.BUTTON_SELECTED
-        )
+        self.button_container.add_event_listener(self.on_button_selected, ButtonContainer.BUTTON_SELECTED)
 
         self.selected_button: Button = self.new_game_button
 
+        # Initial state.
+        self.initial_state: int = self.JUST_ENTERED_SCENE
+        # Null to initial state.
         self.state: int = self.initial_state
+        # State logics.
+        self.state_logics: List = [
+            self.just_entered_scene_state,
+            self.opening_scene_curtain_state,
+            self.scene_curtain_opened_state,
+            self.closing_scene_curtain_state,
+            self.scene_curtain_closed_state,
+        ]
+
+    # State logics.
+    def just_entered_scene_state(self, dt: int) -> None:
+        self.entry_delay_timer.update(dt)
+
+    def opening_scene_curtain_state(self, dt: int) -> None:
+        self.curtain.update(dt)
+
+    def scene_curtain_opened_state(self, dt: int) -> None:
+        self.button_container.event(self.game)
+        self.button_container.update(dt)
+
+    def closing_scene_curtain_state(self, dt: int) -> None:
+        self.curtain.update(dt)
+        self.button_container.update(dt)
+
+    def scene_curtain_closed_state(self, dt: int) -> None:
+        self.exit_delay_timer.update(dt)
+
+    # Callbacks.
 
     def on_entry_delay_timer_end(self) -> None:
         self.set_state(self.OPENING_SCENE_CURTAIN)
@@ -172,28 +181,11 @@ class MainMenu:
                 "layer": 6,
                 "x": 0,
                 "y": 6,
-                "text": (
-                    f"main menu " f"state: {self.state_names[self.state]}"
-                ),
+                "text": (f"main menu " f"state: {self.state_names[self.state]}"),
             }
         )
 
-        if self.state == self.JUST_ENTERED_SCENE:
-            self.entry_delay_timer.update(dt)
-
-        elif self.state == self.OPENING_SCENE_CURTAIN:
-            self.curtain.update(dt)
-
-        elif self.state == self.SCENE_CURTAIN_OPENED:
-            self.button_container.event(self.game)
-            self.button_container.update(dt)
-
-        elif self.state == self.CLOSING_SCENE_CURTAIN:
-            self.curtain.update(dt)
-            self.button_container.update(dt)
-
-        elif self.state == self.SCENE_CURTAIN_CLOSED:
-            self.exit_delay_timer.update(dt)
+        self.state_logics[self.state](dt)
 
     def set_state(self, value: int) -> None:
         old_state: int = self.state
@@ -215,9 +207,7 @@ class MainMenu:
                 # TODO: let music play on load screen.
                 # if self.selected_button == self.exit_button:
                 # Fades out music and stop after.
-                self.game.music_manager.fade_out_music(
-                    int(self.curtain_duration)
-                )
+                self.game.music_manager.fade_out_music(int(self.curtain_duration))
 
         elif old_state == self.CLOSING_SCENE_CURTAIN:
             if self.state == self.SCENE_CURTAIN_CLOSED:

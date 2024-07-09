@@ -73,11 +73,6 @@ class CreatedBySplashScreen:
         # - Events.
         self.game = game
 
-        # Initial state.
-        self.initial_state: int = self.JUST_ENTERED_SCENE
-        # Null to initial state.
-        self.state: int = self.initial_state
-
         # Colors.
         self.native_clear_color: str = "#000000"
         self.font_color: str = "#ffffff"
@@ -95,32 +90,22 @@ class CreatedBySplashScreen:
             self.curtain_is_invisible,
             self.native_clear_color,
         )
-        self.curtain.add_event_listener(
-            self.on_curtain_invisible, Curtain.INVISIBLE_END
-        )
-        self.curtain.add_event_listener(
-            self.on_curtain_opaque, Curtain.OPAQUE_END
-        )
+        self.curtain.add_event_listener(self.on_curtain_invisible, Curtain.INVISIBLE_END)
+        self.curtain.add_event_listener(self.on_curtain_opaque, Curtain.OPAQUE_END)
 
         # Timers.
         # Entry delay.
         self.entry_delay_timer_duration: float = 1000
         self.entry_delay_timer: Timer = Timer(self.entry_delay_timer_duration)
-        self.entry_delay_timer.add_event_listener(
-            self.on_entry_delay_timer_end, Timer.END
-        )
+        self.entry_delay_timer.add_event_listener(self.on_entry_delay_timer_end, Timer.END)
         # Exit delay.
         self.exit_delay_timer_duration: float = 1000
         self.exit_delay_timer: Timer = Timer(self.exit_delay_timer_duration)
-        self.exit_delay_timer.add_event_listener(
-            self.on_exit_delay_timer_end, Timer.END
-        )
+        self.exit_delay_timer.add_event_listener(self.on_exit_delay_timer_end, Timer.END)
         # Screen time.
         self.screen_time_timer_duration: float = 1000
         self.screen_time_timer: Timer = Timer(self.screen_time_timer_duration)
-        self.screen_time_timer.add_event_listener(
-            self.on_screen_time_timer_end, Timer.END
-        )
+        self.screen_time_timer.add_event_listener(self.on_screen_time_timer_end, Timer.END)
 
         # Texts.
         # Title.
@@ -133,6 +118,60 @@ class CreatedBySplashScreen:
         self.tips_rect.bottomright = NATIVE_RECT.bottomright
         self.tips_rect.x -= 1
         self.tips_rect.y -= 1
+
+        # Initial state.
+        self.initial_state: int = self.JUST_ENTERED_SCENE
+        # Null to initial state.
+        self.state: int = self.initial_state
+        # State logics.
+        self.state_logics: List = [
+            self.just_entered_scene_state,
+            self.opening_scene_curtain_state,
+            self.scene_curtain_opened_state,
+            self.closing_scene_curtain_state,
+            self.scene_curtain_closed_state,
+        ]
+
+    # State logics.
+    def just_entered_scene_state(self, dt: int) -> None:
+        """
+        - Counts up enter delay time.
+        """
+
+        self.entry_delay_timer.update(dt)
+
+    def opening_scene_curtain_state(self, dt: int) -> None:
+        """
+        - Enter pressed? Exit to CLOSING_SCENE_CURTAIN state.
+        - Updates curtain alpha.
+        """
+
+        if self.game.is_any_key_just_pressed:
+            self.set_state(self.CLOSING_SCENE_CURTAIN)
+            return
+
+        self.curtain.update(dt)
+
+    def scene_curtain_opened_state(self, dt: int) -> None:
+        """
+        - Counts up screen time.
+        """
+
+        self.screen_time_timer.update(dt)
+
+    def closing_scene_curtain_state(self, dt: int) -> None:
+        """
+        - Updates curtain alpha.
+        """
+
+        self.curtain.update(dt)
+
+    def scene_curtain_closed_state(self, dt: int) -> None:
+        """
+        - Counts up exit delay time.
+        """
+
+        self.exit_delay_timer.update(dt)
 
     # Callbacks.
     def on_entry_delay_timer_end(self) -> None:
@@ -151,6 +190,8 @@ class CreatedBySplashScreen:
         self.set_state(self.SCENE_CURTAIN_CLOSED)
 
     def draw(self) -> None:
+        # TODO: Create state management.
+        # TODO: Avoid uneccessary draw calls.
         """
         - clear NATIVE_SURF.
         - title_text.
@@ -159,12 +200,8 @@ class CreatedBySplashScreen:
         """
 
         NATIVE_SURF.fill(self.native_clear_color)
-        FONT.render_to(
-            NATIVE_SURF, self.title_rect, self.title_text, self.font_color
-        )
-        FONT.render_to(
-            NATIVE_SURF, self.tips_rect, self.tips_text, self.font_color
-        )
+        FONT.render_to(NATIVE_SURF, self.title_rect, self.title_text, self.font_color)
+        FONT.render_to(NATIVE_SURF, self.tips_rect, self.tips_text, self.font_color)
         self.curtain.draw(NATIVE_SURF, 0)
 
     def update(self, dt: int) -> None:
@@ -179,54 +216,14 @@ class CreatedBySplashScreen:
                 "layer": 6,
                 "x": 0,
                 "y": 6,
-                "text": (
-                    f"created by splash screen "
-                    f"state: {self.state_names[self.state]}"
-                ),
+                "text": (f"created by splash screen " f"state: {self.state_names[self.state]}"),
             }
         )
 
-        if self.state == self.JUST_ENTERED_SCENE:
-            """
-            - Counts up entry delay time.
-            """
-
-            self.entry_delay_timer.update(dt)
-
-        elif self.state == self.OPENING_SCENE_CURTAIN:
-            """
-            - Enter pressed? Exit to CLOSING_SCENE_CURTAIN state.
-            - Updates curtain alpha.
-            """
-
-            if self.game.is_any_key_just_pressed:
-                self.set_state(self.CLOSING_SCENE_CURTAIN)
-                return
-
-            self.curtain.update(dt)
-
-        elif self.state == self.SCENE_CURTAIN_OPENED:
-            """
-            - Counts up screen time.
-            """
-
-            self.screen_time_timer.update(dt)
-
-        elif self.state == self.CLOSING_SCENE_CURTAIN:
-            """
-            - Updates curtain alpha.
-            """
-
-            self.curtain.update(dt)
-
-        elif self.state == self.SCENE_CURTAIN_CLOSED:
-            """
-            - Counts up exit delay time.
-            """
-
-            self.exit_delay_timer.update(dt)
+        self.state_logics[self.state](dt)
 
     def set_state(self, value: int) -> None:
+        # TODO: Create state management.
         old_state: int = self.state
         self.state = value
 

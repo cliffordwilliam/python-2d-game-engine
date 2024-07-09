@@ -1,5 +1,6 @@
 from constants import CLOCK
 from constants import EVENTS
+from constants import FONT
 from constants import FPS
 from constants import NATIVE_SURF
 from constants import NEXT_FRAME
@@ -52,9 +53,7 @@ while 1:
                 game.debug_draw.draw()
 
             game.window_surf.blit(
-                pg.transform.scale_by(
-                    NATIVE_SURF, game.local_settings_dict["resolution_scale"]
-                ),
+                pg.transform.scale_by(NATIVE_SURF, game.local_settings_dict["resolution_scale"]),
                 (0, game.native_y_offset),
             )
 
@@ -83,24 +82,20 @@ while 1:
             game.current_scene.update(dt)
 
         # REMOVE IN BUILD
-        game.debug_draw.add(
-            {
-                "type": "text",
-                "layer": 6,
-                "x": 0,
-                "y": 0,
-                "text": f"fps: {CLOCK.get_fps()}",
-            }
-        )
-
-        # REMOVE IN BUILD
         if game.is_debug:
             game.debug_draw.draw()
 
+        # REMOVE IN BUILD
+        FONT.render_to(
+            NATIVE_SURF,
+            (0, 0),
+            f"{CLOCK.get_fps()}",
+            "white",
+            "black",
+        )
+
         game.window_surf.blit(
-            pg.transform.scale_by(
-                NATIVE_SURF, game.local_settings_dict["resolution_scale"]
-            ),
+            pg.transform.scale_by(NATIVE_SURF, game.local_settings_dict["resolution_scale"]),
             (0, game.native_y_offset),
         )
 
