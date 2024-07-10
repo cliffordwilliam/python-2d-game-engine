@@ -19,6 +19,7 @@ from scenes.animation_json_generator import AnimationJsonGenerator
 from scenes.created_by_splash_screen import CreatedBySplashScreen
 from scenes.made_with_splash_screen import MadeWithSplashScreen
 from scenes.main_menu import MainMenu
+from scenes.sprite_sheet_json_generator import SpriteSheetJsonGenerator
 from scenes.title_screen import TitleScreen
 from typeguard import typechecked
 
@@ -76,16 +77,12 @@ class Game:
         # Window resolution scale, size, y offset.
         # Y offset because native is shorter than window.
         # Default values.
-        self.window_width: int = (
-            WINDOW_WIDTH * self.local_settings_dict["resolution_scale"]
-        )
-        self.window_height: int = (
-            WINDOW_HEIGHT * self.local_settings_dict["resolution_scale"]
-        )
+        self.window_width: int = WINDOW_WIDTH * self.local_settings_dict["resolution_scale"]
+        self.window_height: int = WINDOW_HEIGHT * self.local_settings_dict["resolution_scale"]
         self.window_surf: Any | pg.Surface = None
-        self.native_y_offset: int = (
-            (WINDOW_HEIGHT - NATIVE_HEIGHT) // 2
-        ) * self.local_settings_dict["resolution_scale"]
+        self.native_y_offset: int = ((WINDOW_HEIGHT - NATIVE_HEIGHT) // 2) * self.local_settings_dict[
+            "resolution_scale"
+        ]
         self.set_resolution_index(self.local_settings_dict["resolution_index"])
 
         # All game input flags.
@@ -150,6 +147,7 @@ class Game:
             "TitleScreen": TitleScreen,
             "MainMenu": MainMenu,
             "AnimationJsonGenerator": AnimationJsonGenerator,
+            "SpriteSheetJsonGenerator": SpriteSheetJsonGenerator,
         }
 
         # Handles sounds.
@@ -213,41 +211,23 @@ class Game:
             self.local_settings_dict["resolution_scale"] = value + 1
 
             # Update window size, surf and y offset
-            self.window_width = (
-                WINDOW_WIDTH * self.local_settings_dict["resolution_scale"]
-            )
-            self.window_height = (
-                WINDOW_HEIGHT * self.local_settings_dict["resolution_scale"]
-            )
-            self.window_surf = pg.display.set_mode(
-                (self.window_width, self.window_height)
-            )
-            self.native_y_offset = (
-                (WINDOW_HEIGHT - NATIVE_HEIGHT) // 2
-            ) * self.local_settings_dict["resolution_scale"]
+            self.window_width = WINDOW_WIDTH * self.local_settings_dict["resolution_scale"]
+            self.window_height = WINDOW_HEIGHT * self.local_settings_dict["resolution_scale"]
+            self.window_surf = pg.display.set_mode((self.window_width, self.window_height))
+            self.native_y_offset = ((WINDOW_HEIGHT - NATIVE_HEIGHT) // 2) * self.local_settings_dict["resolution_scale"]
 
         # Full screen.
         elif value == 6:
             self.local_settings_dict["resolution_index"] = value
             # Set window surf to be fullscreen size.
-            self.window_surf = pg.display.set_mode(
-                (self.window_width, self.window_height), pg.FULLSCREEN
-            )
+            self.window_surf = pg.display.set_mode((self.window_width, self.window_height), pg.FULLSCREEN)
 
-            self.local_settings_dict["resolution_scale"] = (
-                self.window_surf.get_width() // NATIVE_WIDTH
-            )
+            self.local_settings_dict["resolution_scale"] = self.window_surf.get_width() // NATIVE_WIDTH
 
             # Update window size, surf and y offset
-            self.window_width = (
-                WINDOW_WIDTH * self.local_settings_dict["resolution_scale"]
-            )
-            self.window_height = (
-                WINDOW_HEIGHT * self.local_settings_dict["resolution_scale"]
-            )
-            self.native_y_offset = (
-                (WINDOW_HEIGHT - NATIVE_HEIGHT) // 2
-            ) * self.local_settings_dict["resolution_scale"]
+            self.window_width = WINDOW_WIDTH * self.local_settings_dict["resolution_scale"]
+            self.window_height = WINDOW_HEIGHT * self.local_settings_dict["resolution_scale"]
+            self.native_y_offset = ((WINDOW_HEIGHT - NATIVE_HEIGHT) // 2) * self.local_settings_dict["resolution_scale"]
 
     def set_scene(self, value: str) -> None:
         """

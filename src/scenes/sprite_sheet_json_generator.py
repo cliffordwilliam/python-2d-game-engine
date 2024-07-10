@@ -4,24 +4,52 @@ from typing import TYPE_CHECKING
 from constants import NATIVE_HEIGHT
 from constants import NATIVE_SURF
 from constants import NATIVE_WIDTH
-from constants import pg
-from constants import PNGS_PATHS_DICT
-from nodes.button import Button
-from nodes.button_container import ButtonContainer
+from constants import OGGS_PATHS_DICT
 from nodes.curtain import Curtain
 from nodes.timer import Timer
 from typeguard import typechecked
-
 
 if TYPE_CHECKING:
     from nodes.game import Game
 
 
 @typechecked
-class MainMenu:
+class SpriteSheetJsonGenerator:
     """
-    Fades in and out to show a text that shows my name.
-    Player can skip for an early fade out if they input during fade in.
+    Prefix the file name to be saved.
+    With the sprite sheet name.
+    Because for performance sake 1 json is for 1 sprite sheet.
+    Asks for file name to be saved to JSONS_DIR_PATH.
+    Careful for overriding data.
+
+    States:
+    - JUST_ENTERED_SCENE.
+    - OPENING_SCENE_CURTAIN.
+    - SCENE_CURTAIN_OPENED.
+    - CLOSING_SCENE_CURTAIN.
+    - SCENE_CURTAIN_CLOSED.
+
+    Parameters:
+    - game.
+
+    Properties:
+    - game.
+    - state.
+    - color.
+    - curtain.
+    - timer.
+    - text.
+
+    Methods:
+        - callbacks.
+        - update:
+            - state machine.
+        - draw:
+            - clear NATIVE_SURF.
+            - file_text.
+            - tips_text.
+            - curtain.
+        - set_state.
     """
 
     JUST_ENTERED_SCENE: int = 0
@@ -40,64 +68,54 @@ class MainMenu:
     ]
 
     def __init__(self, game: "Game"):
+        # - Set scene.
+        # - Debug draw.
+        # - Events.
         self.game = game
 
-        self.native_clear_color: str = "#000000"
+        # Colors.
+        self.native_clear_color: str = "#7f7f7f"
         self.font_color: str = "#ffffff"
 
+        # Curtain.
         self.curtain_duration: float = 1000.0
         self.curtain_start: int = Curtain.OPAQUE
         self.curtain_max_alpha: int = 255
         self.curtain_is_invisible: bool = False
+        self.curtain_color: str = "#000000"
         self.curtain: Curtain = Curtain(
             self.curtain_duration,
             self.curtain_start,
             self.curtain_max_alpha,
             (NATIVE_WIDTH, NATIVE_HEIGHT),
             self.curtain_is_invisible,
-            self.native_clear_color,
+            self.curtain_color,
         )
         self.curtain.add_event_listener(self.on_curtain_invisible, Curtain.INVISIBLE_END)
         self.curtain.add_event_listener(self.on_curtain_opaque, Curtain.OPAQUE_END)
 
+        # Timers.
+        # Entry delay.
         self.entry_delay_timer_duration: float = 1000
         self.entry_delay_timer: Timer = Timer(self.entry_delay_timer_duration)
         self.entry_delay_timer.add_event_listener(self.on_entry_delay_timer_end, Timer.END)
-
+        # Exit delay.
         self.exit_delay_timer_duration: float = 1000
         self.exit_delay_timer: Timer = Timer(self.exit_delay_timer_duration)
         self.exit_delay_timer.add_event_listener(self.on_exit_delay_timer_end, Timer.END)
 
-        self.background_surf: pg.Surface = pg.image.load(PNGS_PATHS_DICT["main_menu_background.png"])
+        # Options after add sprites state.
+        self.selected_choice_after_add_sprites_state: int = 0
+        self.save_and_quit_choice_after_add_sprites_state: int = 1
+        self.save_and_redo_choice_after_add_sprites_state: int = 2
+        self.redo_choice_after_add_sprites_state: int = 3
+        self.quit_choice_after_add_sprites_state: int = 4
 
-        self.new_game_button: Button = Button((48, 9), (30, 94), "new game", (4, 2), "start a new game")
-        self.continue_button: Button = Button((48, 9), (30, 94), "continue", (4, 2), "continue from last save")
-        self.options_button: Button = Button((48, 9), (30, 94), "options", (4, 2), "adjust game settings")
-        self.exit_button: Button = Button((48, 9), (30, 94), "exit", (4, 2), "exit game")
-        self.animation_json_generator: Button = Button(
-            (48, 9), (30, 94), "animation", (4, 2), "animation json generator"
+        # Load editor screen music. Played in my set state.
+        self.game.music_manager.set_current_music_path(
+            OGGS_PATHS_DICT["xdeviruchi_take_some_rest_and_eat_some_food.ogg"]
         )
-        self.sprite_sheet_json_generator: Button = Button(
-            (48, 9), (30, 94), "sprite", (4, 2), "sprite sheet json generator"
-        )
-        self.button_container: ButtonContainer = ButtonContainer(
-            [
-                self.new_game_button,
-                self.continue_button,
-                self.options_button,
-                self.exit_button,
-                self.animation_json_generator,
-                self.sprite_sheet_json_generator,
-            ],
-            0,
-            4,
-            True,
-            self.game,
-        )
-
-        self.button_container.add_event_listener(self.on_button_selected, ButtonContainer.BUTTON_SELECTED)
-
-        self.selected_button: Button = self.new_game_button
+        self.game.music_manager.play_music(-1, 0.0, 0)
 
         # Initial state.
         self.initial_state: int = self.JUST_ENTERED_SCENE
@@ -114,36 +132,48 @@ class MainMenu:
 
     # State logics.
     def just_entered_scene_state(self, dt: int) -> None:
+        """
+        - Counts up entry delay time.
+        """
+
         self.entry_delay_timer.update(dt)
 
     def opening_scene_curtain_state(self, dt: int) -> None:
+        """
+        - Updates curtain alpha.
+        """
+
         self.curtain.update(dt)
 
     def scene_curtain_opened_state(self, dt: int) -> None:
-        self.button_container.event(self.game)
-        self.button_container.update(dt)
+        """
+        - asd
+        """
+        pass
 
     def closing_scene_curtain_state(self, dt: int) -> None:
+        """
+        - Updates curtain alpha.
+        """
+
         self.curtain.update(dt)
-        self.button_container.update(dt)
 
     def scene_curtain_closed_state(self, dt: int) -> None:
+        """
+        - Counts up exit delay time.
+        """
+
         self.exit_delay_timer.update(dt)
 
     # Callbacks.
-
     def on_entry_delay_timer_end(self) -> None:
         self.set_state(self.OPENING_SCENE_CURTAIN)
 
     def on_exit_delay_timer_end(self) -> None:
-        if self.selected_button == self.exit_button:
-            self.game.quit()
-
-        elif self.selected_button == self.animation_json_generator:
-            self.game.set_scene("AnimationJsonGenerator")
-
-        elif self.selected_button == self.sprite_sheet_json_generator:
-            self.game.set_scene("SpriteSheetJsonGenerator")
+        # Load title screen music. Played in my set state.
+        self.game.music_manager.set_current_music_path(OGGS_PATHS_DICT["xdeviruchi_title_theme.ogg"])
+        self.game.music_manager.play_music(-1, 0.0, 0)
+        self.game.set_scene("MainMenu")
 
     def on_curtain_invisible(self) -> None:
         self.set_state(self.SCENE_CURTAIN_OPENED)
@@ -151,39 +181,23 @@ class MainMenu:
     def on_curtain_opaque(self) -> None:
         self.set_state(self.SCENE_CURTAIN_CLOSED)
 
-    def on_button_selected(self, selected_button: Button) -> None:
-        """
-        Remember selected
-        Need to wait for curtain to go to opaque
-        Then use remembered button to switch statement to go somewhere
-        """
-        self.selected_button = selected_button
-
-        if self.new_game_button == self.selected_button:
-            pass
-
-        elif self.new_game_button == self.selected_button:
-            pass
-
-        elif self.options_button == self.selected_button:
-            # Update and draw options menu, stop my update
-            self.game.set_is_options_menu_active(True)
-
-        elif self.exit_button == self.selected_button:
-            self.set_state(self.CLOSING_SCENE_CURTAIN)
-
-        elif self.animation_json_generator == self.selected_button:
-            self.set_state(self.CLOSING_SCENE_CURTAIN)
-
-        elif self.sprite_sheet_json_generator == self.selected_button:
-            self.set_state(self.CLOSING_SCENE_CURTAIN)
-
     def draw(self) -> None:
-        NATIVE_SURF.blit(self.background_surf, (0, 0))
-        self.button_container.draw(NATIVE_SURF)
+        """
+        - clear NATIVE_SURF.
+        - curtain.
+        """
+
+        # Clear.
+        NATIVE_SURF.fill(self.native_clear_color)
+
+        # Curtain.
         self.curtain.draw(NATIVE_SURF, 0)
 
     def update(self, dt: int) -> None:
+        """
+        - state machine.
+        """
+
         # REMOVE IN BUILD
         self.game.debug_draw.add(
             {
@@ -191,34 +205,42 @@ class MainMenu:
                 "layer": 6,
                 "x": 0,
                 "y": 6,
-                "text": (f"main menu " f"state: {self.state_names[self.state]}"),
+                "text": (f"animation json generator " f"state: {self.state_names[self.state]}"),
             }
         )
+
+        # All states here can go to options
+        if self.game.is_pause_just_pressed:
+            # Update and draw options menu, stop my update
+            self.game.set_is_options_menu_active(True)
 
         self.state_logics[self.state](dt)
 
     def set_state(self, value: int) -> None:
+        # TODO: Create state management.
         old_state: int = self.state
         self.state = value
 
+        # From JUST_ENTERED_SCENE.
         if old_state == self.JUST_ENTERED_SCENE:
+            # To OPENING_SCENE_CURTAIN.
             if self.state == self.OPENING_SCENE_CURTAIN:
                 self.curtain.go_to_invisible()
 
+        # From OPENING_SCENE_CURTAIN.
         elif old_state == self.OPENING_SCENE_CURTAIN:
+            # To SCENE_CURTAIN_OPENED.
             if self.state == self.SCENE_CURTAIN_OPENED:
-                self.button_container.set_is_input_allowed(True)
-
-        elif old_state == self.SCENE_CURTAIN_OPENED:
-            if self.state == self.CLOSING_SCENE_CURTAIN:
-                self.button_container.set_is_input_allowed(False)
-                self.curtain.go_to_opaque()
-                # TODO: make the load screen be like the options screen.
-                # TODO: let music play on load screen.
-                # if self.selected_button == self.exit_button:
-                # Fades out music and stop after.
-                self.game.music_manager.fade_out_music(int(self.curtain_duration))
-
-        elif old_state == self.CLOSING_SCENE_CURTAIN:
-            if self.state == self.SCENE_CURTAIN_CLOSED:
                 pass
+
+        # From SCENE_CURTAIN_OPENED.
+        elif old_state == self.SCENE_CURTAIN_OPENED:
+            # To CLOSING_SCENE_CURTAIN.
+            if self.state == self.CLOSING_SCENE_CURTAIN:
+                self.curtain.go_to_opaque()
+
+        # From CLOSING_SCENE_CURTAIN.
+        elif old_state == self.CLOSING_SCENE_CURTAIN:
+            # To SCENE_CURTAIN_CLOSED.
+            if self.state == self.SCENE_CURTAIN_CLOSED:
+                NATIVE_SURF.fill("black")
