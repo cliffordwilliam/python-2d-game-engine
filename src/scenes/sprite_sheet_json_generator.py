@@ -25,9 +25,9 @@ class SpriteSheetJsonGenerator:
     States:
     - JUST_ENTERED_SCENE.
     - OPENING_SCENE_CURTAIN.
-    - SCENE_CURTAIN_OPENED.
+    - OPENED_SCENE_CURTAIN.
     - CLOSING_SCENE_CURTAIN.
-    - SCENE_CURTAIN_CLOSED.
+    - CLOSED_SCENE_CURTAIN.
 
     Parameters:
     - game.
@@ -54,17 +54,17 @@ class SpriteSheetJsonGenerator:
 
     JUST_ENTERED_SCENE: int = 0
     OPENING_SCENE_CURTAIN: int = 1
-    SCENE_CURTAIN_OPENED: int = 2
+    OPENED_SCENE_CURTAIN: int = 2
     CLOSING_SCENE_CURTAIN: int = 3
-    SCENE_CURTAIN_CLOSED: int = 4
+    CLOSED_SCENE_CURTAIN: int = 4
 
     # REMOVE IN BUILD
     state_names: List = [
         "JUST_ENTERED_SCENE",
         "OPENING_SCENE_CURTAIN",
-        "SCENE_CURTAIN_OPENED",
+        "OPENED_SCENE_CURTAIN",
         "CLOSING_SCENE_CURTAIN",
-        "SCENE_CURTAIN_CLOSED",
+        "CLOSED_SCENE_CURTAIN",
     ]
 
     def __init__(self, game: "Game"):
@@ -72,6 +72,7 @@ class SpriteSheetJsonGenerator:
         # - Debug draw.
         # - Events.
         self.game = game
+        self.event_handler = self.game.event_handler
 
         # Colors.
         self.native_clear_color: str = "#7f7f7f"
@@ -176,10 +177,10 @@ class SpriteSheetJsonGenerator:
         self.game.set_scene("MainMenu")
 
     def on_curtain_invisible(self) -> None:
-        self.set_state(self.SCENE_CURTAIN_OPENED)
+        self.set_state(self.OPENED_SCENE_CURTAIN)
 
     def on_curtain_opaque(self) -> None:
-        self.set_state(self.SCENE_CURTAIN_CLOSED)
+        self.set_state(self.CLOSED_SCENE_CURTAIN)
 
     def draw(self) -> None:
         """
@@ -210,7 +211,7 @@ class SpriteSheetJsonGenerator:
         )
 
         # All states here can go to options
-        if self.game.is_pause_just_pressed:
+        if self.event_handler.is_pause_just_pressed:
             # Update and draw options menu, stop my update
             self.game.set_is_options_menu_active(True)
 
@@ -229,18 +230,18 @@ class SpriteSheetJsonGenerator:
 
         # From OPENING_SCENE_CURTAIN.
         elif old_state == self.OPENING_SCENE_CURTAIN:
-            # To SCENE_CURTAIN_OPENED.
-            if self.state == self.SCENE_CURTAIN_OPENED:
+            # To OPENED_SCENE_CURTAIN.
+            if self.state == self.OPENED_SCENE_CURTAIN:
                 pass
 
-        # From SCENE_CURTAIN_OPENED.
-        elif old_state == self.SCENE_CURTAIN_OPENED:
+        # From OPENED_SCENE_CURTAIN.
+        elif old_state == self.OPENED_SCENE_CURTAIN:
             # To CLOSING_SCENE_CURTAIN.
             if self.state == self.CLOSING_SCENE_CURTAIN:
                 self.curtain.go_to_opaque()
 
         # From CLOSING_SCENE_CURTAIN.
         elif old_state == self.CLOSING_SCENE_CURTAIN:
-            # To SCENE_CURTAIN_CLOSED.
-            if self.state == self.SCENE_CURTAIN_CLOSED:
+            # To CLOSED_SCENE_CURTAIN.
+            if self.state == self.CLOSED_SCENE_CURTAIN:
                 NATIVE_SURF.fill("black")

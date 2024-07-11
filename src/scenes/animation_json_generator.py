@@ -41,9 +41,9 @@ class AnimationJsonGenerator:
     States:
     - JUST_ENTERED_SCENE.
     - OPENING_SCENE_CURTAIN.
-    - SCENE_CURTAIN_OPENED.
+    - OPENED_SCENE_CURTAIN.
     - CLOSING_SCENE_CURTAIN.
-    - SCENE_CURTAIN_CLOSED.
+    - CLOSED_SCENE_CURTAIN.
     - SPRITE_SHEET_PNG_PATH_QUERY.
     - SPRITE_SIZE_QUERY.
     - ANIMATION_NAME_QUERY.
@@ -78,7 +78,7 @@ class AnimationJsonGenerator:
 
     JUST_ENTERED_SCENE: int = 0
     OPENING_SCENE_CURTAIN: int = 1
-    SCENE_CURTAIN_OPENED: int = 2
+    OPENED_SCENE_CURTAIN: int = 2
     SPRITE_SHEET_PNG_PATH_QUERY: int = 3
     SPRITE_SIZE_QUERY: int = 4
     ANIMATION_NAME_QUERY: int = 5
@@ -88,13 +88,13 @@ class AnimationJsonGenerator:
     ADD_SPRITES: int = 9
     SAVE_QUIT_REDO_QUERY: int = 10
     CLOSING_SCENE_CURTAIN: int = 11
-    SCENE_CURTAIN_CLOSED: int = 12
+    CLOSED_SCENE_CURTAIN: int = 12
 
     # REMOVE IN BUILD
     state_names: List = [
         "JUST_ENTERED_SCENE",
         "OPENING_SCENE_CURTAIN",
-        "SCENE_CURTAIN_OPENED",
+        "OPENED_SCENE_CURTAIN",
         "SPRITE_SHEET_PNG_PATH_QUERY",
         "SPRITE_SIZE_QUERY",
         "ANIMATION_NAME_QUERY",
@@ -104,14 +104,14 @@ class AnimationJsonGenerator:
         "ADD_SPRITES",
         "SAVE_QUIT_REDO_QUERY",
         "CLOSING_SCENE_CURTAIN",
-        "SCENE_CURTAIN_CLOSED",
+        "CLOSED_SCENE_CURTAIN",
     ]
 
     def __init__(self, game: "Game"):
         # - Set scene.
         # - Debug draw.
-        # - Events.
         self.game = game
+        self.event_handler = self.game.event_handler
 
         # Colors.
         self.native_clear_color: str = "#7f7f7f"
@@ -263,24 +263,24 @@ class AnimationJsonGenerator:
         # Wait for curtain to be fully invisible.
         if self.curtain.is_done:
             # Caught 1 key event this frame?
-            if self.game.this_frame_event:
-                if self.game.this_frame_event.type == pg.KEYDOWN:
+            if self.event_handler.this_frame_event:
+                if self.event_handler.this_frame_event.type == pg.KEYDOWN:
                     # Accept.
-                    if self.game.this_frame_event.key == pg.K_RETURN:
+                    if self.event_handler.this_frame_event.key == pg.K_RETURN:
                         if self.input_text != "":
                             self.file_name = self.input_text
                             # Close curtain.
                             # Exit to SPRITE_SHEET_PNG_PATH_QUERY.
                             self.curtain.go_to_opaque()
                     # Delete.
-                    elif self.game.this_frame_event.key == pg.K_BACKSPACE:
+                    elif self.event_handler.this_frame_event.key == pg.K_BACKSPACE:
                         new_value = self.input_text[:-1]
                         self.set_input_text(new_value)
                         # Play text.
                         self.game.sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
                     # Add.
                     else:
-                        new_value = self.input_text + self.game.this_frame_event.unicode
+                        new_value = self.input_text + self.event_handler.this_frame_event.unicode
                         self.set_input_text(new_value)
                         # Play text.
                         self.game.sound_manager.play_sound("text_1.ogg", 0, 0, 0)
@@ -296,10 +296,10 @@ class AnimationJsonGenerator:
         # Wait for curtain to be fully invisible.
         if self.curtain.is_done:
             # Caught 1 key event this frame?
-            if self.game.this_frame_event:
-                if self.game.this_frame_event.type == pg.KEYDOWN:
+            if self.event_handler.this_frame_event:
+                if self.event_handler.this_frame_event.type == pg.KEYDOWN:
                     # Accept.
-                    if self.game.this_frame_event.key == pg.K_RETURN:
+                    if self.event_handler.this_frame_event.key == pg.K_RETURN:
                         if exists(self.input_text) and self.input_text.endswith(".png"):
                             # Setup the sprite sheet data.
                             self.sprite_sheet_png_path = self.input_text
@@ -325,14 +325,14 @@ class AnimationJsonGenerator:
                         else:
                             self.set_input_text("png path does not exist!")
                     # Delete.
-                    elif self.game.this_frame_event.key == pg.K_BACKSPACE:
+                    elif self.event_handler.this_frame_event.key == pg.K_BACKSPACE:
                         new_value = self.input_text[:-1]
                         self.set_input_text(new_value)
                         # Play text.
                         self.game.sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
                     # Add.
                     else:
-                        new_value = self.input_text + self.game.this_frame_event.unicode
+                        new_value = self.input_text + self.event_handler.this_frame_event.unicode
                         self.set_input_text(new_value)
                         # Play text.
                         self.game.sound_manager.play_sound("text_1.ogg", 0, 0, 0)
@@ -348,10 +348,10 @@ class AnimationJsonGenerator:
         # Wait for curtain to be fully invisible.
         if self.curtain.is_done:
             # Caught 1 key event this frame?
-            if self.game.this_frame_event:
-                if self.game.this_frame_event.type == pg.KEYDOWN:
+            if self.event_handler.this_frame_event:
+                if self.event_handler.this_frame_event.type == pg.KEYDOWN:
                     # Accept.
-                    if self.game.this_frame_event.key == pg.K_RETURN:
+                    if self.event_handler.this_frame_event.key == pg.K_RETURN:
                         if self.input_text.isdigit():
                             # Setup the sprite_size.
                             self.animation_sprite_size = max(int(self.input_text) * TILE_SIZE, 0)
@@ -362,14 +362,14 @@ class AnimationJsonGenerator:
                         else:
                             self.set_input_text("type int only please!")
                     # Delete.
-                    elif self.game.this_frame_event.key == pg.K_BACKSPACE:
+                    elif self.event_handler.this_frame_event.key == pg.K_BACKSPACE:
                         new_value = self.input_text[:-1]
                         self.set_input_text(new_value)
                         # Play text.
                         self.game.sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
                     # Add.
                     else:
-                        new_value = self.input_text + self.game.this_frame_event.unicode
+                        new_value = self.input_text + self.event_handler.this_frame_event.unicode
                         self.set_input_text(new_value)
                         # Play text.
                         self.game.sound_manager.play_sound("text_1.ogg", 0, 0, 0)
@@ -385,10 +385,10 @@ class AnimationJsonGenerator:
         # Wait for curtain to be fully invisible.
         if self.curtain.is_done:
             # Caught 1 key event this frame?
-            if self.game.this_frame_event:
-                if self.game.this_frame_event.type == pg.KEYDOWN:
+            if self.event_handler.this_frame_event:
+                if self.event_handler.this_frame_event.type == pg.KEYDOWN:
                     # Accept.
-                    if self.game.this_frame_event.key == pg.K_RETURN:
+                    if self.event_handler.this_frame_event.key == pg.K_RETURN:
                         # TODO: Trim white space.
                         if self.input_text != "":
                             self.animation_name = self.input_text
@@ -396,14 +396,14 @@ class AnimationJsonGenerator:
                             # Exit to SPRITE_SHEET_PNG_PATH_QUERY.
                             self.curtain.go_to_opaque()
                     # Delete.
-                    elif self.game.this_frame_event.key == pg.K_BACKSPACE:
+                    elif self.event_handler.this_frame_event.key == pg.K_BACKSPACE:
                         new_value = self.input_text[:-1]
                         self.set_input_text(new_value)
                         # Play text.
                         self.game.sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
                     # Add.
                     else:
-                        new_value = self.input_text + self.game.this_frame_event.unicode
+                        new_value = self.input_text + self.event_handler.this_frame_event.unicode
                         self.set_input_text(new_value)
                         # Play text.
                         self.game.sound_manager.play_sound("text_1.ogg", 0, 0, 0)
@@ -419,10 +419,10 @@ class AnimationJsonGenerator:
         # Wait for curtain to be fully invisible.
         if self.curtain.is_done:
             # Caught 1 key event this frame?
-            if self.game.this_frame_event:
-                if self.game.this_frame_event.type == pg.KEYDOWN:
+            if self.event_handler.this_frame_event:
+                if self.event_handler.this_frame_event.type == pg.KEYDOWN:
                     # Accept.
-                    if self.game.this_frame_event.key == pg.K_RETURN:
+                    if self.event_handler.this_frame_event.key == pg.K_RETURN:
                         if self.input_text in ["y", "n"]:
                             if self.input_text == "y":
                                 self.animation_is_loop = 1
@@ -434,14 +434,14 @@ class AnimationJsonGenerator:
                         else:
                             self.set_input_text("type y or n only please!")
                     # Delete.
-                    elif self.game.this_frame_event.key == pg.K_BACKSPACE:
+                    elif self.event_handler.this_frame_event.key == pg.K_BACKSPACE:
                         new_value = self.input_text[:-1]
                         self.set_input_text(new_value)
                         # Play text.
                         self.game.sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
                     # Add.
                     else:
-                        new_value = self.input_text + self.game.this_frame_event.unicode
+                        new_value = self.input_text + self.event_handler.this_frame_event.unicode
                         self.set_input_text(new_value)
                         # Play text.
                         self.game.sound_manager.play_sound("text_1.ogg", 0, 0, 0)
@@ -457,10 +457,10 @@ class AnimationJsonGenerator:
         # Wait for curtain to be fully invisible.
         if self.curtain.is_done:
             # Caught 1 key event this frame?
-            if self.game.this_frame_event:
-                if self.game.this_frame_event.type == pg.KEYDOWN:
+            if self.event_handler.this_frame_event:
+                if self.event_handler.this_frame_event.type == pg.KEYDOWN:
                     # Accept.
-                    if self.game.this_frame_event.key == pg.K_RETURN:
+                    if self.event_handler.this_frame_event.key == pg.K_RETURN:
                         # TODO: Trim white space.
                         if self.input_text != "":
                             self.next_animation_name = self.input_text
@@ -468,14 +468,14 @@ class AnimationJsonGenerator:
                             # Exit to SPRITE_SHEET_PNG_PATH_QUERY.
                             self.curtain.go_to_opaque()
                     # Delete.
-                    elif self.game.this_frame_event.key == pg.K_BACKSPACE:
+                    elif self.event_handler.this_frame_event.key == pg.K_BACKSPACE:
                         new_value = self.input_text[:-1]
                         self.set_input_text(new_value)
                         # Play text.
                         self.game.sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
                     # Add.
                     else:
-                        new_value = self.input_text + self.game.this_frame_event.unicode
+                        new_value = self.input_text + self.event_handler.this_frame_event.unicode
                         self.set_input_text(new_value)
                         # Play text.
                         self.game.sound_manager.play_sound("text_1.ogg", 0, 0, 0)
@@ -491,10 +491,10 @@ class AnimationJsonGenerator:
         # Wait for curtain to be fully invisible.
         if self.curtain.is_done:
             # Caught 1 key event this frame?
-            if self.game.this_frame_event:
-                if self.game.this_frame_event.type == pg.KEYDOWN:
+            if self.event_handler.this_frame_event:
+                if self.event_handler.this_frame_event.type == pg.KEYDOWN:
                     # Accept.
-                    if self.game.this_frame_event.key == pg.K_RETURN:
+                    if self.event_handler.this_frame_event.key == pg.K_RETURN:
                         if self.input_text.isdigit():
                             # Setup the sprite_size.
                             self.animation_duration = int(self.input_text)
@@ -504,14 +504,14 @@ class AnimationJsonGenerator:
                         else:
                             self.set_input_text("type int only please!")
                     # Delete.
-                    elif self.game.this_frame_event.key == pg.K_BACKSPACE:
+                    elif self.event_handler.this_frame_event.key == pg.K_BACKSPACE:
                         new_value = self.input_text[:-1]
                         self.set_input_text(new_value)
                         # Play text.
                         self.game.sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
                     # Add.
                     else:
-                        new_value = self.input_text + self.game.this_frame_event.unicode
+                        new_value = self.input_text + self.event_handler.this_frame_event.unicode
                         self.set_input_text(new_value)
                         # Play text.
                         self.game.sound_manager.play_sound("text_1.ogg", 0, 0, 0)
@@ -528,11 +528,11 @@ class AnimationJsonGenerator:
         if self.curtain.is_done:
             # Camera movement.
             # Get direction_horizontal.
-            direction_horizontal: int = self.game.is_right_pressed - self.game.is_left_pressed
+            direction_horizontal: int = self.event_handler.is_right_pressed - self.event_handler.is_left_pressed
             # Update camera anchor position with direction and speed.
             self.camera_anchor_vector.x += direction_horizontal * self.camera_speed * dt
             # Get direction_vertical.
-            direction_vertical: int = self.game.is_down_pressed - self.game.is_up_pressed
+            direction_vertical: int = self.event_handler.is_down_pressed - self.event_handler.is_up_pressed
             # Update camera anchor position with direction and speed.
             self.camera_anchor_vector.y += direction_vertical * self.camera_speed * dt
             # Lerp camera position to target camera anchor.
@@ -541,7 +541,7 @@ class AnimationJsonGenerator:
             # Sprite selection.
             # Lmb just pressed.
             is_lmb_just_pressed_occupied: bool = False
-            if self.game.is_lmb_just_pressed:
+            if self.event_handler.is_lmb_just_pressed:
                 # Check if selection is all empty cells.
                 # Iterate size to check all empty.
                 for world_mouse_tu_xi in range(self.sprite_size_tu):
@@ -587,7 +587,7 @@ class AnimationJsonGenerator:
                     )
 
             # Enter just pressed.
-            if self.game.is_enter_just_pressed:
+            if self.event_handler.is_enter_just_pressed:
                 # Exit to ask save quit, save again, redo.
                 self.curtain.go_to_opaque()
 
@@ -602,10 +602,10 @@ class AnimationJsonGenerator:
         # Wait for curtain to be fully invisible.
         if self.curtain.is_done:
             # Caught 1 key event this frame?
-            if self.game.this_frame_event:
-                if self.game.this_frame_event.type == pg.KEYDOWN:
+            if self.event_handler.this_frame_event:
+                if self.event_handler.this_frame_event.type == pg.KEYDOWN:
                     # Accept.
-                    if self.game.this_frame_event.key == pg.K_RETURN:
+                    if self.event_handler.this_frame_event.key == pg.K_RETURN:
                         if self.input_text in [
                             str(self.save_and_quit_choice_after_add_sprites_state),
                             str(self.save_and_redo_choice_after_add_sprites_state),
@@ -685,14 +685,14 @@ class AnimationJsonGenerator:
                         else:
                             self.set_input_text("type 1, 2, 3 or 4 only please!")
                     # Delete.
-                    elif self.game.this_frame_event.key == pg.K_BACKSPACE:
+                    elif self.event_handler.this_frame_event.key == pg.K_BACKSPACE:
                         new_value = self.input_text[:-1]
                         self.set_input_text(new_value)
                         # Play text.
                         self.game.sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
                     # Add.
                     else:
-                        new_value = self.input_text + self.game.this_frame_event.unicode
+                        new_value = self.input_text + self.event_handler.this_frame_event.unicode
                         self.set_input_text(new_value)
                         # Play text.
                         self.game.sound_manager.play_sound("text_1.ogg", 0, 0, 0)
@@ -726,11 +726,11 @@ class AnimationJsonGenerator:
 
     def on_curtain_invisible(self) -> None:
         if self.state == self.OPENING_SCENE_CURTAIN:
-            self.set_state(self.SCENE_CURTAIN_OPENED)
+            self.set_state(self.OPENED_SCENE_CURTAIN)
             return
 
     def on_curtain_opaque(self) -> None:
-        if self.state == self.SCENE_CURTAIN_OPENED:
+        if self.state == self.OPENED_SCENE_CURTAIN:
             self.set_state(self.SPRITE_SHEET_PNG_PATH_QUERY)
             self.curtain.go_to_invisible()
             return
@@ -772,13 +772,13 @@ class AnimationJsonGenerator:
                 self.curtain.go_to_invisible()
                 return
             elif self.selected_choice_after_add_sprites_state == (self.save_and_quit_choice_after_add_sprites_state):
-                self.set_state(self.SCENE_CURTAIN_CLOSED)
+                self.set_state(self.CLOSED_SCENE_CURTAIN)
                 return
             elif self.selected_choice_after_add_sprites_state == (self.quit_choice_after_add_sprites_state):
-                self.set_state(self.SCENE_CURTAIN_CLOSED)
+                self.set_state(self.CLOSED_SCENE_CURTAIN)
                 return
         elif self.state == self.CLOSING_SCENE_CURTAIN:
-            self.set_state(self.SCENE_CURTAIN_CLOSED)
+            self.set_state(self.CLOSED_SCENE_CURTAIN)
 
     # Helpers.
     def draw_grid(self) -> None:
@@ -872,7 +872,7 @@ class AnimationJsonGenerator:
 
         if self.state in [
             self.OPENING_SCENE_CURTAIN,
-            self.SCENE_CURTAIN_OPENED,
+            self.OPENED_SCENE_CURTAIN,
             self.SPRITE_SHEET_PNG_PATH_QUERY,
             self.SPRITE_SIZE_QUERY,
             self.ANIMATION_NAME_QUERY,
@@ -986,7 +986,7 @@ class AnimationJsonGenerator:
         )
 
         # All states here can go to options
-        if self.game.is_pause_just_pressed:
+        if self.event_handler.is_pause_just_pressed:
             # Update and draw options menu, stop my update
             self.game.set_is_options_menu_active(True)
 
@@ -1004,15 +1004,15 @@ class AnimationJsonGenerator:
 
         # From OPENING_SCENE_CURTAIN.
         elif old_state == self.OPENING_SCENE_CURTAIN:
-            # To SCENE_CURTAIN_OPENED.
-            if self.state == self.SCENE_CURTAIN_OPENED:
+            # To OPENED_SCENE_CURTAIN.
+            if self.state == self.OPENED_SCENE_CURTAIN:
                 # Reset the input text.
                 self.set_input_text("")
                 # Set my prompt text:
                 self.set_prompt_text("type the file name to be saved,")
 
-        # From SCENE_CURTAIN_OPENED.
-        elif old_state == self.SCENE_CURTAIN_OPENED:
+        # From OPENED_SCENE_CURTAIN.
+        elif old_state == self.OPENED_SCENE_CURTAIN:
             # To SPRITE_SHEET_PNG_PATH_QUERY.
             if self.state == self.SPRITE_SHEET_PNG_PATH_QUERY:
                 # Reset the input text.
@@ -1094,6 +1094,6 @@ class AnimationJsonGenerator:
 
         # From CLOSING_SCENE_CURTAIN.
         elif old_state == self.CLOSING_SCENE_CURTAIN:
-            # To SCENE_CURTAIN_CLOSED.
-            if self.state == self.SCENE_CURTAIN_CLOSED:
+            # To CLOSED_SCENE_CURTAIN.
+            if self.state == self.CLOSED_SCENE_CURTAIN:
                 NATIVE_SURF.fill("black")

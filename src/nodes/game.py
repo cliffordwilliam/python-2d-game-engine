@@ -13,8 +13,10 @@ from constants import pg
 from constants import WINDOW_HEIGHT
 from constants import WINDOW_WIDTH
 from nodes.debug_draw import DebugDraw
+from nodes.event_handler import EventHandler
 from nodes.music_manager import MusicManager
 from nodes.sound_manager import SoundManager
+from pygame.math import clamp
 from scenes.animation_json_generator import AnimationJsonGenerator
 from scenes.created_by_splash_screen import CreatedBySplashScreen
 from scenes.made_with_splash_screen import MadeWithSplashScreen
@@ -26,34 +28,6 @@ from typeguard import typechecked
 
 @typechecked
 class Game:
-    """
-    Responsibility:
-    - save.
-    - set_is_options_menu_active.
-    - set_resolution.
-    - set_scene.
-    - quit.
-    - event.
-
-    Properties:
-    - local_settings_dict.
-    - is_options_menu_active.
-    - is_debug.
-    - debug_draw.
-    - is_per_frame.
-    - resolution_scale.
-    - window_width.
-    - window_height.
-    - window_surf.
-    - native_y_offset.
-    - input flags.
-    - inputs dict, name to int. KEYBINDS
-    - actors dict, name to memory.
-    - scenes dict, name to memory.
-    - sound_manager.
-    - current_scene.
-    """
-
     def __init__(self, initial_scene: str):
         # Prepare local settings data.
         self.local_settings_dict: Dict[str, Any] = {}
@@ -85,55 +59,16 @@ class Game:
         ]
         self.set_resolution_index(self.local_settings_dict["resolution_index"])
 
-        # All game input flags.
-        # Any just pressed and this event.
-        self.is_any_key_just_pressed: bool = False
-        self.this_frame_event: Any = None
-        # Directions pressed.
-        self.is_up_pressed: bool = False
-        self.is_down_pressed: bool = False
-        self.is_left_pressed: bool = False
-        self.is_right_pressed: bool = False
-        # Directions just pressed.
-        self.is_up_just_pressed: bool = False
-        self.is_down_just_pressed: bool = False
-        self.is_left_just_pressed: bool = False
-        self.is_right_just_pressed: bool = False
-        # Directions just released.
-        self.is_up_just_released: bool = False
-        self.is_down_just_released: bool = False
-        self.is_left_just_released: bool = False
-        self.is_right_just_released: bool = False
-        # REMOVE IN BUILD
-        # Mouse pressed.
-        self.is_lmb_pressed: bool = False
-        self.is_rmb_pressed: bool = False
-        self.is_mmb_pressed: bool = False
-        # REMOVE IN BUILD
-        # Mouse just pressed.
-        self.is_lmb_just_pressed: bool = False
-        self.is_rmb_just_pressed: bool = False
-        self.is_mmb_just_pressed: bool = False
-        # REMOVE IN BUILD
-        # Mouse just released.
-        self.is_lmb_just_released: bool = False
-        self.is_rmb_just_released: bool = False
-        self.is_mmb_just_released: bool = False
-        # Actions pressed.
-        self.is_enter_pressed: bool = False
-        self.is_pause_pressed: bool = False
-        self.is_jump_pressed: bool = False
-        self.is_attack_pressed: bool = False
-        # Actions just pressed.
-        self.is_enter_just_pressed: bool = False
-        self.is_pause_just_pressed: bool = False
-        self.is_jump_just_pressed: bool = False
-        self.is_attack_just_pressed: bool = False
-        # Actions just released.
-        self.is_enter_just_released: bool = False
-        self.is_pause_just_released: bool = False
-        self.is_jump_just_released: bool = False
-        self.is_attack_just_released: bool = False
+        # Handles sounds.
+        self.sound_manager: SoundManager = SoundManager()
+        self.music_manager: MusicManager = MusicManager()
+
+        # Load all oggs.
+        for ogg_name, ogg_path in OGGS_PATHS_DICT.items():
+            self.sound_manager.load_sound(ogg_name, ogg_path)
+
+        # Handle events
+        self.event_handler: EventHandler = EventHandler(self)
 
         # All actors dict, name to memory.
         self.actors: Dict[str, Type[Any]] = {
@@ -150,16 +85,8 @@ class Game:
             "SpriteSheetJsonGenerator": SpriteSheetJsonGenerator,
         }
 
-        # Handles sounds.
-        self.sound_manager: SoundManager = SoundManager()
-        self.music_manager: MusicManager = MusicManager()
-
         # Keeps track of current scene.
         self.current_scene: Any = self.scenes[initial_scene](self)
-
-        # Load all oggs.
-        for ogg_name, ogg_path in OGGS_PATHS_DICT.items():
-            self.sound_manager.load_sound(ogg_name, ogg_path)
 
     def load_or_create_settings(self) -> None:
         """
@@ -190,7 +117,6 @@ class Game:
 
     def set_is_options_menu_active(self, value: bool) -> None:
         """
-        Toggle options screen.
         If options screen is active, current scene is not updated.
         """
 
@@ -199,35 +125,34 @@ class Game:
     def set_resolution_index(self, value: int) -> None:
         """
         Sets the resolution scale of the window.
-        Called by options screen.
-
         Takes int parameter, 0 - 6 only.
         """
 
-        # Not fullscreen.
-        if value != 6 and value >= 0:
-            # Update self.local_settings_dict["resolution_scale"]
-            self.local_settings_dict["resolution_index"] = value
-            self.local_settings_dict["resolution_scale"] = value + 1
-
-            # Update window size, surf and y offset
-            self.window_width = WINDOW_WIDTH * self.local_settings_dict["resolution_scale"]
-            self.window_height = WINDOW_HEIGHT * self.local_settings_dict["resolution_scale"]
-            self.window_surf = pg.display.set_mode((self.window_width, self.window_height))
-            self.native_y_offset = ((WINDOW_HEIGHT - NATIVE_HEIGHT) // 2) * self.local_settings_dict["resolution_scale"]
+        # Keep safe
+        value = int(clamp(value, 0.0, 6.0))
 
         # Full screen.
-        elif value == 6:
+        if value == 6:
             self.local_settings_dict["resolution_index"] = value
             # Set window surf to be fullscreen size.
             self.window_surf = pg.display.set_mode((self.window_width, self.window_height), pg.FULLSCREEN)
-
+            # Update self.local_settings_dict["resolution_scale"]
             self.local_settings_dict["resolution_scale"] = self.window_surf.get_width() // NATIVE_WIDTH
-
             # Update window size, surf and y offset
             self.window_width = WINDOW_WIDTH * self.local_settings_dict["resolution_scale"]
             self.window_height = WINDOW_HEIGHT * self.local_settings_dict["resolution_scale"]
             self.native_y_offset = ((WINDOW_HEIGHT - NATIVE_HEIGHT) // 2) * self.local_settings_dict["resolution_scale"]
+            return
+
+        # Not fullscreen.
+        # Update self.local_settings_dict["resolution_scale"]
+        self.local_settings_dict["resolution_index"] = value
+        self.local_settings_dict["resolution_scale"] = value + 1
+        # Update window size, surf and y offset
+        self.window_width = WINDOW_WIDTH * self.local_settings_dict["resolution_scale"]
+        self.window_height = WINDOW_HEIGHT * self.local_settings_dict["resolution_scale"]
+        self.window_surf = pg.display.set_mode((self.window_width, self.window_height))
+        self.native_y_offset = ((WINDOW_HEIGHT - NATIVE_HEIGHT) // 2) * self.local_settings_dict["resolution_scale"]
 
     def set_scene(self, value: str) -> None:
         """
@@ -235,164 +160,3 @@ class Game:
         """
 
         self.current_scene = self.scenes[value](self)
-
-    def quit(self) -> None:
-        """
-        Exit the game.
-        """
-
-        pg.quit()
-        exit()
-
-    def event(self, event: pg.Event) -> None:
-        """
-        This is called by the main.py.
-        Updates the input flags every frame.
-        """
-
-        # Handle window x button on click.
-        if event.type == pg.QUIT:
-            pg.quit()
-            exit()
-
-        # KEYDOWN.
-        # Pressed True.
-        # Just pressed True.
-        elif event.type == pg.KEYDOWN:
-            self.is_any_key_just_pressed = True
-            self.this_frame_event = event
-
-            if event.key == self.local_settings_dict["up"]:
-                self.is_up_pressed = True
-                self.is_up_just_pressed = True
-            if event.key == self.local_settings_dict["down"]:
-                self.is_down_pressed = True
-                self.is_down_just_pressed = True
-            if event.key == self.local_settings_dict["left"]:
-                self.is_left_pressed = True
-                self.is_left_just_pressed = True
-            if event.key == self.local_settings_dict["right"]:
-                self.is_right_pressed = True
-                self.is_right_just_pressed = True
-            if event.key == self.local_settings_dict["enter"]:
-                self.is_enter_pressed = True
-                self.is_enter_just_pressed = True
-            if event.key == self.local_settings_dict["pause"]:
-                self.is_pause_pressed = True
-                self.is_pause_just_pressed = True
-            if event.key == self.local_settings_dict["jump"]:
-                self.is_jump_pressed = True
-                self.is_jump_just_pressed = True
-            if event.key == self.local_settings_dict["attack"]:
-                self.is_attack_pressed = True
-                self.is_attack_just_pressed = True
-
-            # REMOVE IN BUILD
-            # Toggle is debug for drawing and per frame.
-            if event.key == pg.K_0:
-                self.is_debug = not self.is_debug
-            if event.key == pg.K_9:
-                self.is_per_frame = not self.is_per_frame
-
-        # KEYUP.
-        # Pressed False.
-        # Just released True.
-        elif event.type == pg.KEYUP:
-            if event.key == self.local_settings_dict["up"]:
-                self.is_up_pressed = False
-                self.is_up_just_released = True
-            if event.key == self.local_settings_dict["down"]:
-                self.is_down_pressed = False
-                self.is_down_just_released = True
-            if event.key == self.local_settings_dict["left"]:
-                self.is_left_pressed = False
-                self.is_left_just_released = True
-            if event.key == self.local_settings_dict["right"]:
-                self.is_right_pressed = False
-                self.is_right_just_released = True
-            if event.key == self.local_settings_dict["enter"]:
-                self.is_enter_pressed = False
-                self.is_enter_just_released = True
-            if event.key == self.local_settings_dict["pause"]:
-                self.is_pause_pressed = False
-                self.is_pause_just_released = True
-            if event.key == self.local_settings_dict["jump"]:
-                self.is_jump_pressed = False
-                self.is_jump_just_released = True
-            if event.key == self.local_settings_dict["attack"]:
-                self.is_attack_pressed = False
-                self.is_attack_just_released = True
-
-        # REMOVE IN BUILD
-        # MOUSEBUTTONDOWN.
-        # Pressed True.
-        # Just pressed True.
-        if event.type == pg.MOUSEBUTTONDOWN:
-            if event.button == self.local_settings_dict["lmb"]:
-                self.is_lmb_pressed = True
-                self.is_lmb_just_pressed = True
-            if event.button == self.local_settings_dict["mmb"]:
-                self.is_mmb_pressed = True
-                self.is_mmb_just_pressed = True
-            if event.button == self.local_settings_dict["rmb"]:
-                self.is_rmb_pressed = True
-                self.is_rmb_just_pressed = True
-
-        # REMOVE IN BUILD
-        # MOUSEBUTTONUP.
-        # Pressed False.
-        # Just released True.
-        elif event.type == pg.MOUSEBUTTONUP:
-            if event.button == self.local_settings_dict["lmb"]:
-                self.is_lmb_pressed = False
-                self.is_lmb_just_released = True
-            if event.button == self.local_settings_dict["mmb"]:
-                self.is_mmb_pressed = False
-                self.is_mmb_just_released = True
-            if event.button == self.local_settings_dict["rmb"]:
-                self.is_rmb_pressed = False
-                self.is_rmb_just_released = True
-
-    def reset_just_events(self) -> None:
-        """
-        Resets the flags for just-pressed and just-released events.
-        Called by main.py.
-        """
-
-        self.is_any_key_just_pressed = False
-        self.this_frame_event = None
-
-        # Directions.
-        # just pressed False.
-        # just released False.
-        self.is_up_just_pressed = False
-        self.is_down_just_pressed = False
-        self.is_left_just_pressed = False
-        self.is_right_just_pressed = False
-        self.is_up_just_released = False
-        self.is_down_just_released = False
-        self.is_left_just_released = False
-        self.is_right_just_released = False
-
-        # Actions.
-        # just pressed False.
-        # just released False.
-        self.is_enter_just_pressed = False
-        self.is_pause_just_pressed = False
-        self.is_jump_just_pressed = False
-        self.is_attack_just_pressed = False
-        self.is_enter_just_released = False
-        self.is_pause_just_released = False
-        self.is_jump_just_released = False
-        self.is_attack_just_released = False
-
-        # REMOVE IN BUILD
-        # Mouse.
-        # just pressed False.
-        # just released False.
-        self.is_lmb_just_pressed = False
-        self.is_rmb_just_pressed = False
-        self.is_mmb_just_pressed = False
-        self.is_lmb_just_released = False
-        self.is_rmb_just_released = False
-        self.is_mmb_just_released = False

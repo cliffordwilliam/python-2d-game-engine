@@ -1,4 +1,5 @@
-from typing import List
+from enum import auto
+from enum import Enum
 from typing import TYPE_CHECKING
 
 from constants import FONT
@@ -8,6 +9,7 @@ from constants import NATIVE_SURF
 from constants import NATIVE_WIDTH
 from constants import pg
 from nodes.curtain import Curtain
+from nodes.state_machine import StateMachine
 from nodes.timer import Timer
 from typeguard import typechecked
 
@@ -18,197 +20,206 @@ if TYPE_CHECKING:
 
 @typechecked
 class CreatedBySplashScreen:
-    """
-    Fades in and out to show created by text.
-    Player can skip for an early fade out if they input during fade in.
-
-    States:
-    - JUST_ENTERED_SCENE.
-    - OPENING_SCENE_CURTAIN.
-    - SCENE_CURTAIN_OPENED.
-    - CLOSING_SCENE_CURTAIN.
-    - SCENE_CURTAIN_CLOSED.
-
-    Parameters:
-    - game.
-
-    Properties:
-    - game.
-    - state.
-    - color.
-    - curtain.
-    - timer.
-    - text.
-
-    Methods:
-        - callbacks.
-        - update:
-            - state machine.
-        - draw:
-            - clear NATIVE_SURF.
-            - title_text.
-            - tips_text.
-            - curtain.
-        - set_state.
-    """
-
-    JUST_ENTERED_SCENE: int = 0
-    OPENING_SCENE_CURTAIN: int = 1
-    SCENE_CURTAIN_OPENED: int = 2
-    CLOSING_SCENE_CURTAIN: int = 3
-    SCENE_CURTAIN_CLOSED: int = 4
-
-    # REMOVE IN BUILD
-    state_names: List = [
-        "JUST_ENTERED_SCENE",
-        "OPENING_SCENE_CURTAIN",
-        "SCENE_CURTAIN_OPENED",
-        "CLOSING_SCENE_CURTAIN",
-        "SCENE_CURTAIN_CLOSED",
-    ]
+    class State(Enum):
+        JUST_ENTERED_SCENE = auto()
+        OPENING_SCENE_CURTAIN = auto()
+        OPENED_SCENE_CURTAIN = auto()
+        CLOSING_SCENE_CURTAIN = auto()
+        CLOSED_SCENE_CURTAIN = auto()
 
     def __init__(self, game: "Game"):
-        # - Set scene.
-        # - Debug draw.
-        # - Events.
+        # Initialize game
         self.game = game
+        self.event_handler = self.game.event_handler
 
-        # Colors.
-        self.native_clear_color: str = "#000000"
+        # Colors
+        self.clear_color: str = "#000000"
         self.font_color: str = "#ffffff"
 
-        # Curtain.
-        self.curtain_duration: float = 1000.0
-        self.curtain_start: int = Curtain.OPAQUE
-        self.curtain_max_alpha: int = 255
-        self.curtain_is_invisible: bool = False
+        # Curtain setup
+        self._setup_curtain()
+
+        # Timers setup
+        self._setup_timers()
+
+        # Text setup
+        self._setup_texts()
+
+        # State machines for update and draw
+        self.state_machine_update = self._create_state_machine_update()
+        self.state_machine_draw = self._create_state_machine_draw()
+
+    # Setups
+    def _setup_curtain(self) -> None:
+        """Setup curtain with event listeners."""
         self.curtain: Curtain = Curtain(
-            self.curtain_duration,
-            self.curtain_start,
-            self.curtain_max_alpha,
-            (NATIVE_WIDTH, NATIVE_HEIGHT),
-            self.curtain_is_invisible,
-            self.native_clear_color,
+            duration=1000.0,
+            start_state=Curtain.OPAQUE,
+            max_alpha=255,
+            surf_size_tuple=(NATIVE_WIDTH, NATIVE_HEIGHT),
+            is_invisible=False,
+            color=self.clear_color,
         )
         self.curtain.add_event_listener(self.on_curtain_invisible, Curtain.INVISIBLE_END)
         self.curtain.add_event_listener(self.on_curtain_opaque, Curtain.OPAQUE_END)
 
-        # Timers.
-        # Entry delay.
-        self.entry_delay_timer_duration: float = 1000
-        self.entry_delay_timer: Timer = Timer(self.entry_delay_timer_duration)
+    def _setup_timers(self) -> None:
+        """Setup timers with event listeners."""
+        self.entry_delay_timer: Timer = Timer(duration=1000.0)
         self.entry_delay_timer.add_event_listener(self.on_entry_delay_timer_end, Timer.END)
-        # Exit delay.
-        self.exit_delay_timer_duration: float = 1000
-        self.exit_delay_timer: Timer = Timer(self.exit_delay_timer_duration)
+
+        self.exit_delay_timer: Timer = Timer(duration=1000.0)
         self.exit_delay_timer.add_event_listener(self.on_exit_delay_timer_end, Timer.END)
-        # Screen time.
-        self.screen_time_timer_duration: float = 1000
-        self.screen_time_timer: Timer = Timer(self.screen_time_timer_duration)
+
+        self.screen_time_timer: Timer = Timer(duration=1000.0)
         self.screen_time_timer.add_event_listener(self.on_screen_time_timer_end, Timer.END)
 
-        # Texts.
-        # Title.
+    def _setup_texts(self) -> None:
+        """Setup text for title and tips."""
         self.title_text: str = "made by clifford william"
         self.title_rect: pg.Rect = FONT.get_rect(self.title_text)
         self.title_rect.center = NATIVE_RECT.center
-        # Tips.
+
         self.tips_text: str = "press any key to skip"
         self.tips_rect: pg.Rect = FONT.get_rect(self.tips_text)
         self.tips_rect.bottomright = NATIVE_RECT.bottomright
         self.tips_rect.x -= 1
         self.tips_rect.y -= 1
 
-        # Initial state.
-        self.initial_state: int = self.JUST_ENTERED_SCENE
-        # Null to initial state.
-        self.state: int = self.initial_state
-        # State logics.
-        self.state_logics: List = [
-            self.just_entered_scene_state,
-            self.opening_scene_curtain_state,
-            self.scene_curtain_opened_state,
-            self.closing_scene_curtain_state,
-            self.scene_curtain_closed_state,
-        ]
+    def _create_state_machine_update(self) -> StateMachine:
+        """Create state machine for update."""
+        return StateMachine(
+            initial_state=CreatedBySplashScreen.State.JUST_ENTERED_SCENE,
+            state_handlers={
+                CreatedBySplashScreen.State.JUST_ENTERED_SCENE: self._JUST_ENTERED_SCENE,
+                CreatedBySplashScreen.State.OPENING_SCENE_CURTAIN: self._OPENING_SCENE_CURTAIN,
+                CreatedBySplashScreen.State.OPENED_SCENE_CURTAIN: self._SCENE_CURTAIN_OPENED,
+                CreatedBySplashScreen.State.CLOSING_SCENE_CURTAIN: self._CLOSING_SCENE_CURTAIN,
+                CreatedBySplashScreen.State.CLOSED_SCENE_CURTAIN: self._SCENE_CURTAIN_CLOSED,
+            },
+            transition_actions={
+                (
+                    CreatedBySplashScreen.State.JUST_ENTERED_SCENE,
+                    CreatedBySplashScreen.State.OPENING_SCENE_CURTAIN,
+                ): self._JUST_ENTERED_SCENE_to_OPENING_SCENE_CURTAIN,
+                (
+                    CreatedBySplashScreen.State.OPENING_SCENE_CURTAIN,
+                    CreatedBySplashScreen.State.CLOSING_SCENE_CURTAIN,
+                ): self._OPENING_SCENE_CURTAIN_to_CLOSING_SCENE_CURTAIN,
+                (
+                    CreatedBySplashScreen.State.OPENING_SCENE_CURTAIN,
+                    CreatedBySplashScreen.State.OPENED_SCENE_CURTAIN,
+                ): self._OPENING_SCENE_CURTAIN_to_SCENE_CURTAIN_OPENED,
+                (
+                    CreatedBySplashScreen.State.OPENED_SCENE_CURTAIN,
+                    CreatedBySplashScreen.State.CLOSING_SCENE_CURTAIN,
+                ): self._SCENE_CURTAIN_OPENED_to_CLOSING_SCENE_CURTAIN,
+                (
+                    CreatedBySplashScreen.State.CLOSING_SCENE_CURTAIN,
+                    CreatedBySplashScreen.State.CLOSED_SCENE_CURTAIN,
+                ): self._CLOSING_SCENE_CURTAIN_to_SCENE_CURTAIN_CLOSED,
+            },
+        )
 
-    # State logics.
-    def just_entered_scene_state(self, dt: int) -> None:
-        """
-        - Counts up enter delay time.
-        """
+    def _create_state_machine_draw(self) -> StateMachine:
+        """Create state machine for draw."""
+        return StateMachine(
+            initial_state=CreatedBySplashScreen.State.JUST_ENTERED_SCENE,
+            state_handlers={
+                CreatedBySplashScreen.State.JUST_ENTERED_SCENE: self._JUST_ENTERED_SCENE_DRAW,
+                CreatedBySplashScreen.State.OPENING_SCENE_CURTAIN: self._OPENING_SCENE_CURTAIN_DRAW,
+                CreatedBySplashScreen.State.OPENED_SCENE_CURTAIN: self._SCENE_CURTAIN_OPENED_DRAW,
+                CreatedBySplashScreen.State.CLOSING_SCENE_CURTAIN: self._CLOSING_SCENE_CURTAIN_DRAW,
+                CreatedBySplashScreen.State.CLOSED_SCENE_CURTAIN: self._SCENE_CURTAIN_CLOSED_DRAW,
+            },
+            transition_actions={},
+        )
 
+    # State draw logics
+    def _JUST_ENTERED_SCENE_DRAW(self, _dt: int) -> None:
+        pass
+
+    def _OPENING_SCENE_CURTAIN_DRAW(self, _dt: int) -> None:
+        NATIVE_SURF.fill(self.clear_color)
+        FONT.render_to(NATIVE_SURF, self.title_rect, self.title_text, self.font_color)
+        FONT.render_to(NATIVE_SURF, self.tips_rect, self.tips_text, self.font_color)
+        self.curtain.draw(NATIVE_SURF, 0)
+
+    def _SCENE_CURTAIN_OPENED_DRAW(self, _dt: int) -> None:
+        pass
+
+    def _CLOSING_SCENE_CURTAIN_DRAW(self, _dt: int) -> None:
+        NATIVE_SURF.fill(self.clear_color)
+        FONT.render_to(NATIVE_SURF, self.title_rect, self.title_text, self.font_color)
+        FONT.render_to(NATIVE_SURF, self.tips_rect, self.tips_text, self.font_color)
+        self.curtain.draw(NATIVE_SURF, 0)
+
+    def _SCENE_CURTAIN_CLOSED_DRAW(self, _dt: int) -> None:
+        pass
+
+    # State update logics
+    def _JUST_ENTERED_SCENE(self, dt: int) -> None:
         self.entry_delay_timer.update(dt)
 
-    def opening_scene_curtain_state(self, dt: int) -> None:
-        """
-        - Enter pressed? Exit to CLOSING_SCENE_CURTAIN state.
-        - Updates curtain alpha.
-        """
-
-        if self.game.is_any_key_just_pressed:
-            self.set_state(self.CLOSING_SCENE_CURTAIN)
+    def _OPENING_SCENE_CURTAIN(self, dt: int) -> None:
+        if self.event_handler.is_any_key_just_pressed:
+            self.state_machine_update.change_state(CreatedBySplashScreen.State.CLOSING_SCENE_CURTAIN)
+            self.state_machine_draw.change_state(CreatedBySplashScreen.State.CLOSING_SCENE_CURTAIN)
             return
 
         self.curtain.update(dt)
 
-    def scene_curtain_opened_state(self, dt: int) -> None:
-        """
-        - Counts up screen time.
-        """
-
+    def _SCENE_CURTAIN_OPENED(self, dt: int) -> None:
         self.screen_time_timer.update(dt)
 
-    def closing_scene_curtain_state(self, dt: int) -> None:
-        """
-        - Updates curtain alpha.
-        """
-
+    def _CLOSING_SCENE_CURTAIN(self, dt: int) -> None:
         self.curtain.update(dt)
 
-    def scene_curtain_closed_state(self, dt: int) -> None:
-        """
-        - Counts up exit delay time.
-        """
-
+    def _SCENE_CURTAIN_CLOSED(self, dt: int) -> None:
         self.exit_delay_timer.update(dt)
 
-    # Callbacks.
+    # State transitions
+    def _JUST_ENTERED_SCENE_to_OPENING_SCENE_CURTAIN(self) -> None:
+        self.curtain.go_to_invisible()
+
+    def _OPENING_SCENE_CURTAIN_to_CLOSING_SCENE_CURTAIN(self) -> None:
+        self.curtain.go_to_opaque()
+
+    def _OPENING_SCENE_CURTAIN_to_SCENE_CURTAIN_OPENED(self) -> None:
+        pass
+
+    def _SCENE_CURTAIN_OPENED_to_CLOSING_SCENE_CURTAIN(self) -> None:
+        self.curtain.go_to_opaque()
+
+    def _CLOSING_SCENE_CURTAIN_to_SCENE_CURTAIN_CLOSED(self) -> None:
+        NATIVE_SURF.fill(self.clear_color)
+
+    # Callbacks
     def on_entry_delay_timer_end(self) -> None:
-        self.set_state(self.OPENING_SCENE_CURTAIN)
+        self.state_machine_update.change_state(CreatedBySplashScreen.State.OPENING_SCENE_CURTAIN)
+        self.state_machine_draw.change_state(CreatedBySplashScreen.State.OPENING_SCENE_CURTAIN)
 
     def on_exit_delay_timer_end(self) -> None:
         self.game.set_scene("MadeWithSplashScreen")
 
     def on_screen_time_timer_end(self) -> None:
-        self.set_state(self.CLOSING_SCENE_CURTAIN)
+        self.state_machine_update.change_state(CreatedBySplashScreen.State.CLOSING_SCENE_CURTAIN)
+        self.state_machine_draw.change_state(CreatedBySplashScreen.State.CLOSING_SCENE_CURTAIN)
 
     def on_curtain_invisible(self) -> None:
-        self.set_state(self.SCENE_CURTAIN_OPENED)
+        self.state_machine_update.change_state(CreatedBySplashScreen.State.OPENED_SCENE_CURTAIN)
+        self.state_machine_draw.change_state(CreatedBySplashScreen.State.OPENED_SCENE_CURTAIN)
 
     def on_curtain_opaque(self) -> None:
-        self.set_state(self.SCENE_CURTAIN_CLOSED)
+        self.state_machine_update.change_state(CreatedBySplashScreen.State.CLOSED_SCENE_CURTAIN)
+        self.state_machine_draw.change_state(CreatedBySplashScreen.State.CLOSED_SCENE_CURTAIN)
 
+    # Draw
     def draw(self) -> None:
-        # TODO: Create state management.
-        # TODO: Avoid uneccessary draw calls.
-        """
-        - clear NATIVE_SURF.
-        - title_text.
-        - tips_text.
-        - curtain.
-        """
+        self.state_machine_draw.handle(0)
 
-        NATIVE_SURF.fill(self.native_clear_color)
-        FONT.render_to(NATIVE_SURF, self.title_rect, self.title_text, self.font_color)
-        FONT.render_to(NATIVE_SURF, self.tips_rect, self.tips_text, self.font_color)
-        self.curtain.draw(NATIVE_SURF, 0)
-
+    # Update
     def update(self, dt: int) -> None:
-        """
-        - state machine.
-        """
-
         # REMOVE IN BUILD
         self.game.debug_draw.add(
             {
@@ -216,41 +227,8 @@ class CreatedBySplashScreen:
                 "layer": 6,
                 "x": 0,
                 "y": 6,
-                "text": (f"created by splash screen " f"state: {self.state_names[self.state]}"),
+                "text": (f"created by splash screen " f"state: {self.state_machine_update.state.name}"),
             }
         )
 
-        self.state_logics[self.state](dt)
-
-    def set_state(self, value: int) -> None:
-        # TODO: Create state management.
-        old_state: int = self.state
-        self.state = value
-
-        # From JUST_ENTERED_SCENE.
-        if old_state == self.JUST_ENTERED_SCENE:
-            # To OPENING_SCENE_CURTAIN.
-            if self.state == self.OPENING_SCENE_CURTAIN:
-                self.curtain.go_to_invisible()
-
-        # From OPENING_SCENE_CURTAIN.
-        elif old_state == self.OPENING_SCENE_CURTAIN:
-            # To CLOSING_SCENE_CURTAIN.
-            if self.state == self.CLOSING_SCENE_CURTAIN:
-                self.curtain.go_to_opaque()
-
-            # To SCENE_CURTAIN_OPENED.
-            elif self.state == self.SCENE_CURTAIN_OPENED:
-                pass
-
-        # From SCENE_CURTAIN_OPENED.
-        elif old_state == self.SCENE_CURTAIN_OPENED:
-            # To CLOSING_SCENE_CURTAIN.
-            if self.state == self.CLOSING_SCENE_CURTAIN:
-                self.curtain.go_to_opaque()
-
-        # From CLOSING_SCENE_CURTAIN.
-        elif old_state == self.CLOSING_SCENE_CURTAIN:
-            # To SCENE_CURTAIN_CLOSED.
-            if self.state == self.SCENE_CURTAIN_CLOSED:
-                NATIVE_SURF.fill("black")
+        self.state_machine_update.handle(dt)

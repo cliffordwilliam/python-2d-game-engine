@@ -62,6 +62,7 @@ class ButtonContainer:
         game: "Game",
     ):
         self.game = game
+        self.event_handler = self.game.event_handler
 
         # Set pagination on or off.
         self.is_pagination = is_pagination
@@ -72,16 +73,12 @@ class ButtonContainer:
 
         # Button margin and height with margin.
         self.bottom_margin: int = 1
-        self.button_height_with_margin: int = (
-            self.buttons[0].rect.height + self.bottom_margin
-        )
+        self.button_height_with_margin: int = self.buttons[0].rect.height + self.bottom_margin
 
         # Reposition button like flex col, from top first button.
         for i in range(self.buttons_len):
             self.buttons[i].rect.y += i * self.button_height_with_margin
-            self.buttons[i].active_curtain.rect.y += (
-                i * self.button_height_with_margin
-            )
+            self.buttons[i].active_curtain.rect.y += i * self.button_height_with_margin
 
         # Init pagination.
         self.offset: int = offset
@@ -104,9 +101,7 @@ class ButtonContainer:
         self.is_input_allowed: bool = False
 
         # Description surf, rect and position.
-        self.description_surf: pg.Surface = pg.Surface(
-            (self.DESCRIPTION_SURF_WIDTH, self.DESCRIPTION_SURF_HEIGHT)
-        )
+        self.description_surf: pg.Surface = pg.Surface((self.DESCRIPTION_SURF_WIDTH, self.DESCRIPTION_SURF_HEIGHT))
         self.description_surf.fill(self.DESCRIPTION_SURF_COLOR)
         self.description_rect: pg.Rect = self.description_surf.get_rect()
         self.description_rect.bottomleft = NATIVE_RECT.bottomleft
@@ -196,10 +191,10 @@ class ButtonContainer:
         is_pressed_up_or_down: bool = False
 
         # Get up down direction like player controller.
-        if game.is_up_just_pressed:
+        if self.event_handler.is_up_just_pressed:
             is_pressed_up_or_down = True
             self.index -= 1
-        if game.is_down_just_pressed:
+        if self.event_handler.is_down_just_pressed:
             is_pressed_up_or_down = True
             self.index += 1
 
@@ -241,7 +236,7 @@ class ButtonContainer:
                     self.update_scrollbar_step_and_height()
 
         # Press enter. (if up / down not pressed)
-        elif game.is_enter_just_pressed:
+        elif self.event_handler.is_enter_just_pressed:
             # Fire BUTTON_SELECTED event.
             selected_button: Button = self.buttons[self.index]
             for callback in self.listener_button_selected:
@@ -273,9 +268,7 @@ class ButtonContainer:
 
         self.offset = value
         self.end_offset = self.offset + self.limit
-        self.button_draw_y_offset = (
-            -self.button_height_with_margin * self.offset
-        )
+        self.button_draw_y_offset = -self.button_height_with_margin * self.offset
 
     def draw(self, surf: pg.Surface) -> None:
         """
@@ -307,9 +300,7 @@ class ButtonContainer:
                 ),
                 (
                     self.scrollbar_x - self.scrollbar_right_margin,
-                    self.scrollbar_y
-                    + self.scrollbar_step
-                    + self.scrollbar_height,
+                    self.scrollbar_y + self.scrollbar_step + self.scrollbar_height,
                 ),
             )
 

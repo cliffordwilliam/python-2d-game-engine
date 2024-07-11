@@ -27,9 +27,9 @@ class OptionsMenu:
     States:
     - JUST_ENTERED_SCENE.
     - CLOSING_SCENE_CURTAIN.
-    - SCENE_CURTAIN_CLOSED.
+    - CLOSED_SCENE_CURTAIN.
     - OPENING_SCENE_CURTAIN.
-    - SCENE_CURTAIN_OPENED.
+    - OPENED_SCENE_CURTAIN.
 
     Parameters:
     - game:
@@ -54,9 +54,9 @@ class OptionsMenu:
     # States.
     JUST_ENTERED_SCENE: int = 0
     CLOSING_SCENE_CURTAIN: int = 1
-    SCENE_CURTAIN_CLOSED: int = 2
+    CLOSED_SCENE_CURTAIN: int = 2
     OPENING_SCENE_CURTAIN: int = 3
-    SCENE_CURTAIN_OPENED: int = 4
+    OPENED_SCENE_CURTAIN: int = 4
     REBIND: int = 5
 
     # REMOVE IN BUILD
@@ -64,15 +64,16 @@ class OptionsMenu:
     state_names: list[str] = [
         "JUST_ENTERED_SCENE",
         "CLOSING_SCENE_CURTAIN",
-        "SCENE_CURTAIN_CLOSED",
+        "CLOSED_SCENE_CURTAIN",
         "OPENING_SCENE_CURTAIN",
-        "SCENE_CURTAIN_OPENED",
+        "OPENED_SCENE_CURTAIN",
         "REBIND",
     ]
 
     def __init__(self, game: "Game"):
         # For input and toggle options menu mode.
         self.game = game
+        self.event_handler = self.game.event_handler
 
         # Set initial state.
         self.initial_state: int = self.JUST_ENTERED_SCENE
@@ -429,11 +430,11 @@ class OptionsMenu:
             new_value = self.game.local_settings_dict["resolution_index"]
             is_pressed_left_or_right: bool = False
             # Left?
-            if self.game.is_left_just_pressed:
+            if self.event_handler.is_left_just_pressed:
                 new_value -= 1
                 is_pressed_left_or_right = True
             # Right?
-            if self.game.is_right_just_pressed:
+            if self.event_handler.is_right_just_pressed:
                 new_value += 1
                 is_pressed_left_or_right = True
             # Update resolution index.
@@ -452,40 +453,40 @@ class OptionsMenu:
 
     def rebind_state(self, dt: int) -> None:
         # Pressed any key?
-        if self.game.is_any_key_just_pressed:
+        if self.event_handler.is_any_key_just_pressed:
             # Find if pressed key is used already?
             for key_name, key_int in self.game.local_settings_dict.items():
                 # Update text to alert message. Return.
-                if self.game.this_frame_event.key == key_int:
+                if self.event_handler.this_frame_event.key == key_int:
                     self.update_input_text(self.focused_button, f"used by '{key_name}'")
                     return
 
             # Rebind. Update game.local_settings_dict input.
             if self.focused_button == self.up_input_button:
-                self.game.local_settings_dict["up"] = self.game.this_frame_event.key
+                self.game.local_settings_dict["up"] = self.event_handler.this_frame_event.key
             elif self.focused_button == self.down_input_button:
-                self.game.local_settings_dict["down"] = self.game.this_frame_event.key
+                self.game.local_settings_dict["down"] = self.event_handler.this_frame_event.key
             elif self.focused_button == self.left_input_button:
-                self.game.local_settings_dict["left"] = self.game.this_frame_event.key
+                self.game.local_settings_dict["left"] = self.event_handler.this_frame_event.key
             elif self.focused_button == self.right_input_button:
-                self.game.local_settings_dict["right"] = self.game.this_frame_event.key
+                self.game.local_settings_dict["right"] = self.event_handler.this_frame_event.key
             elif self.focused_button == self.enter_input_button:
-                self.game.local_settings_dict["enter"] = self.game.this_frame_event.key
+                self.game.local_settings_dict["enter"] = self.event_handler.this_frame_event.key
             elif self.focused_button == self.pause_input_button:
-                self.game.local_settings_dict["pause"] = self.game.this_frame_event.key
+                self.game.local_settings_dict["pause"] = self.event_handler.this_frame_event.key
             elif self.focused_button == self.jump_input_button:
-                self.game.local_settings_dict["jump"] = self.game.this_frame_event.key
+                self.game.local_settings_dict["jump"] = self.event_handler.this_frame_event.key
             elif self.focused_button == self.attack_input_button:
-                self.game.local_settings_dict["attack"] = self.game.this_frame_event.key
+                self.game.local_settings_dict["attack"] = self.event_handler.this_frame_event.key
 
             # Update input text.
             self.update_input_text(
                 self.focused_button,
-                pg.key.name(self.game.this_frame_event.key),
+                pg.key.name(self.event_handler.this_frame_event.key),
             )
 
             # Exit to normal state after rebind ok.
-            self.set_state(self.SCENE_CURTAIN_CLOSED)
+            self.set_state(self.CLOSED_SCENE_CURTAIN)
 
     # Helpers.
     def load_settings_and_update_ui(self) -> None:
@@ -730,17 +731,17 @@ class OptionsMenu:
 
     def on_curtain_invisible(self) -> None:
         """
-        Set SCENE_CURTAIN_OPENED state.
+        Set OPENED_SCENE_CURTAIN state.
         """
 
-        self.set_state(self.SCENE_CURTAIN_OPENED)
+        self.set_state(self.OPENED_SCENE_CURTAIN)
 
     def on_curtain_opaque(self) -> None:
         """
-        Set SCENE_CURTAIN_CLOSED state.
+        Set CLOSED_SCENE_CURTAIN state.
         """
 
-        self.set_state(self.SCENE_CURTAIN_CLOSED)
+        self.set_state(self.CLOSED_SCENE_CURTAIN)
 
     def on_button_index_changed(self, focused_button: Button) -> None:
         """
@@ -853,12 +854,12 @@ class OptionsMenu:
 
         # From CLOSING_SCENE_CURTAIN
         elif old_state == self.CLOSING_SCENE_CURTAIN:
-            # To SCENE_CURTAIN_CLOSED
-            if self.state == self.SCENE_CURTAIN_CLOSED:
+            # To CLOSED_SCENE_CURTAIN
+            if self.state == self.CLOSED_SCENE_CURTAIN:
                 self.button_container.set_is_input_allowed(True)
 
-        # From SCENE_CURTAIN_CLOSED
-        elif old_state == self.SCENE_CURTAIN_CLOSED:
+        # From CLOSED_SCENE_CURTAIN
+        elif old_state == self.CLOSED_SCENE_CURTAIN:
             # To OPENING_SCENE_CURTAIN
             if self.state == self.OPENING_SCENE_CURTAIN:
                 self.button_container.set_is_input_allowed(False)
@@ -870,13 +871,13 @@ class OptionsMenu:
 
         # From REBIND
         elif old_state == self.REBIND:
-            # To SCENE_CURTAIN_CLOSED
-            if self.state == self.SCENE_CURTAIN_CLOSED:
+            # To CLOSED_SCENE_CURTAIN
+            if self.state == self.CLOSED_SCENE_CURTAIN:
                 # Make the press any button stop fade in out.
                 pass
 
         # From OPENING_SCENE_CURTAIN
         elif old_state == self.OPENING_SCENE_CURTAIN:
-            # To SCENE_CURTAIN_OPENED
-            if self.state == self.SCENE_CURTAIN_OPENED:
+            # To OPENED_SCENE_CURTAIN
+            if self.state == self.OPENED_SCENE_CURTAIN:
                 pass

@@ -26,7 +26,13 @@ while 1:
     # REMOVE IN BUILD
     if game.is_per_frame:
         for event in pg.event.get(EVENTS):
-            game.event(event)
+            game.event_handler.event(event)
+
+            # REMOVE IN BUILD
+            if game.event_handler.is_0_just_pressed:
+                game.is_debug = not game.is_debug
+            if game.event_handler.is_9_just_pressed:
+                game.is_per_frame = not game.is_per_frame
 
         if pg.key.get_just_pressed()[NEXT_FRAME]:
             game.current_scene.draw()
@@ -59,7 +65,7 @@ while 1:
 
             pg.display.update()
 
-            game.reset_just_events()
+            game.event_handler.reset_just_events()
 
     else:
         dt: int = CLOCK.tick(FPS)
@@ -71,7 +77,13 @@ while 1:
             dt = 16
 
         for event in pg.event.get(EVENTS):
-            game.event(event)
+            game.event_handler.event(event)
+
+            # REMOVE IN BUILD
+            if game.event_handler.is_0_just_pressed:
+                game.is_debug = not game.is_debug
+            if game.event_handler.is_9_just_pressed:
+                game.is_per_frame = not game.is_per_frame
 
         game.current_scene.draw()
 
@@ -101,4 +113,4 @@ while 1:
 
         pg.display.update()
 
-        game.reset_just_events()
+        game.event_handler.reset_just_events()
