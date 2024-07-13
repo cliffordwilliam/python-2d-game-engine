@@ -1,5 +1,4 @@
 from typing import Callable
-from typing import List
 from typing import TYPE_CHECKING
 
 from constants import NATIVE_RECT
@@ -55,7 +54,7 @@ class ButtonContainer:
 
     def __init__(
         self,
-        buttons: List[Button],
+        buttons: list[Button],
         offset: int,
         limit: int,
         is_pagination: bool,
@@ -68,7 +67,7 @@ class ButtonContainer:
         self.is_pagination = is_pagination
 
         # Get buttons list.
-        self.buttons: List[Button] = buttons
+        self.buttons: list[Button] = buttons
         self.buttons_len: int = len(self.buttons)
 
         # Button margin and height with margin.
@@ -94,8 +93,8 @@ class ButtonContainer:
         self.index: int = 0
 
         # Event subscribers list.
-        self.listener_index_changed: List[Callable] = []
-        self.listener_button_selected: List[Callable] = []
+        self.listener_index_changed: list[Callable] = []
+        self.listener_button_selected: list[Callable] = []
 
         # Input blocker.
         self.is_input_allowed: bool = False
@@ -120,6 +119,8 @@ class ButtonContainer:
             self.scrollbar_height: float = 0.0
 
             self.update_scrollbar_step_and_height()
+            self.scrollbar_surf: pg.Surface = pg.Surface((1, self.scrollbar_height))
+            self.scrollbar_surf.fill(self.scrollbar_color)
 
     def update_scrollbar_step_and_height(self) -> None:
         """
@@ -291,16 +292,11 @@ class ButtonContainer:
         # Pagination?
         if self.is_pagination:
             # Scrollbar.
-            pg.draw.line(
-                surf,
-                self.scrollbar_color,
+            surf.blit(
+                self.scrollbar_surf,
                 (
                     self.scrollbar_x - self.scrollbar_right_margin,
                     self.scrollbar_y + self.scrollbar_step,
-                ),
-                (
-                    self.scrollbar_x - self.scrollbar_right_margin,
-                    self.scrollbar_y + self.scrollbar_step + self.scrollbar_height,
                 ),
             )
 

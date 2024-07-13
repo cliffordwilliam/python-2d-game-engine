@@ -1,12 +1,10 @@
 from json import dump
 from json import load
 from typing import Any
-from typing import Dict
 from typing import Type
 
 from constants import DEFAULT_SETTINGS_DICT
 from constants import JSONS_PATHS_DICT
-from constants import NATIVE_HEIGHT
 from constants import NATIVE_WIDTH
 from constants import OGGS_PATHS_DICT
 from constants import pg
@@ -30,7 +28,7 @@ from typeguard import typechecked
 class Game:
     def __init__(self, initial_scene: str):
         # Prepare local settings data.
-        self.local_settings_dict: Dict[str, Any] = {}
+        self.local_settings_dict: dict[str, Any] = {}
 
         # Update local settings dict.
         self.load_or_create_settings()
@@ -54,9 +52,6 @@ class Game:
         self.window_width: int = WINDOW_WIDTH * self.local_settings_dict["resolution_scale"]
         self.window_height: int = WINDOW_HEIGHT * self.local_settings_dict["resolution_scale"]
         self.window_surf: Any | pg.Surface = None
-        self.native_y_offset: int = ((WINDOW_HEIGHT - NATIVE_HEIGHT) // 2) * self.local_settings_dict[
-            "resolution_scale"
-        ]
         self.set_resolution_index(self.local_settings_dict["resolution_index"])
 
         # Handles sounds.
@@ -71,12 +66,12 @@ class Game:
         self.event_handler: EventHandler = EventHandler(self)
 
         # All actors dict, name to memory.
-        self.actors: Dict[str, Type[Any]] = {
+        self.actors: dict[str, Type[Any]] = {
             # "fire": Fire,
         }
 
         # All scenes dict, name to memory.
-        self.scenes: Dict[str, Type[Any]] = {
+        self.scenes: dict[str, Type[Any]] = {
             "CreatedBySplashScreen": CreatedBySplashScreen,
             "MadeWithSplashScreen": MadeWithSplashScreen,
             "TitleScreen": TitleScreen,
@@ -135,13 +130,14 @@ class Game:
         if value == 6:
             self.local_settings_dict["resolution_index"] = value
             # Set window surf to be fullscreen size.
-            self.window_surf = pg.display.set_mode((self.window_width, self.window_height), pg.FULLSCREEN)
+            self.window_surf = pg.display.set_mode(
+                (self.window_width, self.window_height), pg.FULLSCREEN | pg.DOUBLEBUF
+            )
             # Update self.local_settings_dict["resolution_scale"]
             self.local_settings_dict["resolution_scale"] = self.window_surf.get_width() // NATIVE_WIDTH
             # Update window size, surf and y offset
             self.window_width = WINDOW_WIDTH * self.local_settings_dict["resolution_scale"]
             self.window_height = WINDOW_HEIGHT * self.local_settings_dict["resolution_scale"]
-            self.native_y_offset = ((WINDOW_HEIGHT - NATIVE_HEIGHT) // 2) * self.local_settings_dict["resolution_scale"]
             return
 
         # Not fullscreen.
@@ -152,7 +148,6 @@ class Game:
         self.window_width = WINDOW_WIDTH * self.local_settings_dict["resolution_scale"]
         self.window_height = WINDOW_HEIGHT * self.local_settings_dict["resolution_scale"]
         self.window_surf = pg.display.set_mode((self.window_width, self.window_height))
-        self.native_y_offset = ((WINDOW_HEIGHT - NATIVE_HEIGHT) // 2) * self.local_settings_dict["resolution_scale"]
 
     def set_scene(self, value: str) -> None:
         """

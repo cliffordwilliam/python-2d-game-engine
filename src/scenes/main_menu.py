@@ -76,19 +76,25 @@ class MainMenu:
 
     def _setup_surfs(self) -> None:
         """Setup background surf."""
-        self.background_surf: pg.Surface = pg.image.load(PNGS_PATHS_DICT["main_menu_background.png"])
+        self.background_surf: pg.Surface = pg.image.load(PNGS_PATHS_DICT["main_menu_background.png"]).convert()
 
     def _setup_buttons(self) -> None:
         """Setup buttons."""
-        self.new_game_button: Button = Button((48, 9), (30, 94), "new game", (4, 2), "start a new game")
-        self.continue_button: Button = Button((48, 9), (30, 94), "continue", (4, 2), "continue from last save")
-        self.options_button: Button = Button((48, 9), (30, 94), "options", (4, 2), "adjust game settings")
-        self.exit_button: Button = Button((48, 9), (30, 94), "exit", (4, 2), "exit game")
+        self.new_game_button: Button = Button(
+            surf_size_tuple=(48, 9),
+            topleft=(30, 109),
+            text="new game",
+            text_topleft=(4, 2),
+            description_text="start a new game",
+        )
+        self.continue_button: Button = Button((48, 9), (30, 109), "continue", (4, 2), "continue from last save")
+        self.options_button: Button = Button((48, 9), (30, 109), "options", (4, 2), "adjust game settings")
+        self.exit_button: Button = Button((48, 9), (30, 109), "exit", (4, 2), "exit game")
         self.animation_json_generator: Button = Button(
-            (48, 9), (30, 94), "animation", (4, 2), "animation json generator"
+            (48, 9), (30, 109), "animation", (4, 2), "animation json generator"
         )
         self.sprite_sheet_json_generator: Button = Button(
-            (48, 9), (30, 94), "sprite", (4, 2), "sprite sheet json generator"
+            (48, 9), (30, 109), "sprite", (4, 2), "sprite sheet json generator"
         )
         self.button_container: ButtonContainer = ButtonContainer(
             buttons=[

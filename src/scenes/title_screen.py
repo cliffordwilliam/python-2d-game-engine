@@ -33,6 +33,8 @@ class TitleScreen:
     def __init__(self, game: "Game"):
         # Initialize game
         self.game = game
+        self.sound_manager = self.game.sound_manager
+        self.music_manager = self.game.music_manager
         self.event_handler = self.game.event_handler
 
         # Colors
@@ -52,7 +54,7 @@ class TitleScreen:
         self._setup_texts()
 
         # Load title screen music
-        self.game.music_manager.set_current_music_path(OGGS_PATHS_DICT["xdeviruchi_title_theme.ogg"])
+        self.music_manager.set_current_music_path(OGGS_PATHS_DICT["xdeviruchi_title_theme.ogg"])
 
         # State machines for update and draw
         self.state_machine_update = self._create_state_machine_update()
@@ -74,29 +76,32 @@ class TitleScreen:
 
     def _setup_timers(self) -> None:
         """Setup timers with event listeners."""
-        self.entry_delay_timer: Timer = Timer(duration=1000.0)
+        self.entry_delay_timer: Timer = Timer(1000.0)
         self.entry_delay_timer.add_event_listener(self.on_entry_delay_timer_end, Timer.END)
 
-        self.exit_delay_timer: Timer = Timer(duration=1000.0)
+        self.exit_delay_timer: Timer = Timer(1000.0)
         self.exit_delay_timer.add_event_listener(self.on_exit_delay_timer_end, Timer.END)
 
     def _setup_surfs(self) -> None:
         """Setup Gestalt Illusion logo."""
-        self.gestalt_illusion_logo_surf: pg.Surface = pg.image.load(PNGS_PATHS_DICT["gestalt_illusion_logo.png"])
-        self.gestalt_illusion_logo_surf_topleft = (77, 74)
+        self.gestalt_illusion_logo_surf: pg.Surface = pg.image.load(
+            PNGS_PATHS_DICT["gestalt_illusion_logo.png"]
+        ).convert_alpha()
+        self.gestalt_illusion_logo_surf_topleft = (84, 76)
 
     def _setup_texts(self) -> None:
         """Setup text for prompt and version."""
-        self.prompt_text: str = "press any key to continue"
-        self.prompt_rect: pg.Rect = FONT.get_rect(self.prompt_text)
-        self.prompt_rect.center = NATIVE_RECT.center
-        self.prompt_rect.y = 120
-
         self.version_text: str = "0.x.x"
         self.version_rect: pg.Rect = FONT.get_rect(self.version_text)
         self.version_rect.bottomright = NATIVE_RECT.bottomright
         self.version_rect.x -= 1
         self.version_rect.y -= 1
+
+        # To be drawn on prompt curtain
+        self.prompt_text: str = "press any key to continue"
+        self.prompt_rect: pg.Rect = FONT.get_rect(self.prompt_text)
+        self.prompt_rect.center = NATIVE_RECT.center
+        self.prompt_rect.y = 135
 
         self.prompt_curtain: Curtain = Curtain(
             duration=1000.0,
@@ -239,7 +244,7 @@ class TitleScreen:
 
     def _OPENED_SCENE_CURTAIN(self, dt: int) -> None:
         if self.event_handler.is_any_key_just_pressed:
-            self.game.sound_manager.play_sound("confirm.ogg", 0, 0, 0)
+            self.sound_manager.play_sound("confirm.ogg", 0, 0, 0)
             self.state_machine_update.change_state(TitleScreen.State.LEAVE_FADE_PROMPT)
             self.state_machine_draw.change_state(TitleScreen.State.LEAVE_FADE_PROMPT)
             return
@@ -258,7 +263,7 @@ class TitleScreen:
     # State transitions
     def _JUST_ENTERED_SCENE_to_OPENING_SCENE_CURTAIN(self) -> None:
         self.curtain.go_to_invisible()
-        self.game.music_manager.play_music(-1, 0.0, 0)
+        self.music_manager.play_music(-1, 0.0, 0)
 
     def _OPENING_SCENE_CURTAIN_to_SCENE_CURTAIN_OPENED(self) -> None:
         self.prompt_curtain.go_to_opaque()
@@ -272,7 +277,7 @@ class TitleScreen:
         self.curtain.go_to_opaque()
 
     def _CLOSING_SCENE_CURTAIN_to_SCENE_CURTAIN_CLOSED(self) -> None:
-        NATIVE_SURF.fill(self.clear_color)
+        pass
 
     # Callbacks.
     def on_entry_delay_timer_end(self) -> None:

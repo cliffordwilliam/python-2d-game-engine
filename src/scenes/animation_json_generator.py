@@ -2,9 +2,6 @@ from json import dump
 from os.path import exists
 from os.path import join  # for OS agnostic paths.
 from typing import Any
-from typing import Dict
-from typing import List
-from typing import Tuple
 from typing import TYPE_CHECKING
 
 from constants import FONT
@@ -91,7 +88,7 @@ class AnimationJsonGenerator:
     CLOSED_SCENE_CURTAIN: int = 12
 
     # REMOVE IN BUILD
-    state_names: List = [
+    state_names: list = [
         "JUST_ENTERED_SCENE",
         "OPENING_SCENE_CURTAIN",
         "OPENED_SCENE_CURTAIN",
@@ -188,23 +185,23 @@ class AnimationJsonGenerator:
         self.screen_mouse_y: float = 0.0
 
         # Collision map.
-        self.room_collision_map_list: List[int] = []
+        self.room_collision_map_list: list[int] = []
         self.room_collision_map_width_tu: int = 0
         self.room_collision_map_height_tu: int = 0
 
         # To be saved json.
-        self.animation_json: Dict = {}
-        self.animation_sprites_list: List = []
+        self.animation_json: dict = {}
+        self.animation_sprites_list: list = []
 
         # Selected surf marker.
         self.selected_surf_marker: pg.Surface = pg.Surface((TILE_SIZE, TILE_SIZE))
         self.selected_surf_marker.fill("red")
 
         # Grid surf.
-        self.grid_vertical_line_surf: pg.Surface = pg.Surface((NATIVE_HEIGHT, 1))
-        self.grid_vertical_line_surf.fill(self.grid_line_color)
-        self.grid_horizontal_line_surf: pg.Surface = pg.Surface((1, NATIVE_HEIGHT))
+        self.grid_horizontal_line_surf: pg.Surface = pg.Surface((NATIVE_WIDTH, 1))
         self.grid_horizontal_line_surf.fill(self.grid_line_color)
+        self.grid_vertical_line_surf: pg.Surface = pg.Surface((1, NATIVE_HEIGHT))
+        self.grid_vertical_line_surf.fill(self.grid_line_color)
 
         # Options after add sprites state.
         self.selected_choice_after_add_sprites_state: int = 0
@@ -224,7 +221,7 @@ class AnimationJsonGenerator:
         # Null to initial state.
         self.state: int = self.initial_state
         # State logics.
-        self.state_logics: List = [
+        self.state_logics: list = [
             self.just_entered_scene_state,
             self.opening_scene_curtain_state,
             self.scene_curtain_opened_state,
@@ -782,30 +779,24 @@ class AnimationJsonGenerator:
 
     # Helpers.
     def draw_grid(self) -> None:
+        blit_sequence = []
         for i in range(NATIVE_WIDTH_TU):
-            offset: int = TILE_SIZE * i
-            vertical_line_x_position: float = (offset - self.camera.rect.x) % NATIVE_WIDTH
-            horizontal_line_y_position: float = (offset - self.camera.rect.y) % NATIVE_HEIGHT
-            NATIVE_SURF.blit(
-                self.grid_vertical_line_surf,
-                (vertical_line_x_position, 0),
+            vertical_line_x_position: float = (TILE_SIZE * i - self.camera.rect.x) % NATIVE_WIDTH
+            blit_sequence.append(
+                (
+                    self.grid_vertical_line_surf,
+                    (vertical_line_x_position, 0.0),
+                )
             )
-            NATIVE_SURF.blit(
-                self.grid_horizontal_line_surf,
-                (0, horizontal_line_y_position),
+            horizontal_line_y_position: float = (TILE_SIZE * i - self.camera.rect.y) % NATIVE_WIDTH
+            blit_sequence.append(
+                (
+                    self.grid_horizontal_line_surf,
+                    (0.0, horizontal_line_y_position),
+                )
             )
-            pg.draw.line(
-                NATIVE_SURF,
-                self.grid_line_color,
-                (vertical_line_x_position, 0),
-                (vertical_line_x_position, NATIVE_HEIGHT),
-            )
-            pg.draw.line(
-                NATIVE_SURF,
-                self.grid_line_color,
-                (0, horizontal_line_y_position),
-                (NATIVE_WIDTH, horizontal_line_y_position),
-            )
+
+        NATIVE_SURF.fblits(blit_sequence)
 
     def get_tile_from_room_collision_map_list(
         self,
@@ -911,10 +902,9 @@ class AnimationJsonGenerator:
 
             # Draw cursor.
             # Get mouse position.
-            mouse_position_tuple: Tuple[int, int] = pg.mouse.get_pos()
+            mouse_position_tuple: tuple[int, int] = pg.mouse.get_pos()
             mouse_position_x_tuple: int = mouse_position_tuple[0]
-            # Set top left to be -y_offset instead of 0.
-            mouse_position_y_tuple: int = mouse_position_tuple[1] - self.game.native_y_offset
+            mouse_position_y_tuple: int = mouse_position_tuple[1]
             # Scale mouse position.
             mouse_position_x_tuple_scaled: int | float = (
                 mouse_position_x_tuple // self.game.local_settings_dict["resolution_scale"]

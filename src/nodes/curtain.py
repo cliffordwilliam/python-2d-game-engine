@@ -1,5 +1,4 @@
 from typing import Callable
-from typing import List
 
 from constants import pg
 from pygame.math import clamp
@@ -95,8 +94,8 @@ class Curtain:
         self.direction: int = 0
 
         # Event subscribers list.
-        self.listener_invisible_ends: List[Callable] = []
-        self.listener_opaque_ends: List[Callable] = []
+        self.listener_invisible_ends: list[Callable] = []
+        self.listener_opaque_ends: list[Callable] = []
 
         # True when reached INVISIBLE_END / OPAQUE_END.
         self.is_done: bool = True

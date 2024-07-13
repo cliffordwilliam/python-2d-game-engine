@@ -1,7 +1,5 @@
 from enum import Enum
 from typing import Callable
-from typing import Dict
-from typing import Tuple
 
 from typeguard import typechecked
 
@@ -11,8 +9,8 @@ class StateMachine:
     def __init__(
         self,
         initial_state: Enum,
-        state_handlers: Dict[Enum, Callable],
-        transition_actions: Dict[Tuple[Enum, Enum], Callable],
+        state_handlers: dict[Enum, Callable],
+        transition_actions: dict[tuple[Enum, Enum], Callable],
     ):
         self.state = initial_state
         self.state_handlers = state_handlers

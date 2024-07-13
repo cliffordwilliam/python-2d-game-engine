@@ -58,10 +58,7 @@ while 1:
             if game.is_debug:
                 game.debug_draw.draw()
 
-            game.window_surf.blit(
-                pg.transform.scale_by(NATIVE_SURF, game.local_settings_dict["resolution_scale"]),
-                (0, game.native_y_offset),
-            )
+            pg.transform.scale(NATIVE_SURF, (game.window_width, game.window_height), game.window_surf)
 
             pg.display.update()
 
@@ -106,10 +103,7 @@ while 1:
             "black",
         )
 
-        game.window_surf.blit(
-            pg.transform.scale_by(NATIVE_SURF, game.local_settings_dict["resolution_scale"]),
-            (0, game.native_y_offset),
-        )
+        pg.transform.scale(NATIVE_SURF, (game.window_width, game.window_height), game.window_surf)
 
         pg.display.update()
 

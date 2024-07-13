@@ -2,8 +2,6 @@ from os import environ
 from os import listdir
 from os.path import isfile
 from os.path import join  # for OS agnostic paths.
-from typing import Dict
-from typing import List
 
 import pygame as pg
 import pygame.freetype as font
@@ -16,7 +14,7 @@ environ["SDL_VIDEO_CENTERED"] = "1"
 pg.init()
 
 # Default settings to be written.
-DEFAULT_SETTINGS_DICT: Dict[str, int] = {
+DEFAULT_SETTINGS_DICT: dict[str, int] = {
     "resolution_index": 2,
     "resolution_scale": 3,
     "up": 1073741906,
@@ -36,7 +34,7 @@ DEFAULT_SETTINGS_DICT: Dict[str, int] = {
 
 # Function to create a dictionary of file paths.
 # TODO: Add explicit _ private func.
-def _create_paths_dict(directory: str) -> Dict[str, str]:
+def _create_paths_dict(directory: str) -> dict[str, str]:
     paths_dict = {}
     for filename in listdir(directory):
         if isfile(join(directory, filename)):
@@ -50,9 +48,9 @@ PNGS_DIR_PATH: str = "pngs"
 OGGS_DIR_PATH: str = "oggs"
 
 # Creating the dictionaries.
-JSONS_PATHS_DICT: Dict[str, str] = _create_paths_dict(JSONS_DIR_PATH)
-PNGS_PATHS_DICT: Dict[str, str] = _create_paths_dict(PNGS_DIR_PATH)
-OGGS_PATHS_DICT: Dict[str, str] = _create_paths_dict(OGGS_DIR_PATH)
+JSONS_PATHS_DICT: dict[str, str] = _create_paths_dict(JSONS_DIR_PATH)
+PNGS_PATHS_DICT: dict[str, str] = _create_paths_dict(PNGS_DIR_PATH)
+OGGS_PATHS_DICT: dict[str, str] = _create_paths_dict(OGGS_DIR_PATH)
 
 # FPS.
 FPS: int = 60
@@ -64,16 +62,16 @@ WINDOW_WIDTH: int = 320
 WINDOW_HEIGHT: int = 180
 
 NATIVE_WIDTH: int = 320
-NATIVE_HEIGHT: int = 160
+NATIVE_HEIGHT: int = 180
 
 NATIVE_HALF_WIDTH: int = 160
-NATIVE_HALF_HEIGHT: int = 80
+NATIVE_HALF_HEIGHT: int = 90
 
 NATIVE_WIDTH_TU: int = 20
-NATIVE_HEIGHT_TU: int = 10
+NATIVE_HEIGHT_TU: int = 11
 
 NATIVE_WIDTH_TU_EXTRA_ONE: int = 21
-NATIVE_HEIGHT_TU_EXTRA_ONE: int = 11
+NATIVE_HEIGHT_TU_EXTRA_ONE: int = 12
 
 # Native surf and rect will never be mutated.
 NATIVE_SURF: pg.Surface = pg.Surface((NATIVE_WIDTH, NATIVE_HEIGHT))
@@ -83,7 +81,7 @@ NATIVE_RECT: pg.Rect = NATIVE_SURF.get_rect()
 CLOCK: pg.time.Clock = pg.time.Clock()
 
 # Event ints list (used by event for loop).
-EVENTS: List[int] = [
+EVENTS: list[int] = [
     pg.KEYDOWN,
     pg.KEYUP,
     pg.QUIT,
@@ -106,7 +104,7 @@ MAX_QUADTREE_DEPTH: int = 8
 
 # REMOVE IN BUILD
 # This is for room editor autotile mapping.
-MASK_ID_TO_INDEX: Dict[str, int] = {
+MASK_ID_TO_INDEX: dict[str, int] = {
     "208": 0,
     "248": 1,
     "104": 2,

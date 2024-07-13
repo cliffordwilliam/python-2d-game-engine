@@ -1,4 +1,3 @@
-from typing import List
 from typing import TYPE_CHECKING
 
 from constants import NATIVE_HEIGHT
@@ -59,7 +58,7 @@ class SpriteSheetJsonGenerator:
     CLOSED_SCENE_CURTAIN: int = 4
 
     # REMOVE IN BUILD
-    state_names: List = [
+    state_names: list = [
         "JUST_ENTERED_SCENE",
         "OPENING_SCENE_CURTAIN",
         "OPENED_SCENE_CURTAIN",
@@ -123,7 +122,7 @@ class SpriteSheetJsonGenerator:
         # Null to initial state.
         self.state: int = self.initial_state
         # State logics.
-        self.state_logics: List = [
+        self.state_logics: list = [
             self.just_entered_scene_state,
             self.opening_scene_curtain_state,
             self.scene_curtain_opened_state,

@@ -1,4 +1,3 @@
-from typing import List
 from typing import TYPE_CHECKING
 
 from constants import FONT
@@ -110,13 +109,13 @@ class OptionsMenu:
         self.title_text: str = "options"
         self.title_rect: pg.Rect = FONT.get_rect(self.title_text)
         self.title_rect.center = NATIVE_RECT.center
-        self.title_rect.y = 11
+        self.title_rect.y = 14
 
         # Buttons and button container.
         self.button_height: int = 9
         self.wide_button_width: int = 146
         self.narrow_button_width: int = 73
-        self.button_flex_col_topleft: tuple[int, int] = (87, 18)
+        self.button_flex_col_topleft: tuple[int, int] = (88, 22)
         self.buttton_text_topleft_offset: tuple[int, int] = (4, 2)
         self.resolution_button: Button = Button(
             (self.wide_button_width, self.button_height),
@@ -378,14 +377,16 @@ class OptionsMenu:
         )
 
         # Decoration lines.
-        self.decoration_vertical_start = (160, 18)
-        self.decoration_vertical_x: int = 160
-        self.decoration_vertical_top: int = 18
-        self.decoration_vetical_height: int = 60
+        self.decoration_vertical_start = (NATIVE_RECT.center[0], self.button_flex_col_topleft[1])
+        self.decoration_vertical_x: int = self.decoration_vertical_start[0]
+        self.decoration_vertical_top: int = self.decoration_vertical_start[1]
+        self.decoration_vetical_height: int = (
+            self.button_container.button_height_with_margin * self.button_container.limit
+        )
         self.decoration_vertical_bottom: int = self.decoration_vertical_top + self.decoration_vetical_height
         self.decoration_horizontal_y: int = self.decoration_vertical_bottom
-        self.decoration_horizontal_left: int = 87
-        self.decoration_horizontal_right: int = 232
+        self.decoration_horizontal_left: int = self.button_flex_col_topleft[0]
+        self.decoration_horizontal_right: int = self.button_flex_col_topleft[0] + self.wide_button_width
 
         self.decoration_line_surf_horizontal: pg.Surface = pg.Surface(
             (self.decoration_horizontal_right - self.decoration_horizontal_left, 1)
@@ -401,7 +402,7 @@ class OptionsMenu:
         self.state: int = self.initial_state
 
         # State logics.
-        self.state_logics: List = [
+        self.state_logics: list = [
             self.just_entered_scene_state,
             self.closing_scene_curtain_state,
             self.scene_curtain_closed_state,
