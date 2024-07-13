@@ -30,7 +30,7 @@ class MadeWithSplashScreen:
     def __init__(self, game: "Game"):
         # Initialize game
         self.game = game
-        self.event_handler = self.game.event_handler
+        self.game_event_handler = self.game.event_handler
 
         # Colors
         self.clear_color: str = "#000000"
@@ -162,7 +162,7 @@ class MadeWithSplashScreen:
         self.entry_delay_timer.update(dt)
 
     def _OPENING_SCENE_CURTAIN(self, dt: int) -> None:
-        if self.event_handler.is_any_key_just_pressed:
+        if self.game_event_handler.is_any_key_just_pressed:
             self.state_machine_update.change_state(MadeWithSplashScreen.State.CLOSING_SCENE_CURTAIN)
             self.state_machine_draw.change_state(MadeWithSplashScreen.State.CLOSING_SCENE_CURTAIN)
             return

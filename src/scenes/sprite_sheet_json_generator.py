@@ -71,7 +71,8 @@ class SpriteSheetJsonGenerator:
         # - Debug draw.
         # - Events.
         self.game = game
-        self.event_handler = self.game.event_handler
+        self.game_event_handler = self.game.event_handler
+        self.game_music_manager = self.game.music_manager
 
         # Colors.
         self.native_clear_color: str = "#7f7f7f"
@@ -112,10 +113,10 @@ class SpriteSheetJsonGenerator:
         self.quit_choice_after_add_sprites_state: int = 4
 
         # Load editor screen music. Played in my set state.
-        self.game.music_manager.set_current_music_path(
+        self.game_music_manager.set_current_music_path(
             OGGS_PATHS_DICT["xdeviruchi_take_some_rest_and_eat_some_food.ogg"]
         )
-        self.game.music_manager.play_music(-1, 0.0, 0)
+        self.game_music_manager.play_music(-1, 0.0, 0)
 
         # Initial state.
         self.initial_state: int = self.JUST_ENTERED_SCENE
@@ -171,8 +172,8 @@ class SpriteSheetJsonGenerator:
 
     def on_exit_delay_timer_end(self) -> None:
         # Load title screen music. Played in my set state.
-        self.game.music_manager.set_current_music_path(OGGS_PATHS_DICT["xdeviruchi_title_theme.ogg"])
-        self.game.music_manager.play_music(-1, 0.0, 0)
+        self.game_music_manager.set_current_music_path(OGGS_PATHS_DICT["xdeviruchi_title_theme.ogg"])
+        self.game_music_manager.play_music(-1, 0.0, 0)
         self.game.set_scene("MainMenu")
 
     def on_curtain_invisible(self) -> None:
@@ -210,7 +211,7 @@ class SpriteSheetJsonGenerator:
         )
 
         # All states here can go to options
-        if self.event_handler.is_pause_just_pressed:
+        if self.game_event_handler.is_pause_just_pressed:
             # Update and draw options menu, stop my update
             self.game.set_is_options_menu_active(True)
 

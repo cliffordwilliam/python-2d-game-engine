@@ -73,6 +73,11 @@ class EventHandler:
         self.is_jump_just_released: bool = False
         self.is_attack_just_released: bool = False
 
+        # Init
+        self.init_keybind()
+
+    # Init
+    def init_keybind(self) -> None:
         self.key_down_handlers = {
             self.game.local_settings_dict["up"]: self.KEYDOWN_UP,
             self.game.local_settings_dict["down"]: self.KEYDOWN_DOWN,

@@ -9,7 +9,8 @@ from typeguard import typechecked
 
 
 if TYPE_CHECKING:
-    from nodes.game import Game
+    from nodes.event_handler import EventHandler
+    from nodes.sound_manager import SoundManager
 
 
 @typechecked
@@ -58,10 +59,12 @@ class ButtonContainer:
         offset: int,
         limit: int,
         is_pagination: bool,
-        game: "Game",
+        game_event_handler: "EventHandler",
+        game_sound_manager: "SoundManager",
     ):
-        self.game = game
-        self.event_handler = self.game.event_handler
+        # Initialize game
+        self.game_event_handler = game_event_handler
+        self.game_sound_manager = game_sound_manager
 
         # Set pagination on or off.
         self.is_pagination = is_pagination
@@ -169,82 +172,6 @@ class ButtonContainer:
         elif event == self.BUTTON_SELECTED:
             self.listener_button_selected.append(value)
 
-    def event(self, game: "Game") -> None:
-        """
-        Does the following:
-        - Listen to up down input.
-        - Updates index with up down input.
-        - Fire INDEX_CHANGED event.
-        - Got pagination?
-            - Next / prev page based on index value.
-            - Compute scrollbar step and height.
-
-        - Listen to enter input. (if up down were not pressed)
-        - Fire BUTTON_SELECTED event.
-        """
-
-        # Input blocker.
-        if not self.is_input_allowed:
-            return
-
-        # Remember old index to set old button to inactive.
-        old_index: int = self.index
-        is_pressed_up_or_down: bool = False
-
-        # Get up down direction like player controller.
-        if self.event_handler.is_up_just_pressed:
-            is_pressed_up_or_down = True
-            self.index -= 1
-        if self.event_handler.is_down_just_pressed:
-            is_pressed_up_or_down = True
-            self.index += 1
-
-        # Up or down was pressed?
-        if is_pressed_up_or_down:
-            # Index changed?
-            if old_index != self.index:
-                # Modulo wrap loop index.
-                self.index = self.index % self.buttons_len
-
-                # Activate / deactivate old and new button.
-                old_button: Button = self.buttons[old_index]
-                new_button: Button = self.buttons[self.index]
-                old_button.set_state(Button.INACTIVE)
-                new_button.set_state(Button.ACTIVE)
-
-                # Fire INDEX_CHANGED event.
-                for callback in self.listener_index_changed:
-                    callback(new_button)
-
-                # Play hover sound.
-                self.game.sound_manager.play_sound("001_hover_01.ogg", 0, 0, 0)
-
-                # Pagination?
-                if self.is_pagination:
-                    # Call next / prev page based on index position.
-                    # Handle next page or prev page.
-                    if self.index == self.end_offset:
-                        self.set_offset(self.offset + 1)
-                    elif self.index == self.offset - 1:
-                        self.set_offset(self.offset - 1)
-                    # Handle modulo loop.
-                    elif old_index == self.buttons_len - 1 and self.index == 0:
-                        self.set_offset(0)
-                    elif old_index == 0 and self.index == self.buttons_len - 1:
-                        self.set_offset(self.buttons_len - self.limit)
-
-                    # Compute scrollbar step and height.
-                    self.update_scrollbar_step_and_height()
-
-        # Press enter. (if up / down not pressed)
-        elif self.event_handler.is_enter_just_pressed:
-            # Fire BUTTON_SELECTED event.
-            selected_button: Button = self.buttons[self.index]
-            for callback in self.listener_button_selected:
-                callback(selected_button)
-            # Play confirm sound.
-            self.game.sound_manager.play_sound("confirm.ogg", 0, 0, 0)
-
     def set_is_input_allowed(self, value: bool) -> None:
         """
         Set input blocker.
@@ -304,8 +231,75 @@ class ButtonContainer:
         """
         Update:
         - Buttons active curtain.
+        - Indexing pagination.
         """
 
-        # Update all buttons active surf.
+        # Update all buttons active surf
         for button in self.buttons:
             button.update(dt)
+
+        # Input blocker
+        if not self.is_input_allowed:
+            return
+
+        # No key pressed?
+        if not self.game_event_handler.is_any_key_just_pressed:
+            return
+
+        # Remember old index to set old button to inactive
+        old_index: int = self.index
+        is_pressed_up_or_down: bool = False
+
+        # Get up down direction like player controller
+        if self.game_event_handler.is_up_just_pressed:
+            is_pressed_up_or_down = True
+            self.index -= 1
+        if self.game_event_handler.is_down_just_pressed:
+            is_pressed_up_or_down = True
+            self.index += 1
+
+        # Up or down was pressed?
+        if is_pressed_up_or_down:
+            # Index changed?
+            if old_index != self.index:
+                # Modulo wrap loop index
+                self.index = self.index % self.buttons_len
+
+                # Activate / deactivate old and new button
+                old_button: Button = self.buttons[old_index]
+                new_button: Button = self.buttons[self.index]
+                old_button.set_state(Button.INACTIVE)
+                new_button.set_state(Button.ACTIVE)
+
+                # Fire INDEX_CHANGED event
+                for callback in self.listener_index_changed:
+                    callback(new_button)
+
+                # Play hover sound
+                self.game_sound_manager.play_sound("001_hover_01.ogg", 0, 0, 0)
+
+                # Pagination?
+                if self.is_pagination:
+                    # Call next / prev page based on index position
+                    # Handle next page or prev page
+                    if self.index == self.end_offset:
+                        self.set_offset(self.offset + 1)
+                    elif self.index == self.offset - 1:
+                        self.set_offset(self.offset - 1)
+                    # Handle modulo loop
+                    elif old_index == self.buttons_len - 1 and self.index == 0:
+                        self.set_offset(0)
+                    elif old_index == 0 and self.index == self.buttons_len - 1:
+                        self.set_offset(self.buttons_len - self.limit)
+
+                    # Compute scrollbar step and height
+                    self.update_scrollbar_step_and_height()
+
+        # Press enter. (if up / down not pressed)
+        elif self.game_event_handler.is_enter_just_pressed:
+            # Fire BUTTON_SELECTED event
+            selected_button: Button = self.buttons[self.index]
+            for callback in self.listener_button_selected:
+                callback(selected_button)
+            # Play confirm sound
+            self.game_sound_manager.play_sound("confirm.ogg", 0, 0, 0)

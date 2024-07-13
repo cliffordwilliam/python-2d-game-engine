@@ -31,6 +31,8 @@ class MainMenu:
     def __init__(self, game: "Game"):
         # Initialize game
         self.game = game
+        self.game_event_handler = game.event_handler
+        self.game_music_manager = game.music_manager
 
         # Colors
         self.clear_color: str = "#000000"
@@ -108,7 +110,8 @@ class MainMenu:
             offset=0,
             limit=4,
             is_pagination=True,
-            game=self.game,
+            game_event_handler=self.game_event_handler,
+            game_sound_manager=self.game.sound_manager,
         )
         self.button_container.add_event_listener(self.on_button_selected, ButtonContainer.BUTTON_SELECTED)
         self.selected_button: Button = self.new_game_button
@@ -187,7 +190,6 @@ class MainMenu:
         self.curtain.update(dt)
 
     def _SCENE_CURTAIN_OPENED(self, dt: int) -> None:
-        self.button_container.event(self.game)
         self.button_container.update(dt)
 
     def _CLOSING_SCENE_CURTAIN(self, dt: int) -> None:
@@ -211,7 +213,7 @@ class MainMenu:
         # TODO: let music play on load screen.
         # if self.selected_button == self.exit_button:
         # Fades out music and stop after.
-        self.game.music_manager.fade_out_music(int(self.curtain.fade_duration))
+        self.game_music_manager.fade_out_music(int(self.curtain.fade_duration))
 
     def _CLOSING_SCENE_CURTAIN_to_SCENE_CURTAIN_CLOSED(self) -> None:
         NATIVE_SURF.fill(self.clear_color)
@@ -223,7 +225,7 @@ class MainMenu:
 
     def on_exit_delay_timer_end(self) -> None:
         if self.selected_button == self.exit_button:
-            self.game.event_handler.quit()
+            self.game_event_handler.quit()
 
         elif self.selected_button == self.animation_json_generator:
             self.game.set_scene("AnimationJsonGenerator")

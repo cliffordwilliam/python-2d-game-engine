@@ -33,30 +33,22 @@ class TitleScreen:
     def __init__(self, game: "Game"):
         # Initialize game
         self.game = game
-        self.sound_manager = self.game.sound_manager
-        self.music_manager = self.game.music_manager
-        self.event_handler = self.game.event_handler
+        self.game_sound_manager = self.game.sound_manager
+        self.game_music_manager = self.game.music_manager
+        self.game_event_handler = self.game.event_handler
 
         # Colors
         self.clear_color: str = "#000000"
         self.font_color: str = "#ffffff"
 
-        # Curtain setup
+        # Setups
         self._setup_curtain()
-
-        # Timers setup
         self._setup_timers()
-
-        # Surfs setup
         self._setup_surfs()
-
-        # Text setup
         self._setup_texts()
+        self.game_music_manager.set_current_music_path(OGGS_PATHS_DICT["xdeviruchi_title_theme.ogg"])
 
-        # Load title screen music
-        self.music_manager.set_current_music_path(OGGS_PATHS_DICT["xdeviruchi_title_theme.ogg"])
-
-        # State machines for update and draw
+        # State machines init
         self.state_machine_update = self._create_state_machine_update()
         self.state_machine_draw = self._create_state_machine_draw()
 
@@ -121,6 +113,7 @@ class TitleScreen:
             self.font_color,
         )
 
+    # State machines init
     def _create_state_machine_update(self) -> StateMachine:
         """Create state machine for update."""
         return StateMachine(
@@ -243,8 +236,8 @@ class TitleScreen:
         self.curtain.update(dt)
 
     def _OPENED_SCENE_CURTAIN(self, dt: int) -> None:
-        if self.event_handler.is_any_key_just_pressed:
-            self.sound_manager.play_sound("confirm.ogg", 0, 0, 0)
+        if self.game_event_handler.is_any_key_just_pressed:
+            self.game_sound_manager.play_sound("confirm.ogg", 0, 0, 0)
             self.state_machine_update.change_state(TitleScreen.State.LEAVE_FADE_PROMPT)
             self.state_machine_draw.change_state(TitleScreen.State.LEAVE_FADE_PROMPT)
             return
@@ -263,7 +256,7 @@ class TitleScreen:
     # State transitions
     def _JUST_ENTERED_SCENE_to_OPENING_SCENE_CURTAIN(self) -> None:
         self.curtain.go_to_invisible()
-        self.music_manager.play_music(-1, 0.0, 0)
+        self.game_music_manager.play_music(-1, 0.0, 0)
 
     def _OPENING_SCENE_CURTAIN_to_SCENE_CURTAIN_OPENED(self) -> None:
         self.prompt_curtain.go_to_opaque()

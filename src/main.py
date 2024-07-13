@@ -44,19 +44,17 @@ while 1:
                 game.current_scene.update(16)  # Hardcoded 16 dt.
 
             # REMOVE IN BUILD
-            game.debug_draw.add(
-                {
-                    "type": "text",
-                    "layer": 6,
-                    "x": 0,
-                    "y": 0,
-                    "text": f"fps: {CLOCK.get_fps()}",
-                }
-            )
-
-            # REMOVE IN BUILD
             if game.is_debug:
                 game.debug_draw.draw()
+
+            # REMOVE IN BUILD
+            FONT.render_to(
+                NATIVE_SURF,
+                (0, 0),
+                f"{CLOCK.get_fps()}",
+                "white",
+                "black",
+            )
 
             pg.transform.scale(NATIVE_SURF, (game.window_width, game.window_height), game.window_surf)
 

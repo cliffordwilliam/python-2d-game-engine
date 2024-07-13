@@ -36,16 +36,10 @@ class CreatedBySplashScreen:
         self.clear_color: str = "#000000"
         self.font_color: str = "#ffffff"
 
-        # Curtain setup
+        # Setups
         self._setup_curtain()
-
-        # Timers setup
         self._setup_timers()
-
-        # Text setup
         self._setup_texts()
-
-        # State machines for update and draw
         self.state_machine_update = self._create_state_machine_update()
         self.state_machine_draw = self._create_state_machine_draw()
 
