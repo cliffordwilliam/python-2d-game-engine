@@ -1,3 +1,4 @@
+from math import exp
 from typing import TYPE_CHECKING
 
 from constants import NATIVE_HALF_HEIGHT
@@ -13,7 +14,6 @@ from typeguard import typechecked
 if TYPE_CHECKING:
     from nodes.game import Game
 
-from pygame.math import lerp
 from pygame.math import Vector2
 
 
@@ -43,8 +43,8 @@ class Camera:
         self.top_limit_target_vector = self.limit_top_rect + NATIVE_HALF_HEIGHT
         self.bottom_limit_target_vector = self.limit_bottom_rect - NATIVE_HALF_HEIGHT
 
-        self.lerp_weight: float = 0.01
-        self.lerp_distance_tolerance: float = 0.01
+        self.decay: float = 0.01
+        self.distance_tolerance: float = 1.0
 
     def set_target_vector(self, value: Vector2) -> None:
         self.target_vector = value
@@ -85,19 +85,26 @@ class Camera:
             self.bottom_limit_target_vector,
         )
 
-        # TODO: Do not use lerp, use quadratics
+        # Already arrived on target? Return
+        if (abs(self.rect.centerx - self.target_vector.x) < self.distance_tolerance) and (
+            abs(self.rect.centery - self.target_vector.y) < self.distance_tolerance
+        ):
+            self.rect.centerx = self.target_vector.x
+            self.rect.centery = self.target_vector.y
+            return
+
         # Camera rect center x not on target vector x?
-        if abs(self.rect.centerx - self.target_vector.x) > self.lerp_distance_tolerance:
+        if abs(self.rect.centerx - self.target_vector.x) > self.distance_tolerance:
             # Lerp it to target horizontally
-            self.rect.centerx = lerp(self.rect.centerx, self.target_vector.x, self.lerp_weight * dt)
+            self.rect.centerx = self.exp_decay(self.rect.centerx, self.target_vector.x, self.decay, dt)
         # Snap to target if close enough
         else:
             self.rect.centerx = self.target_vector.x
 
         # Camera rect center y not on target vector y?
-        if abs(self.rect.centery - self.target_vector.y) > self.lerp_distance_tolerance:
+        if abs(self.rect.centery - self.target_vector.y) > self.distance_tolerance:
             # Lerp it to target vertically
-            self.rect.centery = lerp(self.rect.centery, self.target_vector.y, self.lerp_weight * dt)
+            self.rect.centery = self.exp_decay(self.rect.centery, self.target_vector.y, self.decay, dt)
         # Snap to target if close enough
         else:
             self.rect.centery = self.target_vector.y
@@ -132,3 +139,6 @@ class Camera:
                     "radius": 2,
                 }
             )
+
+    def exp_decay(self, a: float, b: float, decay: float, dt: int) -> float:
+        return b + (a - b) * exp(-decay * dt)
