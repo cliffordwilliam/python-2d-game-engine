@@ -7,42 +7,19 @@ from typeguard import typechecked
 
 @typechecked
 class Button:
-    """
-    Needs to be inside a button container.
-
-    Parameters:
-    - surf_size_tuple: button surf.
-    - topleft: button rect topleft.
-    - text: button text.
-    - text_topleft: relative to button rect.
-    - description_text: text near screen bottom.
-
-    Update:
-    - Active curtain.
-
-    Draw:
-    - description.
-    - surf.
-    - active curtain.
-
-    States:
-    - INACTIVE.
-    - ACTIVE.
-    """
-
-    # Inactive colors.
+    # Inactive colors
     BUTTON_INACTIVE_BODY_COLOR: str = "#000f28"
     BUTTON_INACTIVE_LINE_COLOR: str = "#004a89"
     BUTTON_INACTIVE_TEXT_COLOR: str = "#bac3d2"
 
-    # Active colors.
+    # Active colors
     BUTTON_ACTIVE_BODY_COLOR: str = "#126a9c"
     BUTTON_ACTIVE_LINE_COLOR: str = "#1896ea"
     BUTTON_ACTIVE_TEXT_COLOR: str = "#feffff"
 
     DESCRIPTION_TEXT_BOTTOM_PADDING: int = 2
 
-    # States.
+    # States
     INACTIVE: int = 0
     ACTIVE: int = 1
 
@@ -54,13 +31,13 @@ class Button:
         text_topleft: tuple[int, int],
         description_text: str,
     ):
-        # Create surf.
+        # Create surf
         self.surf: pg.Surface = pg.Surface(surf_size_tuple)
         self.surf.fill(self.BUTTON_INACTIVE_BODY_COLOR)
 
-        # Get surf rect.
+        # Get surf rect
         self.rect: pg.Rect = self.surf.get_rect()
-        # Position rect with topleft.
+        # Position rect with topleft
         self.rect.topleft = topleft
 
         # Draw decor on surf
@@ -71,10 +48,10 @@ class Button:
             (0, self.rect.height),
         )
 
-        # Get text and position it relative to rect.
+        # Get text and position it relative to rect
         self.text: str = text
         self.text_top_left: tuple[int, int] = text_topleft
-        # Draw text to surf.
+        # Draw text to surf
         FONT.render_to(
             self.surf,
             self.text_top_left,
@@ -82,21 +59,17 @@ class Button:
             self.BUTTON_INACTIVE_TEXT_COLOR,
         )
 
-        # Create active curtain surf.
-        self.active_curtain_duration: float = 300.0
-        self.active_curtain_start: int = Curtain.INVISIBLE
-        self.active_curtain_max_alpha: int = 225
-        self.active_curtain_is_invisible: bool = False
+        # Create active curtain surf
         self.active_curtain: Curtain = Curtain(
-            self.active_curtain_duration,
-            self.active_curtain_start,
-            self.active_curtain_max_alpha,
-            (self.rect.width + 1, self.rect.height),
-            self.active_curtain_is_invisible,
-            self.BUTTON_ACTIVE_BODY_COLOR,
+            duration=300.0,
+            start_state=Curtain.INVISIBLE,
+            max_alpha=225,
+            surf_size_tuple=(self.rect.width + 1, self.rect.height),
+            is_invisible=False,
+            color=self.BUTTON_ACTIVE_BODY_COLOR,
         )
         self.active_curtain.rect.topright = self.rect.topright
-        # Draw decor on active curtain surf.
+        # Draw decor on active curtain surf
         pg.draw.line(
             self.active_curtain.surf,
             self.BUTTON_ACTIVE_TEXT_COLOR,
@@ -109,7 +82,7 @@ class Button:
             (1, 0),
             (1, self.rect.height),
         )
-        # Draw text on active curtain surf.
+        # Draw text on active curtain surf
         FONT.render_to(
             self.active_curtain.surf,
             self.text_top_left,
@@ -117,18 +90,16 @@ class Button:
             self.BUTTON_ACTIVE_TEXT_COLOR,
         )
 
-        # Get description text.
+        # Get description text
         self.description_text: str = description_text
-        # Get description rect.
-        self.description_text_rect: pg.Rect = FONT.get_rect(
-            self.description_text
-        )
-        # Position description rect.
+        # Get description rect
+        self.description_text_rect: pg.Rect = FONT.get_rect(self.description_text)
+        # Position description rect
         self.description_text_rect.center = NATIVE_RECT.center
         self.description_text_rect.bottom = NATIVE_RECT.bottom
         self.description_text_rect.y -= self.DESCRIPTION_TEXT_BOTTOM_PADDING
 
-        # Set initial state to INACTIVE.
+        # Set initial state to INACTIVE
         self.initial_state: int = self.INACTIVE
         self.state: int = self.initial_state
 
@@ -140,7 +111,7 @@ class Button:
 
         self.active_curtain.update(dt)
 
-    def draw_text_on_surf(
+    def draw_extra_text_on_surf(
         self,
         text: str,
         position_tuple_relative_to_button_surf_topleft: tuple[int, int],
@@ -151,11 +122,11 @@ class Button:
         Draw given texts on them.
         """
 
-        # Clear surfs.
+        # Clear surfs
         self.surf.fill(self.BUTTON_INACTIVE_BODY_COLOR)
         self.active_curtain.surf.fill(self.BUTTON_ACTIVE_BODY_COLOR)
 
-        # Draw decor on surf.
+        # Draw decor on surf
         pg.draw.line(
             self.surf,
             self.BUTTON_INACTIVE_LINE_COLOR,
@@ -163,7 +134,7 @@ class Button:
             (0, self.rect.height),
         )
 
-        # Draw original text to surf.
+        # Draw original text to surf
         FONT.render_to(
             self.surf,
             self.text_top_left,
@@ -171,7 +142,7 @@ class Button:
             self.BUTTON_INACTIVE_TEXT_COLOR,
         )
 
-        # Draw given text to surf.
+        # Draw given text to surf
         FONT.render_to(
             self.surf,
             position_tuple_relative_to_button_surf_topleft,
@@ -179,7 +150,7 @@ class Button:
             self.BUTTON_INACTIVE_TEXT_COLOR,
         )
 
-        # Draw decor on active curtain surf.
+        # Draw decor on active curtain surf
         pg.draw.line(
             self.active_curtain.surf,
             self.BUTTON_ACTIVE_TEXT_COLOR,
@@ -192,14 +163,14 @@ class Button:
             (1, 0),
             (1, self.rect.height),
         )
-        # Draw original text on active curtain surf.
+        # Draw original text on active curtain surf
         FONT.render_to(
             self.active_curtain.surf,
             self.text_top_left,
             self.text,
             self.BUTTON_ACTIVE_TEXT_COLOR,
         )
-        # Draw given text on active curtain surf.
+        # Draw given text on active curtain surf
         FONT.render_to(
             self.active_curtain.surf,
             position_tuple_relative_to_button_surf_topleft,
@@ -224,10 +195,10 @@ class Button:
                 self.BUTTON_ACTIVE_TEXT_COLOR,
             )
 
-        # Draw my surf.
+        # Draw my surf
         surf.blit(self.surf, (self.rect.x, self.rect.y + y_offset))
 
-        # Draw my active surf.
+        # Draw my active surf
         self.active_curtain.draw(surf, y_offset)
 
     def set_state(self, value: int) -> None:
@@ -242,12 +213,12 @@ class Button:
         if old_state == self.INACTIVE:
             # To ACTIVE?
             if self.state == self.ACTIVE:
-                # Active surf go to opaque.
+                # Active surf go to opaque
                 self.active_curtain.go_to_opaque()
 
         # From ACTIVE?
         elif old_state == self.ACTIVE:
             # To INACTIVE?
             if self.state == self.INACTIVE:
-                # Active surf go to invisible.
+                # Active surf go to invisible
                 self.active_curtain.go_to_invisible()

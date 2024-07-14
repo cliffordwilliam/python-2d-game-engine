@@ -218,7 +218,7 @@ class OptionsMenu:
         self.resolution_text_rect.x -= self.resolution_button.rect.x
         self.resolution_text_rect.y -= self.resolution_button.rect.y
         # Draw it on button
-        self.resolution_button.draw_text_on_surf(
+        self.resolution_button.draw_extra_text_on_surf(
             self.resolution_text,
             self.resolution_text_rect.topleft,
         )
@@ -233,7 +233,7 @@ class OptionsMenu:
         self.up_input_text_rect.x -= self.up_input_button.rect.x
         self.up_input_text_rect.y -= self.up_input_button.rect.y
         # Draw it on button
-        self.up_input_button.draw_text_on_surf(
+        self.up_input_button.draw_extra_text_on_surf(
             self.up_input_text,
             self.up_input_text_rect.topleft,
         )
@@ -248,7 +248,7 @@ class OptionsMenu:
         self.down_input_text_rect.x -= self.down_input_button.rect.x
         self.down_input_text_rect.y -= self.down_input_button.rect.y
         # Draw it on button
-        self.down_input_button.draw_text_on_surf(
+        self.down_input_button.draw_extra_text_on_surf(
             self.down_input_text,
             self.down_input_text_rect.topleft,
         )
@@ -263,7 +263,7 @@ class OptionsMenu:
         self.left_input_text_rect.x -= self.left_input_button.rect.x
         self.left_input_text_rect.y -= self.left_input_button.rect.y
         # Draw it on button
-        self.left_input_button.draw_text_on_surf(
+        self.left_input_button.draw_extra_text_on_surf(
             self.left_input_text,
             self.left_input_text_rect.topleft,
         )
@@ -278,7 +278,7 @@ class OptionsMenu:
         self.right_input_text_rect.x -= self.right_input_button.rect.x
         self.right_input_text_rect.y -= self.right_input_button.rect.y
         # Draw it on button
-        self.right_input_button.draw_text_on_surf(
+        self.right_input_button.draw_extra_text_on_surf(
             self.right_input_text,
             self.right_input_text_rect.topleft,
         )
@@ -293,7 +293,7 @@ class OptionsMenu:
         self.enter_input_text_rect.x -= self.enter_input_button.rect.x
         self.enter_input_text_rect.y -= self.enter_input_button.rect.y
         # Draw it on button
-        self.enter_input_button.draw_text_on_surf(
+        self.enter_input_button.draw_extra_text_on_surf(
             self.enter_input_text,
             self.enter_input_text_rect.topleft,
         )
@@ -308,7 +308,7 @@ class OptionsMenu:
         self.pause_input_text_rect.x -= self.pause_input_button.rect.x
         self.pause_input_text_rect.y -= self.pause_input_button.rect.y
         # Draw it on button
-        self.pause_input_button.draw_text_on_surf(
+        self.pause_input_button.draw_extra_text_on_surf(
             self.pause_input_text,
             self.pause_input_text_rect.topleft,
         )
@@ -323,7 +323,7 @@ class OptionsMenu:
         self.jump_input_text_rect.x -= self.jump_input_button.rect.x
         self.jump_input_text_rect.y -= self.jump_input_button.rect.y
         # Draw it on button
-        self.jump_input_button.draw_text_on_surf(
+        self.jump_input_button.draw_extra_text_on_surf(
             self.jump_input_text,
             self.jump_input_text_rect.topleft,
         )
@@ -338,7 +338,7 @@ class OptionsMenu:
         self.attack_input_text_rect.x -= self.attack_input_button.rect.x
         self.attack_input_text_rect.y -= self.attack_input_button.rect.y
         # Draw it on button
-        self.attack_input_button.draw_text_on_surf(
+        self.attack_input_button.draw_extra_text_on_surf(
             self.attack_input_text,
             self.attack_input_text_rect.topleft,
         )
@@ -815,7 +815,7 @@ class OptionsMenu:
             self.up_input_text_rect.x -= self.up_input_button.rect.x
             self.up_input_text_rect.y -= self.up_input_button.rect.y
             # Draw it on button
-            self.up_input_button.draw_text_on_surf(
+            self.up_input_button.draw_extra_text_on_surf(
                 self.up_input_text,
                 self.up_input_text_rect.topleft,
             )
@@ -830,7 +830,7 @@ class OptionsMenu:
             self.down_input_text_rect.x -= self.down_input_button.rect.x
             self.down_input_text_rect.y -= self.down_input_button.rect.y
             # Draw it on button
-            self.down_input_button.draw_text_on_surf(
+            self.down_input_button.draw_extra_text_on_surf(
                 self.down_input_text,
                 self.down_input_text_rect.topleft,
             )
@@ -845,7 +845,7 @@ class OptionsMenu:
             self.left_input_text_rect.x -= self.left_input_button.rect.x
             self.left_input_text_rect.y -= self.left_input_button.rect.y
             # Draw it on button
-            self.left_input_button.draw_text_on_surf(
+            self.left_input_button.draw_extra_text_on_surf(
                 self.left_input_text,
                 self.left_input_text_rect.topleft,
             )
@@ -860,7 +860,7 @@ class OptionsMenu:
             self.right_input_text_rect.x -= self.right_input_button.rect.x
             self.right_input_text_rect.y -= self.right_input_button.rect.y
             # Draw it on button
-            self.right_input_button.draw_text_on_surf(
+            self.right_input_button.draw_extra_text_on_surf(
                 self.right_input_text,
                 self.right_input_text_rect.topleft,
             )
@@ -875,7 +875,7 @@ class OptionsMenu:
             self.enter_input_text_rect.x -= self.enter_input_button.rect.x
             self.enter_input_text_rect.y -= self.enter_input_button.rect.y
             # Draw it on button
-            self.enter_input_button.draw_text_on_surf(
+            self.enter_input_button.draw_extra_text_on_surf(
                 self.enter_input_text,
                 self.enter_input_text_rect.topleft,
             )
@@ -890,7 +890,7 @@ class OptionsMenu:
             self.pause_input_text_rect.x -= self.pause_input_button.rect.x
             self.pause_input_text_rect.y -= self.pause_input_button.rect.y
             # Draw it on button
-            self.pause_input_button.draw_text_on_surf(
+            self.pause_input_button.draw_extra_text_on_surf(
                 self.pause_input_text,
                 self.pause_input_text_rect.topleft,
             )
@@ -905,7 +905,7 @@ class OptionsMenu:
             self.jump_input_text_rect.x -= self.jump_input_button.rect.x
             self.jump_input_text_rect.y -= self.jump_input_button.rect.y
             # Draw it on button
-            self.jump_input_button.draw_text_on_surf(
+            self.jump_input_button.draw_extra_text_on_surf(
                 self.jump_input_text,
                 self.jump_input_text_rect.topleft,
             )
@@ -920,7 +920,7 @@ class OptionsMenu:
             self.attack_input_text_rect.x -= self.attack_input_button.rect.x
             self.attack_input_text_rect.y -= self.attack_input_button.rect.y
             # Draw it on button
-            self.attack_input_button.draw_text_on_surf(
+            self.attack_input_button.draw_extra_text_on_surf(
                 self.attack_input_text,
                 self.attack_input_text_rect.topleft,
             )
@@ -946,7 +946,7 @@ class OptionsMenu:
         self.resolution_text_rect.x -= self.resolution_button.rect.x
         self.resolution_text_rect.y -= self.resolution_button.rect.y
         # Draw it on button
-        self.resolution_button.draw_text_on_surf(
+        self.resolution_button.draw_extra_text_on_surf(
             self.resolution_text,
             self.resolution_text_rect.topleft,
         )

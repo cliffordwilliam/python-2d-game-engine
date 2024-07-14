@@ -78,6 +78,10 @@ class EventHandler:
 
     # Init
     def init_keybind(self) -> None:
+        """
+        Call this when the local settings dict is updated.
+        """
+
         self.key_down_handlers = {
             self.game.local_settings_dict["up"]: self.KEYDOWN_UP,
             self.game.local_settings_dict["down"]: self.KEYDOWN_DOWN,

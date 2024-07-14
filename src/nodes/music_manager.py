@@ -8,7 +8,6 @@ from typeguard import typechecked
 class MusicManager:
     """
     Background music player.
-    TODO: refactor this.
     """
 
     def __init__(self) -> None:

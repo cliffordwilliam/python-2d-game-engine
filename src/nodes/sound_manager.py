@@ -8,15 +8,12 @@ from typeguard import typechecked
 class SoundManager:
     """
     Plays sound effects.
-    TODO: refactor this.
     """
 
     def __init__(self) -> None:
         pg.mixer.init()
         self.sounds: dict[str, pg.mixer.Sound] = {}
-        self.channels: list[pg.mixer.Channel] = [
-            pg.mixer.Channel(i) for i in range(pg.mixer.get_num_channels())
-        ]
+        self.channels: list[pg.mixer.Channel] = [pg.mixer.Channel(i) for i in range(pg.mixer.get_num_channels())]
 
     def load_sound(self, name: str, path: str) -> None:
         """
@@ -28,9 +25,7 @@ class SoundManager:
         else:
             print(f"Error: Sound file {path} does not exist.")
 
-    def play_sound(
-        self, name: str, loops: int, maxtime: int, fade_ms: int
-    ) -> None:
+    def play_sound(self, name: str, loops: int, maxtime: int, fade_ms: int) -> None:
         """
         Play a sound by its name.
         """
@@ -60,6 +55,7 @@ class SoundManager:
         """
         Get the first available channel.
         """
+
         for channel in self.channels:
             if not channel.get_busy():
                 return channel
@@ -69,4 +65,5 @@ class SoundManager:
         """
         Stop all sounds.
         """
+
         pg.mixer.stop()
