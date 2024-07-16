@@ -54,7 +54,7 @@ class AnimationJsonGenerator:
         self.game_music_manager = self.game.music_manager
 
         # Colors
-        self.native_clear_color: str = "#7f7f7f"
+        self.clear_color: str = "#7f7f7f"
         self.grid_line_color: str = "#999999"
         self.font_color: str = "#ffffff"
 
@@ -274,7 +274,7 @@ class AnimationJsonGenerator:
 
     def _QUERIES(self, _dt: int) -> None:
         # Clear
-        NATIVE_SURF.fill(self.native_clear_color)
+        NATIVE_SURF.fill(self.clear_color)
         # Draw grid with camera offset
         self.draw_grid()
         # Draw promt and input
@@ -295,7 +295,7 @@ class AnimationJsonGenerator:
 
     def _ADD_SPRITES_DRAW(self, _dt: int) -> None:
         # Clear
-        NATIVE_SURF.fill(self.native_clear_color)
+        NATIVE_SURF.fill(self.clear_color)
 
         # Draw grid
         self.draw_grid()
@@ -394,7 +394,7 @@ class AnimationJsonGenerator:
             # Caught 1 key event this frame?
             if self.game_event_handler.this_frame_event:
                 if self.game_event_handler.this_frame_event.type == pg.KEYDOWN:
-                    # Accept.
+                    # Accept
                     if self.game_event_handler.this_frame_event.key == pg.K_RETURN:
                         if self.input_text != "":
                             self.file_name = self.input_text
@@ -427,7 +427,7 @@ class AnimationJsonGenerator:
             # Caught 1 key event this frame?
             if self.game_event_handler.this_frame_event:
                 if self.game_event_handler.this_frame_event.type == pg.KEYDOWN:
-                    # Accept.
+                    # Accept
                     if self.game_event_handler.this_frame_event.key == pg.K_RETURN:
                         if exists(self.input_text) and self.input_text.endswith(".png"):
                             # Setup the sprite sheet data
@@ -479,7 +479,7 @@ class AnimationJsonGenerator:
             # Caught 1 key event this frame?
             if self.game_event_handler.this_frame_event:
                 if self.game_event_handler.this_frame_event.type == pg.KEYDOWN:
-                    # Accept.
+                    # Accept
                     if self.game_event_handler.this_frame_event.key == pg.K_RETURN:
                         if self.input_text.isdigit():
                             # Setup the sprite_size
@@ -516,12 +516,12 @@ class AnimationJsonGenerator:
             # Caught 1 key event this frame?
             if self.game_event_handler.this_frame_event:
                 if self.game_event_handler.this_frame_event.type == pg.KEYDOWN:
-                    # Accept.
+                    # Accept
                     if self.game_event_handler.this_frame_event.key == pg.K_RETURN:
                         # TODO: Trim white space
                         if self.input_text != "":
                             self.animation_name = self.input_text
-                            # Close curtain.
+                            # Close curtain
                             # Exit to SPRITE_SHEET_PNG_PATH_QUERY
                             self.curtain.go_to_opaque()
                     # Delete
@@ -588,12 +588,12 @@ class AnimationJsonGenerator:
             # Caught 1 key event this frame?
             if self.game_event_handler.this_frame_event:
                 if self.game_event_handler.this_frame_event.type == pg.KEYDOWN:
-                    # Accept.
+                    # Accept
                     if self.game_event_handler.this_frame_event.key == pg.K_RETURN:
                         # TODO: Trim white space
                         if self.input_text != "":
                             self.next_animation_name = self.input_text
-                            # Close curtain.
+                            # Close curtain
                             # Exit to SPRITE_SHEET_PNG_PATH_QUERY
                             self.curtain.go_to_opaque()
                     # Delete
@@ -622,7 +622,7 @@ class AnimationJsonGenerator:
             # Caught 1 key event this frame?
             if self.game_event_handler.this_frame_event:
                 if self.game_event_handler.this_frame_event.type == pg.KEYDOWN:
-                    # Accept.
+                    # Accept
                     if self.game_event_handler.this_frame_event.key == pg.K_RETURN:
                         if self.input_text.isdigit():
                             # Setup the sprite_size
@@ -689,7 +689,7 @@ class AnimationJsonGenerator:
                             is_lmb_just_pressed_occupied = True
                 # All cells are empty
                 if not is_lmb_just_pressed_occupied:
-                    # Fill it.
+                    # Fill it
                     # Iterate size to set 1
                     for world_mouse_tu_xi2 in range(self.sprite_size_tu):
                         for world_mouse_tu_yi2 in range(self.sprite_size_tu):
@@ -755,6 +755,7 @@ class AnimationJsonGenerator:
                                     "animation_duration": self.animation_duration,
                                     "animation_sprite_size": self.animation_sprite_size,
                                     "animation_sprites_list": self.animation_sprites_list,
+                                    "self.sprite_sheet_png_path": self.sprite_sheet_png_path,
                                 }
                                 # Write to json
                                 with open(
@@ -778,6 +779,7 @@ class AnimationJsonGenerator:
                                     "animation_duration": self.animation_duration,
                                     "animation_sprite_size": self.animation_sprite_size,
                                     "animation_sprites_list": self.animation_sprites_list,
+                                    "self.sprite_sheet_png_path": self.sprite_sheet_png_path,
                                 }
                                 # Get fresh selected sprite sheet again
                                 self.sprite_sheet_surf = pg.image.load(self.sprite_sheet_png_path).convert_alpha()

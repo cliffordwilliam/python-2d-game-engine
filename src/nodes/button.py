@@ -17,6 +17,11 @@ class Button:
     BUTTON_ACTIVE_LINE_COLOR: str = "#1896ea"
     BUTTON_ACTIVE_TEXT_COLOR: str = "#feffff"
 
+    # Hover colors
+    BUTTON_HOVER_BODY_COLOR: str = "#6aa1c0"
+    BUTTON_HOVER_LINE_COLOR: str = "#52b0ef"
+    BUTTON_HOVER_TEXT_COLOR: str = "#feffff"
+
     DESCRIPTION_TEXT_BOTTOM_PADDING: int = 2
 
     # States
@@ -90,6 +95,39 @@ class Button:
             self.BUTTON_ACTIVE_TEXT_COLOR,
         )
 
+        # Create hover curtain surf
+        self.hover_curtain: Curtain = Curtain(
+            duration=1500.0,
+            start_state=Curtain.INVISIBLE,
+            max_alpha=225,
+            surf_size_tuple=(self.rect.width + 1, self.rect.height),
+            is_invisible=False,
+            color=self.BUTTON_HOVER_BODY_COLOR,
+        )
+        self.hover_curtain.add_event_listener(self.on_hover_curtain_invisible, Curtain.INVISIBLE_END)
+        self.hover_curtain.add_event_listener(self.on_hover_curtain_opaque, Curtain.OPAQUE_END)
+        self.hover_curtain.rect.topright = self.rect.topright
+        # Draw decor on hover curtain surf
+        pg.draw.line(
+            self.hover_curtain.surf,
+            self.BUTTON_HOVER_TEXT_COLOR,
+            (0, 0),
+            (0, self.rect.height),
+        )
+        pg.draw.line(
+            self.hover_curtain.surf,
+            self.BUTTON_HOVER_LINE_COLOR,
+            (1, 0),
+            (1, self.rect.height),
+        )
+        # Draw text on hover curtain surf
+        FONT.render_to(
+            self.hover_curtain.surf,
+            self.text_top_left,
+            self.text,
+            self.BUTTON_HOVER_TEXT_COLOR,
+        )
+
         # Get description text
         self.description_text: str = description_text
         # Get description rect
@@ -103,6 +141,41 @@ class Button:
         self.initial_state: int = self.INACTIVE
         self.state: int = self.initial_state
 
+    # Callbacks
+    def on_hover_curtain_invisible(self) -> None:
+        if self.state == self.ACTIVE:
+            self.hover_curtain.go_to_opaque()
+
+    def on_hover_curtain_opaque(self) -> None:
+        if self.state == self.ACTIVE:
+            self.hover_curtain.go_to_invisible()
+
+    # Draw
+    def draw(self, surf: pg.Surface, y_offset: int) -> None:
+        """
+        Draw:
+        - description.
+        - surf.
+        - active curtain.
+        """
+
+        # Draw my description if I am active
+        if self.state == self.ACTIVE:
+            FONT.render_to(
+                surf,
+                self.description_text_rect,
+                self.description_text,
+                self.BUTTON_ACTIVE_TEXT_COLOR,
+            )
+
+        # Draw my surf
+        surf.blit(self.surf, (self.rect.x, self.rect.y + y_offset))
+
+        # Draw my active surf
+        self.active_curtain.draw(surf, y_offset)
+        self.hover_curtain.draw(surf, y_offset)
+
+    # Update
     def update(self, dt: int) -> None:
         """
         Update:
@@ -110,7 +183,33 @@ class Button:
         """
 
         self.active_curtain.update(dt)
+        self.hover_curtain.update(dt)
 
+    def set_state(self, value: int) -> None:
+        """
+        State setter and cleanup.
+        """
+
+        old_state: int = self.state
+        self.state = value
+
+        # From INACTIVE?
+        if old_state == self.INACTIVE:
+            # To ACTIVE?
+            if self.state == self.ACTIVE:
+                # Active surf go to opaque
+                self.active_curtain.go_to_opaque()
+                self.hover_curtain.go_to_opaque()
+
+        # From ACTIVE?
+        elif old_state == self.ACTIVE:
+            # To INACTIVE?
+            if self.state == self.INACTIVE:
+                # Active surf go to invisible
+                self.active_curtain.go_to_invisible()
+                self.hover_curtain.jump_to_invisible()
+
+    # Helpers
     def draw_extra_text_on_surf(
         self,
         text: str,
@@ -125,6 +224,7 @@ class Button:
         # Clear surfs
         self.surf.fill(self.BUTTON_INACTIVE_BODY_COLOR)
         self.active_curtain.surf.fill(self.BUTTON_ACTIVE_BODY_COLOR)
+        self.hover_curtain.surf.fill(self.BUTTON_HOVER_BODY_COLOR)
 
         # Draw decor on surf
         pg.draw.line(
@@ -178,47 +278,30 @@ class Button:
             self.BUTTON_ACTIVE_TEXT_COLOR,
         )
 
-    def draw(self, surf: pg.Surface, y_offset: int) -> None:
-        """
-        Draw:
-        - description.
-        - surf.
-        - active curtain.
-        """
-
-        # Draw my description if I am active
-        if self.state == self.ACTIVE:
-            FONT.render_to(
-                surf,
-                self.description_text_rect,
-                self.description_text,
-                self.BUTTON_ACTIVE_TEXT_COLOR,
-            )
-
-        # Draw my surf
-        surf.blit(self.surf, (self.rect.x, self.rect.y + y_offset))
-
-        # Draw my active surf
-        self.active_curtain.draw(surf, y_offset)
-
-    def set_state(self, value: int) -> None:
-        """
-        State setter and cleanup.
-        """
-
-        old_state: int = self.state
-        self.state = value
-
-        # From INACTIVE?
-        if old_state == self.INACTIVE:
-            # To ACTIVE?
-            if self.state == self.ACTIVE:
-                # Active surf go to opaque
-                self.active_curtain.go_to_opaque()
-
-        # From ACTIVE?
-        elif old_state == self.ACTIVE:
-            # To INACTIVE?
-            if self.state == self.INACTIVE:
-                # Active surf go to invisible
-                self.active_curtain.go_to_invisible()
+        # Draw decor on hover curtain surf
+        pg.draw.line(
+            self.hover_curtain.surf,
+            self.BUTTON_HOVER_TEXT_COLOR,
+            (0, 0),
+            (0, self.rect.height),
+        )
+        pg.draw.line(
+            self.hover_curtain.surf,
+            self.BUTTON_HOVER_LINE_COLOR,
+            (1, 0),
+            (1, self.rect.height),
+        )
+        # Draw original text on hover curtain surf
+        FONT.render_to(
+            self.hover_curtain.surf,
+            self.text_top_left,
+            self.text,
+            self.BUTTON_HOVER_TEXT_COLOR,
+        )
+        # Draw given text on active curtain surf
+        FONT.render_to(
+            self.hover_curtain.surf,
+            position_tuple_relative_to_button_surf_topleft,
+            text,
+            self.BUTTON_HOVER_TEXT_COLOR,
+        )

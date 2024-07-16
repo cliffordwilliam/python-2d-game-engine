@@ -54,8 +54,10 @@ class ButtonContainer:
 
         # Reposition button like flex col, from top first button
         for i in range(self.buttons_len):
+            # TODO: Create a setter
             self.buttons[i].rect.y += i * self.button_height_with_margin
             self.buttons[i].active_curtain.rect.y += i * self.button_height_with_margin
+            self.buttons[i].hover_curtain.rect.y += i * self.button_height_with_margin
 
         # Needed by both default and pagination
         self.offset: int = offset

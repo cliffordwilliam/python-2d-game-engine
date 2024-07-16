@@ -119,9 +119,23 @@ class Curtain:
         - fade_counter.
         """
 
+        self.direction = 1
         self.alpha = self.max_alpha
         self.remainder = 0
         self.fade_counter = self.fade_duration
+
+    def jump_to_invisible(self) -> None:
+        """
+        Forces the alpha to jump to opaque, mutates:
+        - alpha.
+        - remainder.
+        - fade_counter.
+        """
+
+        self.direction = -1
+        self.alpha = 0
+        self.remainder = 0
+        self.fade_counter = 0
 
     def set_max_alpha(self, value: int) -> None:
         """
@@ -161,7 +175,7 @@ class Curtain:
         self.fade_counter += dt * self.direction
 
         # Clamp counter
-        self.fade_counter = clamp(self.fade_counter, 0, self.fade_duration)
+        self.fade_counter = clamp(self.fade_counter, 0.0, self.fade_duration)
 
         # Get fraction with counter and duration
         fraction: float = self.fade_counter / self.fade_duration

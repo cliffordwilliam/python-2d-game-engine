@@ -59,12 +59,15 @@ class Game:
         self.music_manager: MusicManager = MusicManager()
 
         # Load all oggs.
+        # TODO: Load when needed only in each scenes
         for ogg_name, ogg_path in OGGS_PATHS_DICT.items():
             self.sound_manager.load_sound(ogg_name, ogg_path)
 
         # Handle events
         self.event_handler: EventHandler = EventHandler(self)
 
+        # TODO: key is sprite sheet name and value is mem
+        # TODO: do the above for bg classes also
         # All actors dict, name to memory.
         self.actors: dict[str, Type[Any]] = {
             # "fire": Fire,

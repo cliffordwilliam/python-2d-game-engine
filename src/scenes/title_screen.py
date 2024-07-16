@@ -272,7 +272,7 @@ class TitleScreen:
     def _CLOSING_SCENE_CURTAIN_to_SCENE_CURTAIN_CLOSED(self) -> None:
         pass
 
-    # Callbacks.
+    # Callbacks
     def on_entry_delay_timer_end(self) -> None:
         self.state_machine_update.change_state(TitleScreen.State.OPENING_SCENE_CURTAIN)
         self.state_machine_draw.change_state(TitleScreen.State.OPENING_SCENE_CURTAIN)
