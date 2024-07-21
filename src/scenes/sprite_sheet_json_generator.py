@@ -39,6 +39,7 @@ class SpriteSheetJsonGenerator:
         SPRITE_TILE_TYPE_QUERY = auto()
         SPRITE_TILE_MIX_QUERY = auto()
         ADD_SPRITES = auto()
+        ADD_OTHER_SPRITES = auto()
         CLOSING_SCENE_CURTAIN = auto()
         CLOSED_SCENE_CURTAIN = auto()
 
@@ -66,6 +67,13 @@ class SpriteSheetJsonGenerator:
         self._setup_music()
         self.state_machine_update = self._create_state_machine_update()
         self.state_machine_draw = self._create_state_machine_draw()
+
+        # First selected tile rect
+        self.first_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
+        self.second_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
+        self.combined_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
+        self.screen_combined_world_selected_tile_rect_x = 0.0
+        self.screen_combined_world_selected_tile_rect_y = 0.0
 
     # Setups
     def _setup_curtain(self) -> None:
@@ -170,6 +178,7 @@ class SpriteSheetJsonGenerator:
                 SpriteSheetJsonGenerator.State.SPRITE_TILE_TYPE_QUERY: self._SPRITE_TILE_TYPE_QUERY,
                 SpriteSheetJsonGenerator.State.SPRITE_TILE_MIX_QUERY: self._SPRITE_TILE_MIX_QUERY,
                 SpriteSheetJsonGenerator.State.ADD_SPRITES: self._ADD_SPRITES,
+                SpriteSheetJsonGenerator.State.ADD_OTHER_SPRITES: self._ADD_OTHER_SPRITES,
             },
             transition_actions={
                 (
@@ -208,6 +217,10 @@ class SpriteSheetJsonGenerator:
                     SpriteSheetJsonGenerator.State.SPRITE_TILE_MIX_QUERY,
                     SpriteSheetJsonGenerator.State.ADD_SPRITES,
                 ): self._SPRITE_TILE_MIX_QUERY_to_ADD_SPRITES,
+                (
+                    SpriteSheetJsonGenerator.State.ADD_SPRITES,
+                    SpriteSheetJsonGenerator.State.ADD_OTHER_SPRITES,
+                ): self._ADD_SPRITES_to_ADD_OTHER_SPRITES,
             },
         )
 
@@ -226,6 +239,7 @@ class SpriteSheetJsonGenerator:
                 SpriteSheetJsonGenerator.State.SPRITE_TILE_TYPE_QUERY: self._QUERIES,
                 SpriteSheetJsonGenerator.State.SPRITE_TILE_MIX_QUERY: self._QUERIES,
                 SpriteSheetJsonGenerator.State.ADD_SPRITES: self._ADD_SPRITES_DRAW,
+                SpriteSheetJsonGenerator.State.ADD_OTHER_SPRITES: self._ADD_OTHER_SPRITES_DRAW,
             },
             transition_actions={},
         )
@@ -324,6 +338,90 @@ class SpriteSheetJsonGenerator:
                 self.screen_mouse_y,
                 TILE_SIZE,
                 TILE_SIZE,
+            ],
+            1,
+        )
+
+        # Curtain
+        self.curtain.draw(NATIVE_SURF, 0)
+
+    def _ADD_OTHER_SPRITES_DRAW(self, _dt: int) -> None:
+        # Clear
+        NATIVE_SURF.fill(self.clear_color)
+
+        # Draw grid
+        self.draw_grid()
+
+        # Draw selected sprite sheet with camera offset
+        NATIVE_SURF.blit(
+            self.sprite_sheet_surf,
+            (
+                -self.camera.rect.x,
+                -self.camera.rect.y,
+            ),
+        )
+
+        # Draw cursor
+        # Get mouse position
+        mouse_position_tuple: tuple[int, int] = pg.mouse.get_pos()
+        mouse_position_x_tuple: int = mouse_position_tuple[0]
+        mouse_position_y_tuple: int = mouse_position_tuple[1]
+        # Scale mouse position
+        mouse_position_x_tuple_scaled: int | float = (
+            mouse_position_x_tuple // self.game.local_settings_dict["resolution_scale"]
+        )
+        mouse_position_y_tuple_scaled: int | float = (
+            mouse_position_y_tuple // self.game.local_settings_dict["resolution_scale"]
+        )
+        # Keep mouse inside scaled NATIVE_RECT
+        mouse_position_x_tuple_scaled = clamp(
+            mouse_position_x_tuple_scaled,
+            NATIVE_RECT.left,
+            # Because this will refer to top left of a cell
+            # If it is flushed to the right it is out of bound
+            NATIVE_RECT.right - 1,
+        )
+        mouse_position_y_tuple_scaled = clamp(
+            mouse_position_y_tuple_scaled,
+            NATIVE_RECT.top,
+            # Because this will refer to top left of a cell
+            # If it is flushed to the bottom it is out of bound
+            NATIVE_RECT.bottom - 1,
+        )
+        # Convert positions
+        self.world_mouse_x = mouse_position_x_tuple_scaled + self.camera.rect.x
+        self.world_mouse_y = mouse_position_y_tuple_scaled + self.camera.rect.y
+        self.world_mouse_x = min(
+            self.world_mouse_x,
+            self.sprite_sheet_rect.right - TILE_SIZE,
+        )
+        self.world_mouse_y = min(
+            self.world_mouse_y,
+            self.sprite_sheet_rect.bottom - TILE_SIZE,
+        )
+        self.world_mouse_tu_x = int(self.world_mouse_x // TILE_SIZE)
+        self.world_mouse_tu_y = int(self.world_mouse_y // TILE_SIZE)
+        self.world_mouse_snapped_x = int(self.world_mouse_tu_x * TILE_SIZE)
+        self.world_mouse_snapped_y = int(self.world_mouse_tu_y * TILE_SIZE)
+        self.screen_mouse_x = self.world_mouse_snapped_x - self.camera.rect.x
+        self.screen_mouse_y = self.world_mouse_snapped_y - self.camera.rect.y
+        # Combine the first rect with this cursor
+        self.second_world_selected_tile_rect.x = self.world_mouse_snapped_x
+        self.second_world_selected_tile_rect.y = self.world_mouse_snapped_y
+        self.combined_world_selected_tile_rect = self.first_world_selected_tile_rect.union(
+            self.second_world_selected_tile_rect
+        )
+        self.screen_combined_world_selected_tile_rect_x = self.combined_world_selected_tile_rect.x - self.camera.rect.x
+        self.screen_combined_world_selected_tile_rect_y = self.combined_world_selected_tile_rect.y - self.camera.rect.y
+        # Draw combined cursor
+        pg.draw.rect(
+            NATIVE_SURF,
+            "green",
+            [
+                self.screen_combined_world_selected_tile_rect_x,
+                self.screen_combined_world_selected_tile_rect_y,
+                self.combined_world_selected_tile_rect.width,
+                self.combined_world_selected_tile_rect.height,
             ],
             1,
         )
@@ -589,6 +687,62 @@ class SpriteSheetJsonGenerator:
             # Lerp camera position to target camera anchor
             self.camera.update(dt)
 
+            # Sprite selection
+            # Lmb just pressed
+            is_lmb_just_pressed_occupied: bool = False
+            if self.game_event_handler.is_lmb_just_pressed:
+                # Get what is clicked
+                found_tile_lmb_pressed: int = self.get_tile_from_room_collision_map_list(
+                    self.world_mouse_tu_x,
+                    self.world_mouse_tu_y,
+                )
+                # Clicked occupied? Return
+                if found_tile_lmb_pressed == 1:
+                    is_lmb_just_pressed_occupied = True
+
+                # Clicked on empty?
+                if not is_lmb_just_pressed_occupied:
+                    # TODO: occupy and draw later when you iterate
+                    # self.set_tile_from_room_collision_map_list(
+                    #     self.world_mouse_tu_x,
+                    #     self.world_mouse_tu_y,
+                    #     1,
+                    # )
+                    # # Draw marker on sprite sheet
+                    # self.sprite_sheet_surf.blit(
+                    #     self.selected_surf_marker,
+                    #     (
+                    #         self.world_mouse_snapped_x,
+                    #         self.world_mouse_snapped_y,
+                    #     ),
+                    # )
+                    # Remember first selected tile rect
+                    self.first_world_selected_tile_rect.x = self.world_mouse_snapped_x
+                    self.first_world_selected_tile_rect.y = self.world_mouse_snapped_y
+                    # Go to ADD_OTHER_SPRITES
+                    self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.ADD_OTHER_SPRITES)
+                    self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.ADD_OTHER_SPRITES)
+
+        # Update curtain
+        self.curtain.update(dt)
+
+    def _ADD_OTHER_SPRITES(self, dt: int) -> None:
+        """
+        - Move camera and add frames to be saved.
+        - Updates curtain alpha.
+        """
+        # Camera movement
+        # Get direction_horizontal
+        direction_horizontal: int = self.game_event_handler.is_right_pressed - self.game_event_handler.is_left_pressed
+        # Update camera anchor position with direction and speed
+        self.camera_anchor_vector.x += direction_horizontal * self.camera_speed * dt
+        # Get direction_vertical
+        direction_vertical: int = self.game_event_handler.is_down_pressed - self.game_event_handler.is_up_pressed
+        # Update camera anchor position with direction and speed
+        self.camera_anchor_vector.y += direction_vertical * self.camera_speed * dt
+        # Lerp camera position to target camera anchor
+        self.camera.update(dt)
+
         # Update curtain
         self.curtain.update(dt)
 
@@ -639,6 +793,9 @@ class SpriteSheetJsonGenerator:
         self.set_prompt_text("does the tile mix (y/n)?")
 
     def _SPRITE_TILE_MIX_QUERY_to_ADD_SPRITES(self) -> None:
+        pass
+
+    def _ADD_SPRITES_to_ADD_OTHER_SPRITES(self) -> None:
         pass
 
     # Callbacks
@@ -753,3 +910,33 @@ class SpriteSheetJsonGenerator:
         self.prompt_rect = FONT.get_rect(self.prompt_text)
         self.prompt_rect.center = NATIVE_RECT.center
         self.prompt_rect.y -= FONT_HEIGHT + 1
+
+    def get_tile_from_room_collision_map_list(
+        self,
+        world_tu_x: int,
+        world_tu_y: int,
+    ) -> int:
+        """
+        Returns -1 if out of bounds
+        Because camera needs extra 1 and thus may get out of bound.
+        """
+        if 0 <= world_tu_x < self.room_collision_map_width_tu and 0 <= world_tu_y < self.room_collision_map_height_tu:
+            return self.room_collision_map_list[world_tu_y * self.room_collision_map_width_tu + world_tu_x]
+        else:
+            return -1
+
+    def set_tile_from_room_collision_map_list(
+        self,
+        world_tu_x: int,
+        world_tu_y: int,
+        value: int,
+    ) -> None | int:
+        """
+        Returns -1 if out of bounds
+        Because camera needs extra 1 and thus may get out of bound.
+        """
+        if 0 <= world_tu_x < self.room_collision_map_width_tu and 0 <= world_tu_y < self.room_collision_map_height_tu:
+            self.room_collision_map_list[world_tu_y * self.room_collision_map_width_tu + world_tu_x] = value
+            return None
+        else:
+            return -1
