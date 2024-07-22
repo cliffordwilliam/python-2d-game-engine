@@ -47,6 +47,7 @@ class AnimationJsonGenerator:
         CLOSED_SCENE_CURTAIN = auto()
 
     def __init__(self, game: "Game"):
+        # TODO: Do not ask size, ask for the width then height
         # Initialize game
         self.game = game
         self.game_event_handler = self.game.event_handler

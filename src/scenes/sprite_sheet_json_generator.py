@@ -40,6 +40,7 @@ class SpriteSheetJsonGenerator:
         SPRITE_TILE_MIX_QUERY = auto()
         ADD_SPRITES = auto()
         ADD_OTHER_SPRITES = auto()
+        SAVE_QUIT_REDO_QUERY = auto()
         CLOSING_SCENE_CURTAIN = auto()
         CLOSED_SCENE_CURTAIN = auto()
 
@@ -115,6 +116,11 @@ class SpriteSheetJsonGenerator:
         self.sprite_tile_type: str = ""
         self.sprite_is_tile_mix: int = 0
 
+        # Dynamics
+        self.total_layers: int = 0
+        self.solid_layer: int = 0
+        self.actor_layer: int = 0
+
         # Sprite sheet surf
         self.sprite_sheet_png_path: Any = None
         self.sprite_sheet_surf: Any = None
@@ -122,7 +128,7 @@ class SpriteSheetJsonGenerator:
 
         # To be saved json
         self.sprite_json: dict = {}
-        self.sprite_region: dict = {}
+        self.sprites_list: list = []
 
     def _setup_camera(self) -> None:
         self.camera_anchor_vector: Vector2 = Vector2(0.0, 0.0)
@@ -179,6 +185,7 @@ class SpriteSheetJsonGenerator:
                 SpriteSheetJsonGenerator.State.SPRITE_TILE_MIX_QUERY: self._SPRITE_TILE_MIX_QUERY,
                 SpriteSheetJsonGenerator.State.ADD_SPRITES: self._ADD_SPRITES,
                 SpriteSheetJsonGenerator.State.ADD_OTHER_SPRITES: self._ADD_OTHER_SPRITES,
+                SpriteSheetJsonGenerator.State.SAVE_QUIT_REDO_QUERY: self._SAVE_QUIT_REDO_QUERY,
             },
             transition_actions={
                 (
@@ -221,6 +228,10 @@ class SpriteSheetJsonGenerator:
                     SpriteSheetJsonGenerator.State.ADD_SPRITES,
                     SpriteSheetJsonGenerator.State.ADD_OTHER_SPRITES,
                 ): self._ADD_SPRITES_to_ADD_OTHER_SPRITES,
+                (
+                    SpriteSheetJsonGenerator.State.ADD_OTHER_SPRITES,
+                    SpriteSheetJsonGenerator.State.SAVE_QUIT_REDO_QUERY,
+                ): self._ADD_OTHER_SPRITES_to_SAVE_QUIT_REDO_QUERY,
             },
         )
 
@@ -240,6 +251,7 @@ class SpriteSheetJsonGenerator:
                 SpriteSheetJsonGenerator.State.SPRITE_TILE_MIX_QUERY: self._QUERIES,
                 SpriteSheetJsonGenerator.State.ADD_SPRITES: self._ADD_SPRITES_DRAW,
                 SpriteSheetJsonGenerator.State.ADD_OTHER_SPRITES: self._ADD_OTHER_SPRITES_DRAW,
+                SpriteSheetJsonGenerator.State.SAVE_QUIT_REDO_QUERY: self._QUERIES,
             },
             transition_actions={},
         )
@@ -702,20 +714,6 @@ class SpriteSheetJsonGenerator:
 
                 # Clicked on empty?
                 if not is_lmb_just_pressed_occupied:
-                    # TODO: occupy and draw later when you iterate
-                    # self.set_tile_from_room_collision_map_list(
-                    #     self.world_mouse_tu_x,
-                    #     self.world_mouse_tu_y,
-                    #     1,
-                    # )
-                    # # Draw marker on sprite sheet
-                    # self.sprite_sheet_surf.blit(
-                    #     self.selected_surf_marker,
-                    #     (
-                    #         self.world_mouse_snapped_x,
-                    #         self.world_mouse_snapped_y,
-                    #     ),
-                    # )
                     # Remember first selected tile rect
                     self.first_world_selected_tile_rect.x = self.world_mouse_snapped_x
                     self.first_world_selected_tile_rect.y = self.world_mouse_snapped_y
@@ -731,17 +729,105 @@ class SpriteSheetJsonGenerator:
         - Move camera and add frames to be saved.
         - Updates curtain alpha.
         """
-        # Camera movement
-        # Get direction_horizontal
-        direction_horizontal: int = self.game_event_handler.is_right_pressed - self.game_event_handler.is_left_pressed
-        # Update camera anchor position with direction and speed
-        self.camera_anchor_vector.x += direction_horizontal * self.camera_speed * dt
-        # Get direction_vertical
-        direction_vertical: int = self.game_event_handler.is_down_pressed - self.game_event_handler.is_up_pressed
-        # Update camera anchor position with direction and speed
-        self.camera_anchor_vector.y += direction_vertical * self.camera_speed * dt
-        # Lerp camera position to target camera anchor
-        self.camera.update(dt)
+        # Wait for curtain to be fully invisible
+        if self.curtain.is_done:
+            # Camera movement
+            # Get direction_horizontal
+            direction_horizontal: int = (
+                self.game_event_handler.is_right_pressed - self.game_event_handler.is_left_pressed
+            )
+            # Update camera anchor position with direction and speed
+            self.camera_anchor_vector.x += direction_horizontal * self.camera_speed * dt
+            # Get direction_vertical
+            direction_vertical: int = self.game_event_handler.is_down_pressed - self.game_event_handler.is_up_pressed
+            # Update camera anchor position with direction and speed
+            self.camera_anchor_vector.y += direction_vertical * self.camera_speed * dt
+            # Lerp camera position to target camera anchor
+            self.camera.update(dt)
+
+            # Sprite selection
+            # Lmb just pressed
+            is_lmb_just_pressed_occupied: bool = False
+            if self.game_event_handler.is_lmb_just_pressed:
+                # Check if selection is all empty cells
+                # Iterate size to check all empty
+                combined_world_selected_tile_rect_width_tu = int(
+                    self.combined_world_selected_tile_rect.width // TILE_SIZE
+                )
+                combined_world_selected_tile_rect_height_tu = int(
+                    self.combined_world_selected_tile_rect.height // TILE_SIZE
+                )
+                combined_world_selected_tile_rect_x_tu = int(self.combined_world_selected_tile_rect.x // TILE_SIZE)
+                combined_world_selected_tile_rect_y_tu = int(self.combined_world_selected_tile_rect.y // TILE_SIZE)
+                for world_mouse_tu_xi in range(combined_world_selected_tile_rect_width_tu):
+                    for world_mouse_tu_yi in range(combined_world_selected_tile_rect_height_tu):
+                        world_mouse_tu_x: int = combined_world_selected_tile_rect_x_tu + world_mouse_tu_xi
+                        world_mouse_tu_y: int = combined_world_selected_tile_rect_y_tu + world_mouse_tu_yi
+                        # Get each one in room_collision_map_list
+                        found_tile_lmb_pressed: int = self.get_tile_from_room_collision_map_list(
+                            world_mouse_tu_x,
+                            world_mouse_tu_y,
+                        )
+                        # At least 1 of them is occupied? Return
+                        if found_tile_lmb_pressed == 1:
+                            is_lmb_just_pressed_occupied = True
+                # All cells are empty
+                if not is_lmb_just_pressed_occupied:
+                    # Fill it
+                    # Iterate size to set 1
+                    for world_mouse_tu_xi2 in range(combined_world_selected_tile_rect_width_tu):
+                        for world_mouse_tu_yi2 in range(combined_world_selected_tile_rect_height_tu):
+                            world_mouse_tu_x2: int = combined_world_selected_tile_rect_x_tu + world_mouse_tu_xi2
+                            world_mouse_tu_y2: int = combined_world_selected_tile_rect_y_tu + world_mouse_tu_yi2
+                            # Store each one in room_collision_map_list
+                            self.set_tile_from_room_collision_map_list(
+                                world_mouse_tu_x2,
+                                world_mouse_tu_y2,
+                                1,
+                            )
+                            # Draw marker on sprite sheet
+                            self.sprite_sheet_surf.blit(
+                                self.selected_surf_marker,
+                                (
+                                    world_mouse_tu_x2 * TILE_SIZE,
+                                    world_mouse_tu_y2 * TILE_SIZE,
+                                ),
+                            )
+                    # Add to list
+                    self.sprites_list.append(
+                        {
+                            "sprite_name": self.sprite_name,
+                            "sprite_layer": self.sprite_layer,
+                            "sprite_type": self.sprite_type,
+                            "sprite_tile_type": self.sprite_tile_type,
+                            "sprite_is_tile_mix": self.sprite_is_tile_mix,
+                            "width": self.combined_world_selected_tile_rect.width,
+                            "height": self.combined_world_selected_tile_rect.height,
+                            "x": self.world_mouse_snapped_x,
+                            "y": self.world_mouse_snapped_y,
+                        }
+                    )
+                    # Update total layer
+                    if self.total_layers < self.sprite_layer:
+                        self.totla_layers = self.sprite_layer
+                    # TODO: update this
+                    # Upddate solid layer
+                    # Update actor layer
+
+                    # Exit to ask save quit, save again, redo
+                    self.curtain.go_to_opaque()
+
+        # Update curtain
+        self.curtain.update(dt)
+
+    def _SAVE_QUIT_REDO_QUERY(self, dt: int) -> None:
+        """
+        - Get user input for save quit, save again, redo.
+        - Updates curtain alpha.
+        """
+        # Wait for curtain to be fully invisible
+        if self.curtain.is_done:
+            pass
 
         # Update curtain
         self.curtain.update(dt)
@@ -798,6 +884,12 @@ class SpriteSheetJsonGenerator:
     def _ADD_SPRITES_to_ADD_OTHER_SPRITES(self) -> None:
         pass
 
+    def _ADD_OTHER_SPRITES_to_SAVE_QUIT_REDO_QUERY(self) -> None:
+        # Reset the input text
+        self.set_input_text("")
+        # Set my prompt text
+        self.set_prompt_text("save and quit, save and redo, redo, quit (1/2/3/4)?")
+
     # Callbacks
     def on_entry_delay_timer_end(self) -> None:
         self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.OPENING_SCENE_CURTAIN)
@@ -842,6 +934,10 @@ class SpriteSheetJsonGenerator:
         elif self.state_machine_update.state == SpriteSheetJsonGenerator.State.SPRITE_TILE_MIX_QUERY:
             self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.ADD_SPRITES)
             self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.ADD_SPRITES)
+            self.curtain.go_to_invisible()
+        elif self.state_machine_update.state == SpriteSheetJsonGenerator.State.ADD_OTHER_SPRITES:
+            self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.SAVE_QUIT_REDO_QUERY)
+            self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.SAVE_QUIT_REDO_QUERY)
             self.curtain.go_to_invisible()
 
     # Draw
