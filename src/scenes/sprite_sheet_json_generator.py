@@ -1,11 +1,14 @@
 from enum import auto
 from enum import Enum
+from json import dump
 from os.path import exists
+from os.path import join
 from typing import Any
 from typing import TYPE_CHECKING
 
 from constants import FONT
 from constants import FONT_HEIGHT
+from constants import JSONS_DIR_PATH
 from constants import NATIVE_HEIGHT
 from constants import NATIVE_RECT
 from constants import NATIVE_SURF
@@ -122,6 +125,7 @@ class SpriteSheetJsonGenerator:
         self.actor_layer: int = 0
 
         # Sprite sheet surf
+        # TODO: Save the sprite sheet name instead
         self.sprite_sheet_png_path: Any = None
         self.sprite_sheet_surf: Any = None
         self.sprite_sheet_rect: Any = None
@@ -186,6 +190,8 @@ class SpriteSheetJsonGenerator:
                 SpriteSheetJsonGenerator.State.ADD_SPRITES: self._ADD_SPRITES,
                 SpriteSheetJsonGenerator.State.ADD_OTHER_SPRITES: self._ADD_OTHER_SPRITES,
                 SpriteSheetJsonGenerator.State.SAVE_QUIT_REDO_QUERY: self._SAVE_QUIT_REDO_QUERY,
+                SpriteSheetJsonGenerator.State.CLOSING_SCENE_CURTAIN: self._CLOSING_SCENE_CURTAIN,
+                SpriteSheetJsonGenerator.State.CLOSED_SCENE_CURTAIN: self._CLOSED_SCENE_CURTAIN,
             },
             transition_actions={
                 (
@@ -232,6 +238,18 @@ class SpriteSheetJsonGenerator:
                     SpriteSheetJsonGenerator.State.ADD_OTHER_SPRITES,
                     SpriteSheetJsonGenerator.State.SAVE_QUIT_REDO_QUERY,
                 ): self._ADD_OTHER_SPRITES_to_SAVE_QUIT_REDO_QUERY,
+                (
+                    SpriteSheetJsonGenerator.State.SAVE_QUIT_REDO_QUERY,
+                    SpriteSheetJsonGenerator.State.SPRITE_NAME_QUERY,
+                ): self._SAVE_QUIT_REDO_QUERY_to_SPRITE_NAME_QUERY,
+                (
+                    SpriteSheetJsonGenerator.State.SAVE_QUIT_REDO_QUERY,
+                    SpriteSheetJsonGenerator.State.ADD_SPRITES,
+                ): self._SAVE_QUIT_REDO_QUERY_to_ADD_SPRITES,
+                (
+                    SpriteSheetJsonGenerator.State.CLOSING_SCENE_CURTAIN,
+                    SpriteSheetJsonGenerator.State.CLOSED_SCENE_CURTAIN,
+                ): self._CLOSING_SCENE_CURTAIN_to_CLOSED_SCENE_CURTAIN,
             },
         )
 
@@ -252,6 +270,8 @@ class SpriteSheetJsonGenerator:
                 SpriteSheetJsonGenerator.State.ADD_SPRITES: self._ADD_SPRITES_DRAW,
                 SpriteSheetJsonGenerator.State.ADD_OTHER_SPRITES: self._ADD_OTHER_SPRITES_DRAW,
                 SpriteSheetJsonGenerator.State.SAVE_QUIT_REDO_QUERY: self._QUERIES,
+                SpriteSheetJsonGenerator.State.CLOSING_SCENE_CURTAIN: self._QUERIES,
+                SpriteSheetJsonGenerator.State.CLOSED_SCENE_CURTAIN: self._NOTHING,
             },
             transition_actions={},
         )
@@ -808,8 +828,9 @@ class SpriteSheetJsonGenerator:
                         }
                     )
                     # Update total layer
+                    print(self.total_layers, self.sprite_layer)
                     if self.total_layers < self.sprite_layer:
-                        self.totla_layers = self.sprite_layer
+                        self.total_layers = self.sprite_layer
                     # TODO: update this
                     # Upddate solid layer
                     # Update actor layer
@@ -827,10 +848,129 @@ class SpriteSheetJsonGenerator:
         """
         # Wait for curtain to be fully invisible
         if self.curtain.is_done:
-            pass
+            # Caught 1 key event this frame?
+            if self.game_event_handler.this_frame_event:
+                if self.game_event_handler.this_frame_event.type == pg.KEYDOWN:
+                    # Accept
+                    if self.game_event_handler.this_frame_event.key == pg.K_RETURN:
+                        if self.input_text in [
+                            str(self.save_and_quit_choice_after_add_sprites_state),
+                            str(self.save_and_redo_choice_after_add_sprites_state),
+                            str(self.redo_choice_after_add_sprites_state),
+                            str(self.quit_choice_after_add_sprites_state),
+                        ]:
+                            # 1 = Save and quit
+                            if self.input_text == str(self.save_and_quit_choice_after_add_sprites_state):
+                                self.selected_choice_after_add_sprites_state = (
+                                    self.save_and_quit_choice_after_add_sprites_state
+                                )
+                                # Update sprite json
+                                self.sprite_json = {
+                                    "sprite_sheet_png_path": self.sprite_sheet_png_path,
+                                    "total_layers": self.total_layers,
+                                    "solid_layer": self.solid_layer,
+                                    "actor_layer": self.actor_layer,
+                                    "sprites_list": self.sprites_list,
+                                }
+                                # Write to json
+                                with open(
+                                    join(JSONS_DIR_PATH, f"{self.file_name}.json"),
+                                    "w",
+                                ) as sprite_json:
+                                    dump(self.sprite_json, sprite_json)
+                                # Close curtain
+                                # Exit to main menu
+                                self.game_music_manager.fade_out_music(int(self.curtain.fade_duration))
+                                self.curtain.go_to_opaque()
+                            # 2 = Save and redo
+                            elif self.input_text == str(self.save_and_redo_choice_after_add_sprites_state):
+                                self.selected_choice_after_add_sprites_state = (
+                                    self.save_and_redo_choice_after_add_sprites_state
+                                )
+                                # Update sprite json
+                                self.sprite_json = {
+                                    "sprite_sheet_png_path": self.sprite_sheet_png_path,
+                                    "total_layers": self.total_layers,
+                                    "solid_layer": self.solid_layer,
+                                    "actor_layer": self.actor_layer,
+                                    "sprites_list": self.sprites_list,
+                                }
+                                # Get fresh selected sprite sheet again
+                                self.sprite_sheet_surf = pg.image.load(self.sprite_sheet_png_path).convert_alpha()
+                                # Empty the selected tile
+                                self.first_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
+                                self.second_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
+                                self.combined_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
+                                self.screen_combined_world_selected_tile_rect_x = 0.0
+                                self.screen_combined_world_selected_tile_rect_y = 0.0
+                                # Empty collision map.
+                                self.init_room_collision_map_list(
+                                    self.room_collision_map_width_tu,
+                                    self.room_collision_map_height_tu,
+                                )
+                                # Close curtain
+                                # Exit to SPRITE_SIZE_QUERY
+                                self.curtain.go_to_opaque()
+                            # 3 = Redo
+                            elif self.input_text == str(self.redo_choice_after_add_sprites_state):
+                                # TODO: Handle undo collision and sprite sheet mark properly
+                                self.selected_choice_after_add_sprites_state = self.redo_choice_after_add_sprites_state
+                                # Get fresh selected sprite sheet again
+                                self.sprite_sheet_surf = pg.image.load(self.sprite_sheet_png_path).convert_alpha()
+                                # Pop the recently added
+                                self.sprites_list.pop()
+                                # Empty the selected tile
+                                self.first_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
+                                self.second_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
+                                self.combined_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
+                                self.screen_combined_world_selected_tile_rect_x = 0.0
+                                self.screen_combined_world_selected_tile_rect_y = 0.0
+                                # Empty collision map
+                                self.init_room_collision_map_list(
+                                    self.room_collision_map_width_tu,
+                                    self.room_collision_map_height_tu,
+                                )
+                                # Close curtain
+                                # Exit to ADD_SPRITES
+                                self.curtain.go_to_opaque()
+                            # 4 = Quit
+                            elif self.input_text == str(self.quit_choice_after_add_sprites_state):
+                                self.selected_choice_after_add_sprites_state = self.quit_choice_after_add_sprites_state
+                                # Close curtain
+                                # Exit to main menu
+                                self.game_music_manager.fade_out_music(int(self.curtain.fade_duration))
+                                self.curtain.go_to_opaque()
+                        else:
+                            self.set_input_text("type 1, 2, 3 or 4 only please!")
+                    # Delete
+                    elif self.game_event_handler.this_frame_event.key == pg.K_BACKSPACE:
+                        new_value = self.input_text[:-1]
+                        self.set_input_text(new_value)
+                        # Play text
+                        self.game_sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
+                    # Add
+                    else:
+                        new_value = self.input_text + self.game_event_handler.this_frame_event.unicode
+                        self.set_input_text(new_value)
+                        # Play text
+                        self.game_sound_manager.play_sound("text_1.ogg", 0, 0, 0)
 
         # Update curtain
         self.curtain.update(dt)
+
+    def _CLOSING_SCENE_CURTAIN(self, dt: int) -> None:
+        """
+        - Updates curtain alpha.
+        """
+
+        self.curtain.update(dt)
+
+    def _CLOSED_SCENE_CURTAIN(self, dt: int) -> None:
+        """
+        - Counts up exit delay time.
+        """
+
+        self.exit_delay_timer.update(dt)
 
     # State transitions
     def _JUST_ENTERED_SCENE_to_OPENING_SCENE_CURTAIN(self) -> None:
@@ -890,6 +1030,18 @@ class SpriteSheetJsonGenerator:
         # Set my prompt text
         self.set_prompt_text("save and quit, save and redo, redo, quit (1/2/3/4)?")
 
+    def _SAVE_QUIT_REDO_QUERY_to_SPRITE_NAME_QUERY(self) -> None:
+        # Reset the input text
+        self.set_input_text("")
+        # Set my prompt text
+        self.set_prompt_text("type the sprite name,")
+
+    def _SAVE_QUIT_REDO_QUERY_to_ADD_SPRITES(self) -> None:
+        pass
+
+    def _CLOSING_SCENE_CURTAIN_to_CLOSED_SCENE_CURTAIN(self) -> None:
+        NATIVE_SURF.fill("black")
+
     # Callbacks
     def on_entry_delay_timer_end(self) -> None:
         self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.OPENING_SCENE_CURTAIN)
@@ -939,6 +1091,24 @@ class SpriteSheetJsonGenerator:
             self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.SAVE_QUIT_REDO_QUERY)
             self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.SAVE_QUIT_REDO_QUERY)
             self.curtain.go_to_invisible()
+        elif self.state_machine_update.state == SpriteSheetJsonGenerator.State.SAVE_QUIT_REDO_QUERY:
+            if self.selected_choice_after_add_sprites_state == (self.save_and_redo_choice_after_add_sprites_state):
+                self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.SPRITE_NAME_QUERY)
+                self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.SPRITE_NAME_QUERY)
+                self.curtain.go_to_invisible()
+            elif self.selected_choice_after_add_sprites_state == (self.redo_choice_after_add_sprites_state):
+                self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.ADD_SPRITES)
+                self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.ADD_SPRITES)
+                self.curtain.go_to_invisible()
+            elif self.selected_choice_after_add_sprites_state == (self.save_and_quit_choice_after_add_sprites_state):
+                self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.CLOSED_SCENE_CURTAIN)
+                self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.CLOSED_SCENE_CURTAIN)
+            elif self.selected_choice_after_add_sprites_state == (self.quit_choice_after_add_sprites_state):
+                self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.CLOSED_SCENE_CURTAIN)
+                self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.CLOSED_SCENE_CURTAIN)
+        elif self.state_machine_update.state == SpriteSheetJsonGenerator.State.CLOSING_SCENE_CURTAIN:
+            self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.CLOSED_SCENE_CURTAIN)
+            self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.CLOSED_SCENE_CURTAIN)
 
     # Draw
     def draw(self) -> None:

@@ -115,6 +115,7 @@ class AnimationJsonGenerator:
         self.animation_duration: int = 0
 
         # Sprite sheet surf
+        # TODO: Save the sprite sheet name instead
         self.sprite_sheet_png_path: Any = None
         self.sprite_sheet_surf: Any = None
         self.sprite_sheet_rect: Any = None
