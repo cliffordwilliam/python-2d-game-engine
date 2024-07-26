@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 
 from constants import FONT
 from constants import FONT_HEIGHT
-from constants import JSONS_DIR_PATH
+from constants import JSONS_PROJ_DIR_PATH
 from constants import NATIVE_HEIGHT
 from constants import NATIVE_RECT
 from constants import NATIVE_SURF
@@ -39,7 +39,6 @@ class SpriteSheetJsonGenerator:
         SPRITE_SHEET_PNG_PATH_QUERY = auto()
         SPRITE_NAME_QUERY = auto()
         SPRITE_LAYER_QUERY = auto()
-        SPRITE_TYPE_QUERY = auto()
         SPRITE_TILE_TYPE_QUERY = auto()
         SPRITE_TILE_MIX_QUERY = auto()
         ADD_SPRITES = auto()
@@ -126,8 +125,6 @@ class SpriteSheetJsonGenerator:
 
         # Dynamics
         self.total_layers: int = 0
-        self.solid_layer: int = 0
-        self.actor_layer: int = 0
 
         # Sprite sheet surf
         # TODO: Save the sprite sheet name instead
@@ -189,7 +186,6 @@ class SpriteSheetJsonGenerator:
                 SpriteSheetJsonGenerator.State.SPRITE_SHEET_PNG_PATH_QUERY: self._SPRITE_SHEET_PNG_PATH_QUERY,
                 SpriteSheetJsonGenerator.State.SPRITE_NAME_QUERY: self._SPRITE_NAME_QUERY,
                 SpriteSheetJsonGenerator.State.SPRITE_LAYER_QUERY: self._SPRITE_LAYER_QUERY,
-                SpriteSheetJsonGenerator.State.SPRITE_TYPE_QUERY: self._SPRITE_TYPE_QUERY,
                 SpriteSheetJsonGenerator.State.SPRITE_TILE_TYPE_QUERY: self._SPRITE_TILE_TYPE_QUERY,
                 SpriteSheetJsonGenerator.State.SPRITE_TILE_MIX_QUERY: self._SPRITE_TILE_MIX_QUERY,
                 SpriteSheetJsonGenerator.State.ADD_SPRITES: self._ADD_SPRITES,
@@ -221,12 +217,8 @@ class SpriteSheetJsonGenerator:
                 ): self._SPRITE_NAME_QUERY_to_SPRITE_LAYER_QUERY,
                 (
                     SpriteSheetJsonGenerator.State.SPRITE_LAYER_QUERY,
-                    SpriteSheetJsonGenerator.State.SPRITE_TYPE_QUERY,
-                ): self._SPRITE_LAYER_QUERY_to_SPRITE_TYPE_QUERY,
-                (
-                    SpriteSheetJsonGenerator.State.SPRITE_TYPE_QUERY,
                     SpriteSheetJsonGenerator.State.SPRITE_TILE_TYPE_QUERY,
-                ): self._SPRITE_TYPE_QUERY_to_SPRITE_TILE_TYPE_QUERY,
+                ): self._SPRITE_LAYER_QUERY_to_SPRITE_TILE_TYPE_QUERY,
                 (
                     SpriteSheetJsonGenerator.State.SPRITE_TILE_TYPE_QUERY,
                     SpriteSheetJsonGenerator.State.SPRITE_TILE_MIX_QUERY,
@@ -269,7 +261,6 @@ class SpriteSheetJsonGenerator:
                 SpriteSheetJsonGenerator.State.SPRITE_SHEET_PNG_PATH_QUERY: self._QUERIES,
                 SpriteSheetJsonGenerator.State.SPRITE_NAME_QUERY: self._QUERIES,
                 SpriteSheetJsonGenerator.State.SPRITE_LAYER_QUERY: self._QUERIES,
-                SpriteSheetJsonGenerator.State.SPRITE_TYPE_QUERY: self._QUERIES,
                 SpriteSheetJsonGenerator.State.SPRITE_TILE_TYPE_QUERY: self._QUERIES,
                 SpriteSheetJsonGenerator.State.SPRITE_TILE_MIX_QUERY: self._QUERIES,
                 SpriteSheetJsonGenerator.State.ADD_SPRITES: self._ADD_SPRITES_DRAW,
@@ -611,35 +602,6 @@ class SpriteSheetJsonGenerator:
         # Update curtain
         self.curtain.update(dt)
 
-    def _SPRITE_TYPE_QUERY(self, dt: int) -> None:
-        # Wait for curtain to be fully invisible
-        if self.curtain.is_done:
-            # Caught 1 key event this frame?
-            if self.game_event_handler.this_frame_event:
-                if self.game_event_handler.this_frame_event.type == pg.KEYDOWN:
-                    # Accept
-                    if self.game_event_handler.this_frame_event.key == pg.K_RETURN:
-                        if self.input_text != "":
-                            self.sprite_type = self.input_text
-                            # Close curtain
-                            # Exit to SPRITE_SHEET_PNG_PATH_QUERY
-                            self.curtain.go_to_opaque()
-                    # Delete
-                    elif self.game_event_handler.this_frame_event.key == pg.K_BACKSPACE:
-                        new_value = self.input_text[:-1]
-                        self.set_input_text(new_value)
-                        # Play text
-                        self.game_sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
-                    # Add
-                    else:
-                        new_value = self.input_text + self.game_event_handler.this_frame_event.unicode
-                        self.set_input_text(new_value)
-                        # Play text
-                        self.game_sound_manager.play_sound("text_1.ogg", 0, 0, 0)
-
-        # Update curtain
-        self.curtain.update(dt)
-
     def _SPRITE_TILE_TYPE_QUERY(self, dt: int) -> None:
         # Wait for curtain to be fully invisible
         if self.curtain.is_done:
@@ -869,10 +831,6 @@ class SpriteSheetJsonGenerator:
                                 # Update total layer
                                 if self.total_layers < self.sprite_layer:
                                     self.total_layers = self.sprite_layer
-                                if self.sprite_type == "solid":
-                                    self.solid_layer = self.sprite_layer
-                                if self.sprite_type == "actor":
-                                    self.actor_layer = self.sprite_layer
 
                                 # Get file name
                                 sprite_sheet_png_path_obj = Path(self.sprite_sheet_png_path)
@@ -881,16 +839,16 @@ class SpriteSheetJsonGenerator:
                                 self.sprite_json = {
                                     "sprite_sheet_png_name": sprite_sheet_png_name,
                                     "total_layers": self.total_layers,
-                                    "solid_layer": self.solid_layer,
-                                    "actor_layer": self.actor_layer,
                                     "sprites_list": self.sprites_list,
                                 }
                                 # Write to json
                                 with open(
-                                    join(JSONS_DIR_PATH, f"{self.file_name}.json"),
+                                    # Create new file
+                                    join(JSONS_PROJ_DIR_PATH, f"{self.file_name}.json"),
                                     "w",
                                 ) as sprite_json:
-                                    dump(self.sprite_json, sprite_json)
+                                    dump(self.sprite_json, sprite_json, separators=(",", ":"))
+                                self.game.update_jsons_proj_paths_dict()
                                 # Close curtain
                                 # Exit to main menu
                                 self.game_music_manager.fade_out_music(int(self.curtain.fade_duration))
@@ -942,10 +900,6 @@ class SpriteSheetJsonGenerator:
                                 # Update total layer
                                 if self.total_layers < self.sprite_layer:
                                     self.total_layers = self.sprite_layer
-                                if self.sprite_type == "solid":
-                                    self.solid_layer = self.sprite_layer
-                                if self.sprite_type == "actor":
-                                    self.actor_layer = self.sprite_layer
 
                                 # Get file name
                                 sprite_sheet_png_path_obj = Path(self.sprite_sheet_png_path)
@@ -954,8 +908,6 @@ class SpriteSheetJsonGenerator:
                                 self.sprite_json = {
                                     "sprite_sheet_png_name": sprite_sheet_png_name,
                                     "total_layers": self.total_layers,
-                                    "solid_layer": self.solid_layer,
-                                    "actor_layer": self.actor_layer,
                                     "sprites_list": self.sprites_list,
                                 }
                                 # Close curtain
@@ -1034,13 +986,7 @@ class SpriteSheetJsonGenerator:
         # Set my prompt text
         self.set_prompt_text("type the sprite layer,")
 
-    def _SPRITE_LAYER_QUERY_to_SPRITE_TYPE_QUERY(self) -> None:
-        # Reset the input text
-        self.set_input_text("")
-        # Set my prompt text
-        self.set_prompt_text("type the sprite type,")
-
-    def _SPRITE_TYPE_QUERY_to_SPRITE_TILE_TYPE_QUERY(self) -> None:
+    def _SPRITE_LAYER_QUERY_to_SPRITE_TILE_TYPE_QUERY(self) -> None:
         # Reset the input text
         self.set_input_text("")
         # Set my prompt text
@@ -1124,10 +1070,6 @@ class SpriteSheetJsonGenerator:
             self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.SPRITE_LAYER_QUERY)
             self.curtain.go_to_invisible()
         elif self.state_machine_update.state == SpriteSheetJsonGenerator.State.SPRITE_LAYER_QUERY:
-            self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.SPRITE_TYPE_QUERY)
-            self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.SPRITE_TYPE_QUERY)
-            self.curtain.go_to_invisible()
-        elif self.state_machine_update.state == SpriteSheetJsonGenerator.State.SPRITE_TYPE_QUERY:
             self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.SPRITE_TILE_TYPE_QUERY)
             self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.SPRITE_TILE_TYPE_QUERY)
             self.curtain.go_to_invisible()

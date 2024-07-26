@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 
 from constants import FONT
 from constants import FONT_HEIGHT
-from constants import JSONS_DIR_PATH
+from constants import JSONS_PROJ_DIR_PATH
 from constants import NATIVE_HEIGHT
 from constants import NATIVE_RECT
 from constants import NATIVE_SURF
@@ -816,10 +816,12 @@ class AnimationJsonGenerator:
                                 }
                                 # Write to json
                                 with open(
-                                    join(JSONS_DIR_PATH, f"{self.file_name}.json"),
+                                    # Create new file
+                                    join(JSONS_PROJ_DIR_PATH, f"{self.file_name}.json"),
                                     "w",
                                 ) as animation_json:
-                                    dump(self.animation_json, animation_json)
+                                    dump(self.animation_json, animation_json, separators=(",", ":"))
+                                self.game.update_jsons_proj_paths_dict()
                                 # Close curtain
                                 # Exit to main menu
                                 self.game_music_manager.fade_out_music(int(self.curtain.fade_duration))
@@ -1080,6 +1082,7 @@ class AnimationJsonGenerator:
         self.state_machine_update.handle(dt)
 
     # Helpers
+    # TODO: Add explicit _ private func
     def draw_grid(self) -> None:
         blit_sequence = []
         for i in range(NATIVE_WIDTH_TU):

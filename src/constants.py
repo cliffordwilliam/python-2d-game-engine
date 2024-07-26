@@ -1,19 +1,25 @@
 from os import environ
+from os import getenv
 from os import listdir
+from os import makedirs
+from os.path import exists
+from os.path import expanduser
 from os.path import isfile
-from os.path import join  # for OS agnostic paths.
+from os.path import join  # for OS agnostic paths
+from platform import system
+from typing import Any
 
 import pygame as pg
 import pygame.freetype as font
 
-# Everything here never changes ever.
+# Everything here never changes ever
 
 environ["SDL_VIDEO_CENTERED"] = "1"
 
 # Initialize pygame.
 pg.init()
 
-# Default settings to be written.
+# Default settings to be written
 DEFAULT_SETTINGS_DICT: dict[str, int] = {
     "resolution_index": 2,
     "resolution_scale": 3,
@@ -32,9 +38,8 @@ DEFAULT_SETTINGS_DICT: dict[str, int] = {
 }
 
 
-# Function to create a dictionary of file paths.
-# TODO: Add explicit _ private func.
-def _create_paths_dict(directory: str) -> dict[str, str]:
+# Function to create a dictionary of file paths
+def create_paths_dict(directory: str) -> dict[str, str]:
     paths_dict = {}
     for filename in listdir(directory):
         if isfile(join(directory, filename)):
@@ -42,20 +47,42 @@ def _create_paths_dict(directory: str) -> dict[str, str]:
     return paths_dict
 
 
-# Directory paths.
-JSONS_DIR_PATH: str = "jsons"
+# Get the OS-specific directory for storing application data
+def get_os_specific_directory(app_name: Any) -> str:
+    user_home = expanduser("~")
+    sys = system()
+
+    if sys == "Windows":
+        appdata_path = getenv("APPDATA", user_home)
+        directory = join(appdata_path, app_name)
+    elif sys == "Darwin":  # macOS
+        directory = join(user_home, "Library", "Application Support", app_name)
+    else:  # Assume Linux or other Unix-like OS
+        directory = join(user_home, ".config", app_name)
+
+    # Ensure the directory exists
+    if not exists(directory):
+        makedirs(directory)
+
+    return directory
+
+
+APP_NAME = "python_2d_game_engine"
+
+# Directory paths
+JSONS_DIR_PATH: str = get_os_specific_directory(APP_NAME)
+JSONS_PROJ_DIR_PATH: str = "jsons"
 PNGS_DIR_PATH: str = "pngs"
 OGGS_DIR_PATH: str = "oggs"
 
-# Creating the dictionaries.
-JSONS_PATHS_DICT: dict[str, str] = _create_paths_dict(JSONS_DIR_PATH)
-PNGS_PATHS_DICT: dict[str, str] = _create_paths_dict(PNGS_DIR_PATH)
-OGGS_PATHS_DICT: dict[str, str] = _create_paths_dict(OGGS_DIR_PATH)
+# Creating the dictionaries
+PNGS_PATHS_DICT: dict[str, str] = create_paths_dict(PNGS_DIR_PATH)
+OGGS_PATHS_DICT: dict[str, str] = create_paths_dict(OGGS_DIR_PATH)
 
-# FPS.
+# FPS
 FPS: int = 60
 
-# Fixed dimensions.
+# Fixed dimensions
 TILE_SIZE: int = 16
 
 WINDOW_WIDTH: int = 320
@@ -73,25 +100,25 @@ NATIVE_HEIGHT_TU: int = 11
 NATIVE_WIDTH_TU_EXTRA_ONE: int = 21
 NATIVE_HEIGHT_TU_EXTRA_ONE: int = 12
 
-# Native surf and rect will never be mutated.
+# Native surf and rect will never be mutated
 NATIVE_SURF: pg.Surface = pg.Surface((NATIVE_WIDTH, NATIVE_HEIGHT))
 NATIVE_RECT: pg.Rect = NATIVE_SURF.get_rect()
 
-# Clock never changes.
+# Clock never changes
 CLOCK: pg.time.Clock = pg.time.Clock()
 
-# Event ints list (used by event for loop).
+# Event ints list (used by event for loop)
 EVENTS: list[int] = [
     pg.KEYDOWN,
     pg.KEYUP,
     pg.QUIT,
     # REMOVE IN BUILD
-    # Because production don't use the mouse.
+    # Because production don't use the mouse
     pg.MOUSEBUTTONUP,
     pg.MOUSEBUTTONDOWN,
 ]
 
-# Font dimensions and instance.
+# Font dimensions and instance
 FONT_HEIGHT: int = 5
 FONT_WIDTH: int = 3
 FONT: font.Font = font.Font(
@@ -99,11 +126,11 @@ FONT: font.Font = font.Font(
     FONT_HEIGHT,
 )
 
-# Quadtree recursion limit.
+# Quadtree recursion limit
 MAX_QUADTREE_DEPTH: int = 8
 
 # REMOVE IN BUILD
-# This is for room editor autotile mapping.
+# This is for room editor autotile mapping
 MASK_ID_TO_INDEX: dict[str, int] = {
     "208": 0,
     "248": 1,
@@ -155,5 +182,5 @@ MASK_ID_TO_INDEX: dict[str, int] = {
 }
 
 # REMOVE IN BUILD
-# This is for frame by frame debug tool.
+# This is for frame by frame debug tool
 NEXT_FRAME: int = pg.K_8

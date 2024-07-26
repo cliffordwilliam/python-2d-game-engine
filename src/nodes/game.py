@@ -1,10 +1,13 @@
 from json import dump
 from json import load
+from os.path import join
 from typing import Any
 from typing import Type
 
+from constants import create_paths_dict
 from constants import DEFAULT_SETTINGS_DICT
-from constants import JSONS_PATHS_DICT
+from constants import JSONS_DIR_PATH
+from constants import JSONS_PROJ_DIR_PATH
 from constants import NATIVE_WIDTH
 from constants import OGGS_PATHS_DICT
 from constants import pg
@@ -29,6 +32,10 @@ class Game:
     def __init__(self, initial_scene: str):
         # Prepare local settings data.
         self.local_settings_dict: dict[str, Any] = {}
+
+        # jsons file paths dict, read disk and populate this dict
+        self.jsons_pahts_dict: dict[str, str] = create_paths_dict(JSONS_DIR_PATH)
+        self.jsons_proj_pahts_dict: dict[str, str] = create_paths_dict(JSONS_PROJ_DIR_PATH)
 
         # Update local settings dict.
         self.load_or_create_settings()
@@ -86,32 +93,42 @@ class Game:
         # Keeps track of current scene.
         self.current_scene: Any = self.scenes[initial_scene](self)
 
+    def update_jsons_proj_paths_dict(self) -> None:
+        self.jsons_proj_pahts_dict = create_paths_dict(JSONS_PROJ_DIR_PATH)
+
+    def update_jsons_paths_dict(self) -> None:
+        self.jsons_pahts_dict = create_paths_dict(JSONS_DIR_PATH)
+
     def load_or_create_settings(self) -> None:
         """
         Load to local or create and then load.
         """
 
-        # TODO: Deal with different OS. AppData.
-
         # Got settings file on disk?
         try:
-            # Load it.
-            with open(JSONS_PATHS_DICT["settings.json"], "r") as settings_json:
+            # Load it
+            exists = self.jsons_pahts_dict["settings.json"]
+            with open(exists, "r") as settings_json:
                 self.local_settings_dict = load(settings_json)
         # No settings file on disk?
-        except FileNotFoundError:
-            # Create one to disk. Load to local.
-            self.local_settings_dict = DEFAULT_SETTINGS_DICT
-            with open(JSONS_PATHS_DICT["settings.json"], "w") as settings_json:
-                dump(self.local_settings_dict, settings_json)
+        except (KeyError, FileNotFoundError):
+            with open(
+                # Create new file
+                join(JSONS_DIR_PATH, "settings.json"),
+                "w",
+            ) as settings_json:
+                # Create one to disk. Load to local
+                self.local_settings_dict = DEFAULT_SETTINGS_DICT
+                dump(self.local_settings_dict, settings_json, separators=(",", ":"))
+            self.update_jsons_paths_dict()
 
     def save_settings(self) -> None:
         """
         Dump my local saves to disk.
         """
 
-        with open(JSONS_PATHS_DICT["settings.json"], "w") as settings_json:
-            dump(self.local_settings_dict, settings_json)
+        with open(self.jsons_pahts_dict["settings.json"], "w") as settings_json:
+            dump(self.local_settings_dict, settings_json, separators=(",", ":"))
 
     def set_is_options_menu_active(self, value: bool) -> None:
         """
