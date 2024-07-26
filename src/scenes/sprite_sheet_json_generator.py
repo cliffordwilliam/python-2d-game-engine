@@ -119,7 +119,6 @@ class SpriteSheetJsonGenerator:
         self.file_name: str = ""
         self.sprite_name: str = ""
         self.sprite_layer: int = 0
-        self.sprite_type: str = ""
         self.sprite_tile_type: str = ""
         self.sprite_is_tile_mix: int = 0
 
@@ -819,7 +818,6 @@ class SpriteSheetJsonGenerator:
                                     {
                                         "sprite_name": self.sprite_name,
                                         "sprite_layer": self.sprite_layer,
-                                        "sprite_type": self.sprite_type,
                                         "sprite_tile_type": self.sprite_tile_type,
                                         "sprite_is_tile_mix": self.sprite_is_tile_mix,
                                         "width": self.combined_world_selected_tile_rect.width,
@@ -888,7 +886,6 @@ class SpriteSheetJsonGenerator:
                                     {
                                         "sprite_name": self.sprite_name,
                                         "sprite_layer": self.sprite_layer,
-                                        "sprite_type": self.sprite_type,
                                         "sprite_tile_type": self.sprite_tile_type,
                                         "sprite_is_tile_mix": self.sprite_is_tile_mix,
                                         "width": self.combined_world_selected_tile_rect.width,
