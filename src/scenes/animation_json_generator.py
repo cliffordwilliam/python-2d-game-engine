@@ -38,6 +38,7 @@ class AnimationJsonGenerator:
         OPENED_SCENE_CURTAIN = auto()
         SPRITE_SHEET_PNG_PATH_QUERY = auto()
         SPRITE_SIZE_QUERY = auto()
+        SPRITE_WIDTH_QUERY = auto()
         ANIMATION_NAME_QUERY = auto()
         LOOP_QUERY = auto()
         NEXT_ANIMATION_QUERY = auto()
@@ -108,8 +109,10 @@ class AnimationJsonGenerator:
     def _setup_user_input_store(self) -> None:
         """Store user inputs"""
         self.file_name: str = ""
-        self.animation_sprite_size: int = TILE_SIZE
-        self.sprite_size_tu: int = int(self.animation_sprite_size // TILE_SIZE)
+        self.animation_sprite_height: int = TILE_SIZE
+        self.sprite_height_tu: int = int(self.animation_sprite_height // TILE_SIZE)
+        self.animation_sprite_width: int = TILE_SIZE
+        self.sprite_width_tu: int = int(self.animation_sprite_width // TILE_SIZE)
         self.animation_name: str = ""
         self.animation_is_loop: int = 0
         self.next_animation_name: str = ""
@@ -184,6 +187,7 @@ class AnimationJsonGenerator:
                 AnimationJsonGenerator.State.OPENED_SCENE_CURTAIN: self._OPENED_SCENE_CURTAIN,
                 AnimationJsonGenerator.State.SPRITE_SHEET_PNG_PATH_QUERY: self._SPRITE_SHEET_PNG_PATH_QUERY,
                 AnimationJsonGenerator.State.SPRITE_SIZE_QUERY: self._SPRITE_SIZE_QUERY,
+                AnimationJsonGenerator.State.SPRITE_WIDTH_QUERY: self._SPRITE_WIDTH_QUERY,
                 AnimationJsonGenerator.State.ANIMATION_NAME_QUERY: self._ANIMATION_NAME_QUERY,
                 AnimationJsonGenerator.State.LOOP_QUERY: self._LOOP_QUERY,
                 AnimationJsonGenerator.State.NEXT_ANIMATION_QUERY: self._NEXT_ANIMATION_QUERY,
@@ -212,8 +216,12 @@ class AnimationJsonGenerator:
                 ): self._SPRITE_SHEET_PNG_PATH_QUERY_to_SPRITE_SIZE_QUERY,
                 (
                     AnimationJsonGenerator.State.SPRITE_SIZE_QUERY,
+                    AnimationJsonGenerator.State.SPRITE_WIDTH_QUERY,
+                ): self._SPRITE_SIZE_QUERY_to_SPRITE_WIDTH_QUERY,
+                (
+                    AnimationJsonGenerator.State.SPRITE_WIDTH_QUERY,
                     AnimationJsonGenerator.State.ANIMATION_NAME_QUERY,
-                ): self._SPRITE_SIZE_QUERY_to_ANIMATION_NAME_QUERY,
+                ): self._SPRITE_WIDTH_QUERY_to_ANIMATION_NAME_QUERY,
                 (
                     AnimationJsonGenerator.State.ANIMATION_NAME_QUERY,
                     AnimationJsonGenerator.State.LOOP_QUERY,
@@ -259,6 +267,7 @@ class AnimationJsonGenerator:
                 AnimationJsonGenerator.State.OPENED_SCENE_CURTAIN: self._QUERIES,
                 AnimationJsonGenerator.State.SPRITE_SHEET_PNG_PATH_QUERY: self._QUERIES,
                 AnimationJsonGenerator.State.SPRITE_SIZE_QUERY: self._QUERIES,
+                AnimationJsonGenerator.State.SPRITE_WIDTH_QUERY: self._QUERIES,
                 AnimationJsonGenerator.State.ANIMATION_NAME_QUERY: self._QUERIES,
                 AnimationJsonGenerator.State.LOOP_QUERY: self._QUERIES,
                 AnimationJsonGenerator.State.NEXT_ANIMATION_QUERY: self._QUERIES,
@@ -344,11 +353,11 @@ class AnimationJsonGenerator:
         self.world_mouse_y = mouse_position_y_tuple_scaled + self.camera.rect.y
         self.world_mouse_x = min(
             self.world_mouse_x,
-            self.sprite_sheet_rect.right - self.animation_sprite_size,
+            self.sprite_sheet_rect.right - self.animation_sprite_width,
         )
         self.world_mouse_y = min(
             self.world_mouse_y,
-            self.sprite_sheet_rect.bottom - self.animation_sprite_size,
+            self.sprite_sheet_rect.bottom - self.animation_sprite_height,
         )
         self.world_mouse_tu_x = int(self.world_mouse_x // TILE_SIZE)
         self.world_mouse_tu_y = int(self.world_mouse_y // TILE_SIZE)
@@ -363,8 +372,8 @@ class AnimationJsonGenerator:
             [
                 self.screen_mouse_x,
                 self.screen_mouse_y,
-                self.animation_sprite_size,
-                self.animation_sprite_size,
+                self.animation_sprite_width,
+                self.animation_sprite_height,
             ],
             1,
         )
@@ -487,8 +496,46 @@ class AnimationJsonGenerator:
                         if self.input_text.isdigit():
                             # Setup the sprite_size
                             # TODO: Separate size with width and height
-                            self.animation_sprite_size = max(int(self.input_text) * TILE_SIZE, 0)
-                            self.sprite_size_tu = int(self.animation_sprite_size // TILE_SIZE)
+                            self.animation_sprite_height = max(int(self.input_text) * TILE_SIZE, 0)
+                            self.sprite_height_tu = int(self.animation_sprite_height // TILE_SIZE)
+                            # Exit to ADD_SPRITES
+                            # Close curtain to exit to ADD_SPRITES
+                            self.curtain.go_to_opaque()
+                        else:
+                            self.set_input_text("type int only please!")
+                    # Delete
+                    elif self.game_event_handler.this_frame_event.key == pg.K_BACKSPACE:
+                        new_value = self.input_text[:-1]
+                        self.set_input_text(new_value)
+                        # Play text
+                        self.game_sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
+                    # Add
+                    else:
+                        new_value = self.input_text + self.game_event_handler.this_frame_event.unicode
+                        self.set_input_text(new_value)
+                        # Play text
+                        self.game_sound_manager.play_sound("text_1.ogg", 0, 0, 0)
+
+        # Update curtain
+        self.curtain.update(dt)
+
+    def _SPRITE_WIDTH_QUERY(self, dt: int) -> None:
+        """
+        - Get user input for sprite size.
+        - Updates curtain alpha.
+        """
+        # Wait for curtain to be fully invisible
+        if self.curtain.is_done:
+            # Caught 1 key event this frame?
+            if self.game_event_handler.this_frame_event:
+                if self.game_event_handler.this_frame_event.type == pg.KEYDOWN:
+                    # Accept
+                    if self.game_event_handler.this_frame_event.key == pg.K_RETURN:
+                        if self.input_text.isdigit():
+                            # Setup the sprite_size
+                            # TODO: Separate size with width and height
+                            self.animation_sprite_width = max(int(self.input_text) * TILE_SIZE, 0)
+                            self.sprite_width_tu = int(self.animation_sprite_width // TILE_SIZE)
                             # Exit to ADD_SPRITES
                             # Close curtain to exit to ADD_SPRITES
                             self.curtain.go_to_opaque()
@@ -679,8 +726,8 @@ class AnimationJsonGenerator:
             if self.game_event_handler.is_lmb_just_pressed:
                 # Check if selection is all empty cells
                 # Iterate size to check all empty
-                for world_mouse_tu_xi in range(self.sprite_size_tu):
-                    for world_mouse_tu_yi in range(self.sprite_size_tu):
+                for world_mouse_tu_xi in range(self.sprite_width_tu):
+                    for world_mouse_tu_yi in range(self.sprite_height_tu):
                         world_mouse_tu_x: int = self.world_mouse_tu_x + world_mouse_tu_xi
                         world_mouse_tu_y: int = self.world_mouse_tu_y + world_mouse_tu_yi
                         # Get each one in room_collision_map_list
@@ -695,8 +742,8 @@ class AnimationJsonGenerator:
                 if not is_lmb_just_pressed_occupied:
                     # Fill it
                     # Iterate size to set 1
-                    for world_mouse_tu_xi2 in range(self.sprite_size_tu):
-                        for world_mouse_tu_yi2 in range(self.sprite_size_tu):
+                    for world_mouse_tu_xi2 in range(self.sprite_width_tu):
+                        for world_mouse_tu_yi2 in range(self.sprite_height_tu):
                             world_mouse_tu_x2: int = self.world_mouse_tu_x + world_mouse_tu_xi2
                             world_mouse_tu_y2: int = self.world_mouse_tu_y + world_mouse_tu_yi2
                             # Store each one in room_collision_map_list
@@ -762,7 +809,8 @@ class AnimationJsonGenerator:
                                     "animation_is_loop": self.animation_is_loop,
                                     "next_animation_name": self.next_animation_name,
                                     "animation_duration": self.animation_duration,
-                                    "animation_sprite_size": self.animation_sprite_size,
+                                    "animation_sprite_height": self.animation_sprite_height,
+                                    "animation_sprite_width": self.animation_sprite_width,
                                     "sprite_sheet_png_name": sprite_sheet_png_name,
                                     "animation_sprites_list": self.animation_sprites_list,
                                 }
@@ -791,7 +839,8 @@ class AnimationJsonGenerator:
                                     "animation_is_loop": self.animation_is_loop,
                                     "next_animation_name": self.next_animation_name,
                                     "animation_duration": self.animation_duration,
-                                    "animation_sprite_size": self.animation_sprite_size,
+                                    "animation_sprite_height": self.animation_sprite_height,
+                                    "animation_sprite_width": self.animation_sprite_width,
                                     "sprite_sheet_png_name": sprite_sheet_png_name,
                                     "animation_sprites_list": self.animation_sprites_list,
                                 }
@@ -881,9 +930,15 @@ class AnimationJsonGenerator:
         # Reset the input text
         self.set_input_text("")
         # Set my prompt text
-        self.set_prompt_text("type the sprite size in tile units to be used,")
+        self.set_prompt_text("type the sprite height in tile units to be used,")
 
-    def _SPRITE_SIZE_QUERY_to_ANIMATION_NAME_QUERY(self) -> None:
+    def _SPRITE_SIZE_QUERY_to_SPRITE_WIDTH_QUERY(self) -> None:
+        # Reset the input text
+        self.set_input_text("")
+        # Set my prompt text
+        self.set_prompt_text("type the sprite width in tile units to be used,")
+
+    def _SPRITE_WIDTH_QUERY_to_ANIMATION_NAME_QUERY(self) -> None:
         # Reset the input text
         self.set_input_text("")
         # Set my prompt text
@@ -954,6 +1009,10 @@ class AnimationJsonGenerator:
             self.state_machine_draw.change_state(AnimationJsonGenerator.State.SPRITE_SIZE_QUERY)
             self.curtain.go_to_invisible()
         elif self.state_machine_update.state == AnimationJsonGenerator.State.SPRITE_SIZE_QUERY:
+            self.state_machine_update.change_state(AnimationJsonGenerator.State.SPRITE_WIDTH_QUERY)
+            self.state_machine_draw.change_state(AnimationJsonGenerator.State.SPRITE_WIDTH_QUERY)
+            self.curtain.go_to_invisible()
+        elif self.state_machine_update.state == AnimationJsonGenerator.State.SPRITE_WIDTH_QUERY:
             self.state_machine_update.change_state(AnimationJsonGenerator.State.ANIMATION_NAME_QUERY)
             self.state_machine_draw.change_state(AnimationJsonGenerator.State.ANIMATION_NAME_QUERY)
             self.curtain.go_to_invisible()

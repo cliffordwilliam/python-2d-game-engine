@@ -134,7 +134,7 @@ class Game:
             self.local_settings_dict["resolution_index"] = value
             # Set window surf to be fullscreen size.
             self.window_surf = pg.display.set_mode(
-                (self.window_width, self.window_height),
+                (0, 0),
                 pg.FULLSCREEN,
             )
             # Update self.local_settings_dict["resolution_scale"]
