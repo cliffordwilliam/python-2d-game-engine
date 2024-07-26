@@ -3,6 +3,7 @@ from enum import Enum
 from json import dump
 from os.path import exists
 from os.path import join
+from pathlib import Path
 from typing import Any
 from typing import TYPE_CHECKING
 
@@ -78,6 +79,10 @@ class SpriteSheetJsonGenerator:
         self.combined_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
         self.screen_combined_world_selected_tile_rect_x = 0.0
         self.screen_combined_world_selected_tile_rect_y = 0.0
+        self.combined_world_selected_tile_rect_width_tu = 0
+        self.combined_world_selected_tile_rect_height_tu = 0
+        self.combined_world_selected_tile_rect_x_tu = 0
+        self.combined_world_selected_tile_rect_y_tu = 0
 
     # Setups
     def _setup_curtain(self) -> None:
@@ -771,18 +776,18 @@ class SpriteSheetJsonGenerator:
             if self.game_event_handler.is_lmb_just_pressed:
                 # Check if selection is all empty cells
                 # Iterate size to check all empty
-                combined_world_selected_tile_rect_width_tu = int(
+                self.combined_world_selected_tile_rect_width_tu = int(
                     self.combined_world_selected_tile_rect.width // TILE_SIZE
                 )
-                combined_world_selected_tile_rect_height_tu = int(
+                self.combined_world_selected_tile_rect_height_tu = int(
                     self.combined_world_selected_tile_rect.height // TILE_SIZE
                 )
-                combined_world_selected_tile_rect_x_tu = int(self.combined_world_selected_tile_rect.x // TILE_SIZE)
-                combined_world_selected_tile_rect_y_tu = int(self.combined_world_selected_tile_rect.y // TILE_SIZE)
-                for world_mouse_tu_xi in range(combined_world_selected_tile_rect_width_tu):
-                    for world_mouse_tu_yi in range(combined_world_selected_tile_rect_height_tu):
-                        world_mouse_tu_x: int = combined_world_selected_tile_rect_x_tu + world_mouse_tu_xi
-                        world_mouse_tu_y: int = combined_world_selected_tile_rect_y_tu + world_mouse_tu_yi
+                self.combined_world_selected_tile_rect_x_tu = int(self.combined_world_selected_tile_rect.x // TILE_SIZE)
+                self.combined_world_selected_tile_rect_y_tu = int(self.combined_world_selected_tile_rect.y // TILE_SIZE)
+                for world_mouse_tu_xi in range(self.combined_world_selected_tile_rect_width_tu):
+                    for world_mouse_tu_yi in range(self.combined_world_selected_tile_rect_height_tu):
+                        world_mouse_tu_x: int = self.combined_world_selected_tile_rect_x_tu + world_mouse_tu_xi
+                        world_mouse_tu_y: int = self.combined_world_selected_tile_rect_y_tu + world_mouse_tu_yi
                         # Get each one in room_collision_map_list
                         found_tile_lmb_pressed: int = self.get_tile_from_room_collision_map_list(
                             world_mouse_tu_x,
@@ -793,48 +798,6 @@ class SpriteSheetJsonGenerator:
                             is_lmb_just_pressed_occupied = True
                 # All cells are empty
                 if not is_lmb_just_pressed_occupied:
-                    # Fill it
-                    # Iterate size to set 1
-                    for world_mouse_tu_xi2 in range(combined_world_selected_tile_rect_width_tu):
-                        for world_mouse_tu_yi2 in range(combined_world_selected_tile_rect_height_tu):
-                            world_mouse_tu_x2: int = combined_world_selected_tile_rect_x_tu + world_mouse_tu_xi2
-                            world_mouse_tu_y2: int = combined_world_selected_tile_rect_y_tu + world_mouse_tu_yi2
-                            # Store each one in room_collision_map_list
-                            self.set_tile_from_room_collision_map_list(
-                                world_mouse_tu_x2,
-                                world_mouse_tu_y2,
-                                1,
-                            )
-                            # Draw marker on sprite sheet
-                            self.sprite_sheet_surf.blit(
-                                self.selected_surf_marker,
-                                (
-                                    world_mouse_tu_x2 * TILE_SIZE,
-                                    world_mouse_tu_y2 * TILE_SIZE,
-                                ),
-                            )
-                    # Add to list
-                    self.sprites_list.append(
-                        {
-                            "sprite_name": self.sprite_name,
-                            "sprite_layer": self.sprite_layer,
-                            "sprite_type": self.sprite_type,
-                            "sprite_tile_type": self.sprite_tile_type,
-                            "sprite_is_tile_mix": self.sprite_is_tile_mix,
-                            "width": self.combined_world_selected_tile_rect.width,
-                            "height": self.combined_world_selected_tile_rect.height,
-                            "x": self.world_mouse_snapped_x,
-                            "y": self.world_mouse_snapped_y,
-                        }
-                    )
-                    # Update total layer
-                    print(self.total_layers, self.sprite_layer)
-                    if self.total_layers < self.sprite_layer:
-                        self.total_layers = self.sprite_layer
-                    # TODO: update this
-                    # Upddate solid layer
-                    # Update actor layer
-
                     # Exit to ask save quit, save again, redo
                     self.curtain.go_to_opaque()
 
@@ -864,9 +827,59 @@ class SpriteSheetJsonGenerator:
                                 self.selected_choice_after_add_sprites_state = (
                                     self.save_and_quit_choice_after_add_sprites_state
                                 )
-                                # Update sprite json
+
+                                # Fill it
+                                # Iterate size to set 1
+                                for world_mouse_tu_xi2 in range(self.combined_world_selected_tile_rect_width_tu):
+                                    for world_mouse_tu_yi2 in range(self.combined_world_selected_tile_rect_height_tu):
+                                        world_mouse_tu_x2 = (
+                                            self.combined_world_selected_tile_rect_x_tu + world_mouse_tu_xi2
+                                        )
+                                        world_mouse_tu_y2 = (
+                                            self.combined_world_selected_tile_rect_y_tu + world_mouse_tu_yi2
+                                        )
+                                        # Store each one in room_collision_map_list
+                                        self.set_tile_from_room_collision_map_list(
+                                            world_mouse_tu_x2,
+                                            world_mouse_tu_y2,
+                                            1,
+                                        )
+                                        # Draw marker on sprite sheet
+                                        self.sprite_sheet_surf.blit(
+                                            self.selected_surf_marker,
+                                            (
+                                                world_mouse_tu_x2 * TILE_SIZE,
+                                                world_mouse_tu_y2 * TILE_SIZE,
+                                            ),
+                                        )
+                                # Add to list
+                                self.sprites_list.append(
+                                    {
+                                        "sprite_name": self.sprite_name,
+                                        "sprite_layer": self.sprite_layer,
+                                        "sprite_type": self.sprite_type,
+                                        "sprite_tile_type": self.sprite_tile_type,
+                                        "sprite_is_tile_mix": self.sprite_is_tile_mix,
+                                        "width": self.combined_world_selected_tile_rect.width,
+                                        "height": self.combined_world_selected_tile_rect.height,
+                                        "x": self.world_mouse_snapped_x,
+                                        "y": self.world_mouse_snapped_y,
+                                    }
+                                )
+                                # Update total layer
+                                if self.total_layers < self.sprite_layer:
+                                    self.total_layers = self.sprite_layer
+                                if self.sprite_type == "solid":
+                                    self.solid_layer = self.sprite_layer
+                                if self.sprite_type == "actor":
+                                    self.actor_layer = self.sprite_layer
+
+                                # Get file name
+                                sprite_sheet_png_path_obj = Path(self.sprite_sheet_png_path)
+                                sprite_sheet_png_name = sprite_sheet_png_path_obj.name
+
                                 self.sprite_json = {
-                                    "sprite_sheet_png_path": self.sprite_sheet_png_path,
+                                    "sprite_sheet_png_name": sprite_sheet_png_name,
                                     "total_layers": self.total_layers,
                                     "solid_layer": self.solid_layer,
                                     "actor_layer": self.actor_layer,
@@ -887,49 +900,70 @@ class SpriteSheetJsonGenerator:
                                 self.selected_choice_after_add_sprites_state = (
                                     self.save_and_redo_choice_after_add_sprites_state
                                 )
-                                # Update sprite json
+
+                                # Fill it
+                                # Iterate size to set 1
+                                for world_mouse_tu_xi2 in range(self.combined_world_selected_tile_rect_width_tu):
+                                    for world_mouse_tu_yi2 in range(self.combined_world_selected_tile_rect_height_tu):
+                                        world_mouse_tu_x2 = (
+                                            self.combined_world_selected_tile_rect_x_tu + world_mouse_tu_xi2
+                                        )
+                                        world_mouse_tu_y2 = (
+                                            self.combined_world_selected_tile_rect_y_tu + world_mouse_tu_yi2
+                                        )
+                                        # Store each one in room_collision_map_list
+                                        self.set_tile_from_room_collision_map_list(
+                                            world_mouse_tu_x2,
+                                            world_mouse_tu_y2,
+                                            1,
+                                        )
+                                        # Draw marker on sprite sheet
+                                        self.sprite_sheet_surf.blit(
+                                            self.selected_surf_marker,
+                                            (
+                                                world_mouse_tu_x2 * TILE_SIZE,
+                                                world_mouse_tu_y2 * TILE_SIZE,
+                                            ),
+                                        )
+                                # Add to list
+                                self.sprites_list.append(
+                                    {
+                                        "sprite_name": self.sprite_name,
+                                        "sprite_layer": self.sprite_layer,
+                                        "sprite_type": self.sprite_type,
+                                        "sprite_tile_type": self.sprite_tile_type,
+                                        "sprite_is_tile_mix": self.sprite_is_tile_mix,
+                                        "width": self.combined_world_selected_tile_rect.width,
+                                        "height": self.combined_world_selected_tile_rect.height,
+                                        "x": self.world_mouse_snapped_x,
+                                        "y": self.world_mouse_snapped_y,
+                                    }
+                                )
+                                # Update total layer
+                                if self.total_layers < self.sprite_layer:
+                                    self.total_layers = self.sprite_layer
+                                if self.sprite_type == "solid":
+                                    self.solid_layer = self.sprite_layer
+                                if self.sprite_type == "actor":
+                                    self.actor_layer = self.sprite_layer
+
+                                # Get file name
+                                sprite_sheet_png_path_obj = Path(self.sprite_sheet_png_path)
+                                sprite_sheet_png_name = sprite_sheet_png_path_obj.name
+
                                 self.sprite_json = {
-                                    "sprite_sheet_png_path": self.sprite_sheet_png_path,
+                                    "sprite_sheet_png_name": sprite_sheet_png_name,
                                     "total_layers": self.total_layers,
                                     "solid_layer": self.solid_layer,
                                     "actor_layer": self.actor_layer,
                                     "sprites_list": self.sprites_list,
                                 }
-                                # Get fresh selected sprite sheet again
-                                self.sprite_sheet_surf = pg.image.load(self.sprite_sheet_png_path).convert_alpha()
-                                # Empty the selected tile
-                                self.first_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
-                                self.second_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
-                                self.combined_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
-                                self.screen_combined_world_selected_tile_rect_x = 0.0
-                                self.screen_combined_world_selected_tile_rect_y = 0.0
-                                # Empty collision map.
-                                self.init_room_collision_map_list(
-                                    self.room_collision_map_width_tu,
-                                    self.room_collision_map_height_tu,
-                                )
                                 # Close curtain
                                 # Exit to SPRITE_SIZE_QUERY
                                 self.curtain.go_to_opaque()
                             # 3 = Redo
                             elif self.input_text == str(self.redo_choice_after_add_sprites_state):
-                                # TODO: Handle undo collision and sprite sheet mark properly
                                 self.selected_choice_after_add_sprites_state = self.redo_choice_after_add_sprites_state
-                                # Get fresh selected sprite sheet again
-                                self.sprite_sheet_surf = pg.image.load(self.sprite_sheet_png_path).convert_alpha()
-                                # Pop the recently added
-                                self.sprites_list.pop()
-                                # Empty the selected tile
-                                self.first_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
-                                self.second_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
-                                self.combined_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
-                                self.screen_combined_world_selected_tile_rect_x = 0.0
-                                self.screen_combined_world_selected_tile_rect_y = 0.0
-                                # Empty collision map
-                                self.init_room_collision_map_list(
-                                    self.room_collision_map_width_tu,
-                                    self.room_collision_map_height_tu,
-                                )
                                 # Close curtain
                                 # Exit to ADD_SPRITES
                                 self.curtain.go_to_opaque()
@@ -1019,7 +1053,16 @@ class SpriteSheetJsonGenerator:
         self.set_prompt_text("does the tile mix (y/n)?")
 
     def _SPRITE_TILE_MIX_QUERY_to_ADD_SPRITES(self) -> None:
-        pass
+        # Empty the selected tile
+        self.first_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
+        self.second_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
+        self.combined_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
+        self.screen_combined_world_selected_tile_rect_x = 0.0
+        self.screen_combined_world_selected_tile_rect_y = 0.0
+        self.combined_world_selected_tile_rect_width_tu = 0
+        self.combined_world_selected_tile_rect_height_tu = 0
+        self.combined_world_selected_tile_rect_x_tu = 0
+        self.combined_world_selected_tile_rect_y_tu = 0
 
     def _ADD_SPRITES_to_ADD_OTHER_SPRITES(self) -> None:
         pass
@@ -1037,7 +1080,16 @@ class SpriteSheetJsonGenerator:
         self.set_prompt_text("type the sprite name,")
 
     def _SAVE_QUIT_REDO_QUERY_to_ADD_SPRITES(self) -> None:
-        pass
+        # Empty the selected tile
+        self.first_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
+        self.second_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
+        self.combined_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
+        self.screen_combined_world_selected_tile_rect_x = 0.0
+        self.screen_combined_world_selected_tile_rect_y = 0.0
+        self.combined_world_selected_tile_rect_width_tu = 0
+        self.combined_world_selected_tile_rect_height_tu = 0
+        self.combined_world_selected_tile_rect_x_tu = 0
+        self.combined_world_selected_tile_rect_y_tu = 0
 
     def _CLOSING_SCENE_CURTAIN_to_CLOSED_SCENE_CURTAIN(self) -> None:
         NATIVE_SURF.fill("black")

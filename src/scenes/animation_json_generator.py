@@ -3,6 +3,7 @@ from enum import Enum
 from json import dump
 from os.path import exists
 from os.path import join
+from pathlib import Path
 from typing import Any
 from typing import TYPE_CHECKING
 
@@ -485,6 +486,7 @@ class AnimationJsonGenerator:
                     if self.game_event_handler.this_frame_event.key == pg.K_RETURN:
                         if self.input_text.isdigit():
                             # Setup the sprite_size
+                            # TODO: Separate size with width and height
                             self.animation_sprite_size = max(int(self.input_text) * TILE_SIZE, 0)
                             self.sprite_size_tu = int(self.animation_sprite_size // TILE_SIZE)
                             # Exit to ADD_SPRITES
@@ -750,14 +752,19 @@ class AnimationJsonGenerator:
                                 self.selected_choice_after_add_sprites_state = (
                                     self.save_and_quit_choice_after_add_sprites_state
                                 )
+
+                                # Get file name
+                                sprite_sheet_png_path_obj = Path(self.sprite_sheet_png_path)
+                                sprite_sheet_png_name = sprite_sheet_png_path_obj.name
+
                                 # Save this animation to local
                                 self.animation_json[self.animation_name] = {
                                     "animation_is_loop": self.animation_is_loop,
                                     "next_animation_name": self.next_animation_name,
                                     "animation_duration": self.animation_duration,
                                     "animation_sprite_size": self.animation_sprite_size,
+                                    "sprite_sheet_png_name": sprite_sheet_png_name,
                                     "animation_sprites_list": self.animation_sprites_list,
-                                    "self.sprite_sheet_png_path": self.sprite_sheet_png_path,
                                 }
                                 # Write to json
                                 with open(
@@ -774,14 +781,19 @@ class AnimationJsonGenerator:
                                 self.selected_choice_after_add_sprites_state = (
                                     self.save_and_redo_choice_after_add_sprites_state
                                 )
+
+                                # Get file name
+                                sprite_sheet_png_path_obj = Path(self.sprite_sheet_png_path)
+                                sprite_sheet_png_name = sprite_sheet_png_path_obj.name
+
                                 # Save this animation to local
                                 self.animation_json[self.animation_name] = {
                                     "animation_is_loop": self.animation_is_loop,
                                     "next_animation_name": self.next_animation_name,
                                     "animation_duration": self.animation_duration,
                                     "animation_sprite_size": self.animation_sprite_size,
+                                    "sprite_sheet_png_name": sprite_sheet_png_name,
                                     "animation_sprites_list": self.animation_sprites_list,
-                                    "self.sprite_sheet_png_path": self.sprite_sheet_png_path,
                                 }
                                 # Get fresh selected sprite sheet again
                                 self.sprite_sheet_surf = pg.image.load(self.sprite_sheet_png_path).convert_alpha()
