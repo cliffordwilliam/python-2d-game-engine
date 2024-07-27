@@ -22,6 +22,7 @@ from scenes.animation_json_generator import AnimationJsonGenerator
 from scenes.created_by_splash_screen import CreatedBySplashScreen
 from scenes.made_with_splash_screen import MadeWithSplashScreen
 from scenes.main_menu import MainMenu
+from scenes.room_json_generator import RoomJsonGenerator
 from scenes.sprite_sheet_json_generator import SpriteSheetJsonGenerator
 from scenes.title_screen import TitleScreen
 from typeguard import typechecked
@@ -88,6 +89,7 @@ class Game:
             "MainMenu": MainMenu,
             "AnimationJsonGenerator": AnimationJsonGenerator,
             "SpriteSheetJsonGenerator": SpriteSheetJsonGenerator,
+            "RoomJsonGenerator": RoomJsonGenerator,
         }
 
         # Keeps track of current scene.

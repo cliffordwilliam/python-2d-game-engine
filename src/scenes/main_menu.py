@@ -98,6 +98,7 @@ class MainMenu:
         self.sprite_sheet_json_generator: Button = Button(
             (48, 9), (30, 109), "sprite", (4, 2), "sprite sheet json generator"
         )
+        self.room_json_generator: Button = Button((48, 9), (30, 109), "room", (4, 2), "room json generator")
         self.button_container: ButtonContainer = ButtonContainer(
             buttons=[
                 self.new_game_button,
@@ -106,6 +107,7 @@ class MainMenu:
                 self.exit_button,
                 self.animation_json_generator,
                 self.sprite_sheet_json_generator,
+                self.room_json_generator,
             ],
             offset=0,
             limit=4,
@@ -233,6 +235,9 @@ class MainMenu:
         elif self.selected_button == self.sprite_sheet_json_generator:
             self.game.set_scene("SpriteSheetJsonGenerator")
 
+        elif self.selected_button == self.room_json_generator:
+            self.game.set_scene("RoomJsonGenerator")
+
     def on_curtain_invisible(self) -> None:
         self.state_machine_update.change_state(MainMenu.State.OPENED_SCENE_CURTAIN)
         self.state_machine_draw.change_state(MainMenu.State.OPENED_SCENE_CURTAIN)
@@ -268,6 +273,10 @@ class MainMenu:
             self.state_machine_draw.change_state(MainMenu.State.CLOSING_SCENE_CURTAIN)
 
         elif self.sprite_sheet_json_generator == self.selected_button:
+            self.state_machine_update.change_state(MainMenu.State.CLOSING_SCENE_CURTAIN)
+            self.state_machine_draw.change_state(MainMenu.State.CLOSING_SCENE_CURTAIN)
+
+        elif self.room_json_generator == self.selected_button:
             self.state_machine_update.change_state(MainMenu.State.CLOSING_SCENE_CURTAIN)
             self.state_machine_draw.change_state(MainMenu.State.CLOSING_SCENE_CURTAIN)
 
