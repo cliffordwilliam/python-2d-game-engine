@@ -37,6 +37,9 @@ class SpriteSheetJsonGenerator:
         OPENING_SCENE_CURTAIN = auto()
         OPENED_SCENE_CURTAIN = auto()
         SPRITE_SHEET_PNG_PATH_QUERY = auto()
+        SPRITE_SHEET_ROOM_MAP_BODY_COLOR_QUERY = auto()
+        SPRITE_SHEET_ROOM_MAP_SUB_DIVISION_COLOR_QUERY = auto()
+        SPRITE_SHEET_ROOM_MAP_BORDER_COLOR_QUERY = auto()
         SPRITE_NAME_QUERY = auto()
         SPRITE_LAYER_QUERY = auto()
         SPRITE_TYPE_QUERY = auto()
@@ -118,6 +121,9 @@ class SpriteSheetJsonGenerator:
     def _setup_user_input_store(self) -> None:
         """Store user inputs"""
         self.file_name: str = ""
+        self.sprite_room_map_body_color: str = ""
+        self.sprite_room_map_sub_division_color: str = ""
+        self.sprite_room_map_border_color: str = ""
         self.sprite_name: str = ""
         self.sprite_type: str = ""
         self.sprite_layer: int = 0
@@ -168,9 +174,7 @@ class SpriteSheetJsonGenerator:
 
     def _setup_music(self) -> None:
         # Load editor screen music. Played in my set state
-        self.game_music_manager.set_current_music_path(
-            OGGS_PATHS_DICT["xdeviruchi_take_some_rest_and_eat_some_food.ogg"]
-        )
+        self.game_music_manager.set_current_music_path(OGGS_PATHS_DICT["xdeviruchi_take_some_rest_and_eat_some_food.ogg"])
         self.game_music_manager.play_music(-1, 0.0, 0)
 
     def _create_state_machine_update(self) -> StateMachine:
@@ -182,6 +186,9 @@ class SpriteSheetJsonGenerator:
                 SpriteSheetJsonGenerator.State.OPENING_SCENE_CURTAIN: self._OPENING_SCENE_CURTAIN,
                 SpriteSheetJsonGenerator.State.OPENED_SCENE_CURTAIN: self._OPENED_SCENE_CURTAIN,
                 SpriteSheetJsonGenerator.State.SPRITE_SHEET_PNG_PATH_QUERY: self._SPRITE_SHEET_PNG_PATH_QUERY,
+                SpriteSheetJsonGenerator.State.SPRITE_SHEET_ROOM_MAP_BODY_COLOR_QUERY: self._SPRITE_SHEET_ROOM_MAP_BODY_COLOR_QUERY,
+                SpriteSheetJsonGenerator.State.SPRITE_SHEET_ROOM_MAP_SUB_DIVISION_COLOR_QUERY: self._SPRITE_SHEET_ROOM_MAP_SUB_DIVISION_COLOR_QUERY,
+                SpriteSheetJsonGenerator.State.SPRITE_SHEET_ROOM_MAP_BORDER_COLOR_QUERY: self._SPRITE_SHEET_ROOM_MAP_BORDER_COLOR_QUERY,
                 SpriteSheetJsonGenerator.State.SPRITE_NAME_QUERY: self._SPRITE_NAME_QUERY,
                 SpriteSheetJsonGenerator.State.SPRITE_LAYER_QUERY: self._SPRITE_LAYER_QUERY,
                 SpriteSheetJsonGenerator.State.SPRITE_TYPE_QUERY: self._SPRITE_TYPE_QUERY,
@@ -208,8 +215,20 @@ class SpriteSheetJsonGenerator:
                 ): self._OPENED_SCENE_CURTAIN_to_SPRITE_SHEET_PNG_PATH_QUERY,
                 (
                     SpriteSheetJsonGenerator.State.SPRITE_SHEET_PNG_PATH_QUERY,
+                    SpriteSheetJsonGenerator.State.SPRITE_SHEET_ROOM_MAP_BODY_COLOR_QUERY,
+                ): self._SPRITE_SHEET_PNG_PATH_QUERY_to_SPRITE_SHEET_ROOM_MAP_BODY_COLOR_QUERY,
+                (
+                    SpriteSheetJsonGenerator.State.SPRITE_SHEET_ROOM_MAP_BODY_COLOR_QUERY,
+                    SpriteSheetJsonGenerator.State.SPRITE_SHEET_ROOM_MAP_SUB_DIVISION_COLOR_QUERY,
+                ): self._SPRITE_SHEET_ROOM_MAP_BODY_COLOR_QUERY_to_SPRITE_SHEET_ROOM_MAP_SUB_DIVISION_COLOR_QUERY,
+                (
+                    SpriteSheetJsonGenerator.State.SPRITE_SHEET_ROOM_MAP_SUB_DIVISION_COLOR_QUERY,
+                    SpriteSheetJsonGenerator.State.SPRITE_SHEET_ROOM_MAP_BORDER_COLOR_QUERY,
+                ): self._SPRITE_SHEET_ROOM_MAP_SUB_DIVISION_COLOR_QUERY_to_SPRITE_SHEET_ROOM_MAP_BORDER_COLOR_QUERY,
+                (
+                    SpriteSheetJsonGenerator.State.SPRITE_SHEET_ROOM_MAP_BORDER_COLOR_QUERY,
                     SpriteSheetJsonGenerator.State.SPRITE_NAME_QUERY,
-                ): self._SPRITE_SHEET_PNG_PATH_QUERY_to_SPRITE_NAME_QUERY,
+                ): self._SPRITE_SHEET_ROOM_MAP_BORDER_COLOR_QUERY_to_SPRITE_NAME_QUERY,
                 (
                     SpriteSheetJsonGenerator.State.SPRITE_NAME_QUERY,
                     SpriteSheetJsonGenerator.State.SPRITE_LAYER_QUERY,
@@ -262,6 +281,9 @@ class SpriteSheetJsonGenerator:
                 SpriteSheetJsonGenerator.State.OPENING_SCENE_CURTAIN: self._QUERIES,
                 SpriteSheetJsonGenerator.State.OPENED_SCENE_CURTAIN: self._QUERIES,
                 SpriteSheetJsonGenerator.State.SPRITE_SHEET_PNG_PATH_QUERY: self._QUERIES,
+                SpriteSheetJsonGenerator.State.SPRITE_SHEET_ROOM_MAP_BODY_COLOR_QUERY: self._QUERIES,
+                SpriteSheetJsonGenerator.State.SPRITE_SHEET_ROOM_MAP_SUB_DIVISION_COLOR_QUERY: self._QUERIES,
+                SpriteSheetJsonGenerator.State.SPRITE_SHEET_ROOM_MAP_BORDER_COLOR_QUERY: self._QUERIES,
                 SpriteSheetJsonGenerator.State.SPRITE_NAME_QUERY: self._QUERIES,
                 SpriteSheetJsonGenerator.State.SPRITE_LAYER_QUERY: self._QUERIES,
                 SpriteSheetJsonGenerator.State.SPRITE_TYPE_QUERY: self._QUERIES,
@@ -323,12 +345,8 @@ class SpriteSheetJsonGenerator:
         mouse_position_x_tuple: int = mouse_position_tuple[0]
         mouse_position_y_tuple: int = mouse_position_tuple[1]
         # Scale mouse position
-        mouse_position_x_tuple_scaled: int | float = (
-            mouse_position_x_tuple // self.game.local_settings_dict["resolution_scale"]
-        )
-        mouse_position_y_tuple_scaled: int | float = (
-            mouse_position_y_tuple // self.game.local_settings_dict["resolution_scale"]
-        )
+        mouse_position_x_tuple_scaled: int | float = mouse_position_x_tuple // self.game.local_settings_dict["resolution_scale"]
+        mouse_position_y_tuple_scaled: int | float = mouse_position_y_tuple // self.game.local_settings_dict["resolution_scale"]
         # Keep mouse inside scaled NATIVE_RECT
         mouse_position_x_tuple_scaled = clamp(
             mouse_position_x_tuple_scaled,
@@ -399,12 +417,8 @@ class SpriteSheetJsonGenerator:
         mouse_position_x_tuple: int = mouse_position_tuple[0]
         mouse_position_y_tuple: int = mouse_position_tuple[1]
         # Scale mouse position
-        mouse_position_x_tuple_scaled: int | float = (
-            mouse_position_x_tuple // self.game.local_settings_dict["resolution_scale"]
-        )
-        mouse_position_y_tuple_scaled: int | float = (
-            mouse_position_y_tuple // self.game.local_settings_dict["resolution_scale"]
-        )
+        mouse_position_x_tuple_scaled: int | float = mouse_position_x_tuple // self.game.local_settings_dict["resolution_scale"]
+        mouse_position_y_tuple_scaled: int | float = mouse_position_y_tuple // self.game.local_settings_dict["resolution_scale"]
         # Keep mouse inside scaled NATIVE_RECT
         mouse_position_x_tuple_scaled = clamp(
             mouse_position_x_tuple_scaled,
@@ -440,9 +454,7 @@ class SpriteSheetJsonGenerator:
         # Combine the first rect with this cursor
         self.second_world_selected_tile_rect.x = self.world_mouse_snapped_x
         self.second_world_selected_tile_rect.y = self.world_mouse_snapped_y
-        self.combined_world_selected_tile_rect = self.first_world_selected_tile_rect.union(
-            self.second_world_selected_tile_rect
-        )
+        self.combined_world_selected_tile_rect = self.first_world_selected_tile_rect.union(self.second_world_selected_tile_rect)
         self.screen_combined_world_selected_tile_rect_x = self.combined_world_selected_tile_rect.x - self.camera.rect.x
         self.screen_combined_world_selected_tile_rect_y = self.combined_world_selected_tile_rect.y - self.camera.rect.y
         # Draw combined cursor
@@ -529,6 +541,90 @@ class SpriteSheetJsonGenerator:
                             self.curtain.go_to_opaque()
                         else:
                             self.set_input_text("png path does not exist!")
+                    # Delete
+                    elif self.game_event_handler.this_frame_event.key == pg.K_BACKSPACE:
+                        new_value = self.input_text[:-1]
+                        self.set_input_text(new_value)
+                        # Play text
+                        self.game_sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
+                    # Add
+                    else:
+                        new_value = self.input_text + self.game_event_handler.this_frame_event.unicode
+                        self.set_input_text(new_value)
+                        # Play text
+                        self.game_sound_manager.play_sound("text_1.ogg", 0, 0, 0)
+
+        # Update curtain
+        self.curtain.update(dt)
+
+    def _SPRITE_SHEET_ROOM_MAP_BODY_COLOR_QUERY(self, dt: int) -> None:
+        # Wait for curtain to be fully invisible
+        if self.curtain.is_done:
+            # Caught 1 key event this frame?
+            if self.game_event_handler.this_frame_event:
+                if self.game_event_handler.this_frame_event.type == pg.KEYDOWN:
+                    # Accept
+                    if self.game_event_handler.this_frame_event.key == pg.K_RETURN:
+                        if self.input_text != "":
+                            self.sprite_room_map_body_color = self.input_text
+                            # Close curtain
+                            self.curtain.go_to_opaque()
+                    # Delete
+                    elif self.game_event_handler.this_frame_event.key == pg.K_BACKSPACE:
+                        new_value = self.input_text[:-1]
+                        self.set_input_text(new_value)
+                        # Play text
+                        self.game_sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
+                    # Add
+                    else:
+                        new_value = self.input_text + self.game_event_handler.this_frame_event.unicode
+                        self.set_input_text(new_value)
+                        # Play text
+                        self.game_sound_manager.play_sound("text_1.ogg", 0, 0, 0)
+
+        # Update curtain
+        self.curtain.update(dt)
+
+    def _SPRITE_SHEET_ROOM_MAP_SUB_DIVISION_COLOR_QUERY(self, dt: int) -> None:
+        # Wait for curtain to be fully invisible
+        if self.curtain.is_done:
+            # Caught 1 key event this frame?
+            if self.game_event_handler.this_frame_event:
+                if self.game_event_handler.this_frame_event.type == pg.KEYDOWN:
+                    # Accept
+                    if self.game_event_handler.this_frame_event.key == pg.K_RETURN:
+                        if self.input_text != "":
+                            self.sprite_room_map_sub_division_color = self.input_text
+                            # Close curtain
+                            self.curtain.go_to_opaque()
+                    # Delete
+                    elif self.game_event_handler.this_frame_event.key == pg.K_BACKSPACE:
+                        new_value = self.input_text[:-1]
+                        self.set_input_text(new_value)
+                        # Play text
+                        self.game_sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
+                    # Add
+                    else:
+                        new_value = self.input_text + self.game_event_handler.this_frame_event.unicode
+                        self.set_input_text(new_value)
+                        # Play text
+                        self.game_sound_manager.play_sound("text_1.ogg", 0, 0, 0)
+
+        # Update curtain
+        self.curtain.update(dt)
+
+    def _SPRITE_SHEET_ROOM_MAP_BORDER_COLOR_QUERY(self, dt: int) -> None:
+        # Wait for curtain to be fully invisible
+        if self.curtain.is_done:
+            # Caught 1 key event this frame?
+            if self.game_event_handler.this_frame_event:
+                if self.game_event_handler.this_frame_event.type == pg.KEYDOWN:
+                    # Accept
+                    if self.game_event_handler.this_frame_event.key == pg.K_RETURN:
+                        if self.input_text != "":
+                            self.sprite_room_map_border_color = self.input_text
+                            # Close curtain
+                            self.curtain.go_to_opaque()
                     # Delete
                     elif self.game_event_handler.this_frame_event.key == pg.K_BACKSPACE:
                         new_value = self.input_text[:-1]
@@ -707,9 +803,7 @@ class SpriteSheetJsonGenerator:
         if self.curtain.is_done:
             # Camera movement
             # Get direction_horizontal
-            direction_horizontal: int = (
-                self.game_event_handler.is_right_pressed - self.game_event_handler.is_left_pressed
-            )
+            direction_horizontal: int = self.game_event_handler.is_right_pressed - self.game_event_handler.is_left_pressed
             # Update camera anchor position with direction and speed
             self.camera_anchor_vector.x += direction_horizontal * self.camera_speed * dt
             # Get direction_vertical
@@ -753,9 +847,7 @@ class SpriteSheetJsonGenerator:
         if self.curtain.is_done:
             # Camera movement
             # Get direction_horizontal
-            direction_horizontal: int = (
-                self.game_event_handler.is_right_pressed - self.game_event_handler.is_left_pressed
-            )
+            direction_horizontal: int = self.game_event_handler.is_right_pressed - self.game_event_handler.is_left_pressed
             # Update camera anchor position with direction and speed
             self.camera_anchor_vector.x += direction_horizontal * self.camera_speed * dt
             # Get direction_vertical
@@ -771,12 +863,8 @@ class SpriteSheetJsonGenerator:
             if self.game_event_handler.is_lmb_just_pressed:
                 # Check if selection is all empty cells
                 # Iterate size to check all empty
-                self.combined_world_selected_tile_rect_width_tu = int(
-                    self.combined_world_selected_tile_rect.width // TILE_SIZE
-                )
-                self.combined_world_selected_tile_rect_height_tu = int(
-                    self.combined_world_selected_tile_rect.height // TILE_SIZE
-                )
+                self.combined_world_selected_tile_rect_width_tu = int(self.combined_world_selected_tile_rect.width // TILE_SIZE)
+                self.combined_world_selected_tile_rect_height_tu = int(self.combined_world_selected_tile_rect.height // TILE_SIZE)
                 self.combined_world_selected_tile_rect_x_tu = int(self.combined_world_selected_tile_rect.x // TILE_SIZE)
                 self.combined_world_selected_tile_rect_y_tu = int(self.combined_world_selected_tile_rect.y // TILE_SIZE)
                 for world_mouse_tu_xi in range(self.combined_world_selected_tile_rect_width_tu):
@@ -819,20 +907,14 @@ class SpriteSheetJsonGenerator:
                         ]:
                             # 1 = Save and quit
                             if self.input_text == str(self.save_and_quit_choice_after_add_sprites_state):
-                                self.selected_choice_after_add_sprites_state = (
-                                    self.save_and_quit_choice_after_add_sprites_state
-                                )
+                                self.selected_choice_after_add_sprites_state = self.save_and_quit_choice_after_add_sprites_state
 
                                 # Fill it
                                 # Iterate size to set 1
                                 for world_mouse_tu_xi2 in range(self.combined_world_selected_tile_rect_width_tu):
                                     for world_mouse_tu_yi2 in range(self.combined_world_selected_tile_rect_height_tu):
-                                        world_mouse_tu_x2 = (
-                                            self.combined_world_selected_tile_rect_x_tu + world_mouse_tu_xi2
-                                        )
-                                        world_mouse_tu_y2 = (
-                                            self.combined_world_selected_tile_rect_y_tu + world_mouse_tu_yi2
-                                        )
+                                        world_mouse_tu_x2 = self.combined_world_selected_tile_rect_x_tu + world_mouse_tu_xi2
+                                        world_mouse_tu_y2 = self.combined_world_selected_tile_rect_y_tu + world_mouse_tu_yi2
                                         # Store each one in room_collision_map_list
                                         self.set_tile_from_room_collision_map_list(
                                             world_mouse_tu_x2,
@@ -868,6 +950,9 @@ class SpriteSheetJsonGenerator:
 
                                 self.sprite_json = {
                                     "sprite_sheet_png_name": sprite_sheet_png_name,
+                                    "sprite_room_map_body_color": self.sprite_room_map_body_color,
+                                    "sprite_room_map_sub_division_color": self.sprite_room_map_sub_division_color,
+                                    "sprite_room_map_border_color": self.sprite_room_map_border_color,
                                     "sprites_list": self.sprites_list,
                                 }
                                 # Write to json
@@ -884,20 +969,14 @@ class SpriteSheetJsonGenerator:
                                 self.curtain.go_to_opaque()
                             # 2 = Save and redo
                             elif self.input_text == str(self.save_and_redo_choice_after_add_sprites_state):
-                                self.selected_choice_after_add_sprites_state = (
-                                    self.save_and_redo_choice_after_add_sprites_state
-                                )
+                                self.selected_choice_after_add_sprites_state = self.save_and_redo_choice_after_add_sprites_state
 
                                 # Fill it
                                 # Iterate size to set 1
                                 for world_mouse_tu_xi2 in range(self.combined_world_selected_tile_rect_width_tu):
                                     for world_mouse_tu_yi2 in range(self.combined_world_selected_tile_rect_height_tu):
-                                        world_mouse_tu_x2 = (
-                                            self.combined_world_selected_tile_rect_x_tu + world_mouse_tu_xi2
-                                        )
-                                        world_mouse_tu_y2 = (
-                                            self.combined_world_selected_tile_rect_y_tu + world_mouse_tu_yi2
-                                        )
+                                        world_mouse_tu_x2 = self.combined_world_selected_tile_rect_x_tu + world_mouse_tu_xi2
+                                        world_mouse_tu_y2 = self.combined_world_selected_tile_rect_y_tu + world_mouse_tu_yi2
                                         # Store each one in room_collision_map_list
                                         self.set_tile_from_room_collision_map_list(
                                             world_mouse_tu_x2,
@@ -933,6 +1012,9 @@ class SpriteSheetJsonGenerator:
 
                                 self.sprite_json = {
                                     "sprite_sheet_png_name": sprite_sheet_png_name,
+                                    "sprite_room_map_body_color": self.sprite_room_map_body_color,
+                                    "sprite_room_map_sub_division_color": self.sprite_room_map_sub_division_color,
+                                    "sprite_room_map_border_color": self.sprite_room_map_border_color,
                                     "sprites_list": self.sprites_list,
                                 }
                                 # Close curtain
@@ -999,7 +1081,25 @@ class SpriteSheetJsonGenerator:
         # Set my prompt text
         self.set_prompt_text("type the png path to be loaded,")
 
-    def _SPRITE_SHEET_PNG_PATH_QUERY_to_SPRITE_NAME_QUERY(self) -> None:
+    def _SPRITE_SHEET_PNG_PATH_QUERY_to_SPRITE_SHEET_ROOM_MAP_BODY_COLOR_QUERY(self) -> None:
+        # Reset the input text
+        self.set_input_text("")
+        # Set my prompt text
+        self.set_prompt_text("type the sprite room map body hex color,")
+
+    def _SPRITE_SHEET_ROOM_MAP_BODY_COLOR_QUERY_to_SPRITE_SHEET_ROOM_MAP_SUB_DIVISION_COLOR_QUERY(self) -> None:
+        # Reset the input text
+        self.set_input_text("")
+        # Set my prompt text
+        self.set_prompt_text("type the sprite room map sub division hex color,")
+
+    def _SPRITE_SHEET_ROOM_MAP_SUB_DIVISION_COLOR_QUERY_to_SPRITE_SHEET_ROOM_MAP_BORDER_COLOR_QUERY(self) -> None:
+        # Reset the input text
+        self.set_input_text("")
+        # Set my prompt text
+        self.set_prompt_text("type the sprite room map border hex color,")
+
+    def _SPRITE_SHEET_ROOM_MAP_BORDER_COLOR_QUERY_to_SPRITE_NAME_QUERY(self) -> None:
         # Reset the input text
         self.set_input_text("")
         # Set my prompt text
@@ -1093,6 +1193,18 @@ class SpriteSheetJsonGenerator:
             self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.SPRITE_SHEET_PNG_PATH_QUERY)
             self.curtain.go_to_invisible()
         elif self.state_machine_update.state == SpriteSheetJsonGenerator.State.SPRITE_SHEET_PNG_PATH_QUERY:
+            self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.SPRITE_SHEET_ROOM_MAP_BODY_COLOR_QUERY)
+            self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.SPRITE_SHEET_ROOM_MAP_BODY_COLOR_QUERY)
+            self.curtain.go_to_invisible()
+        elif self.state_machine_update.state == SpriteSheetJsonGenerator.State.SPRITE_SHEET_ROOM_MAP_BODY_COLOR_QUERY:
+            self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.SPRITE_SHEET_ROOM_MAP_SUB_DIVISION_COLOR_QUERY)
+            self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.SPRITE_SHEET_ROOM_MAP_SUB_DIVISION_COLOR_QUERY)
+            self.curtain.go_to_invisible()
+        elif self.state_machine_update.state == SpriteSheetJsonGenerator.State.SPRITE_SHEET_ROOM_MAP_SUB_DIVISION_COLOR_QUERY:
+            self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.SPRITE_SHEET_ROOM_MAP_BORDER_COLOR_QUERY)
+            self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.SPRITE_SHEET_ROOM_MAP_BORDER_COLOR_QUERY)
+            self.curtain.go_to_invisible()
+        elif self.state_machine_update.state == SpriteSheetJsonGenerator.State.SPRITE_SHEET_ROOM_MAP_BORDER_COLOR_QUERY:
             self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.SPRITE_NAME_QUERY)
             self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.SPRITE_NAME_QUERY)
             self.curtain.go_to_invisible()
@@ -1191,9 +1303,7 @@ class SpriteSheetJsonGenerator:
     ) -> None:
         self.room_collision_map_width_tu = room_width_tu
         self.room_collision_map_height_tu = room_height_tu
-        self.room_collision_map_list = [
-            0 for _ in range(self.room_collision_map_width_tu * self.room_collision_map_height_tu)
-        ]
+        self.room_collision_map_list = [0 for _ in range(self.room_collision_map_width_tu * self.room_collision_map_height_tu)]
 
     def set_input_text(self, value: str) -> None:
         self.input_text = value
