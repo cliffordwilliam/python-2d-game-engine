@@ -82,7 +82,17 @@ PNGS_PATHS_DICT: dict[str, str] = create_paths_dict(PNGS_DIR_PATH)
 OGGS_PATHS_DICT: dict[str, str] = create_paths_dict(OGGS_DIR_PATH)
 
 # Room json properties
-ROOM_JSON_PROPERTIES = ["room_x_ru", "room_y_ru", "room_scale_x", "room_scale_y"]
+ROOM_JSON_PROPERTIES = [
+    "file_name",
+    "room_x_ru",
+    "room_y_ru",
+    "room_scale_x",
+    "room_scale_y",
+    "sprite_sheet_png_name",
+    "sprite_room_map_body_color",
+    "sprite_room_map_sub_division_color",
+    "sprite_room_map_border_color",
+]
 
 # FPS
 FPS: int = 60
@@ -91,10 +101,10 @@ FPS: int = 60
 TILE_SIZE: int = 16
 
 WORLD_CELL_SIZE: int = 8
-WORLD_WIDTH_TU: int = 35
-WORLD_HEIGHT_TU: int = 22
-WORLD_WIDTH: int = WORLD_WIDTH_TU * WORLD_CELL_SIZE
-WORLD_HEIGHT: int = WORLD_HEIGHT_TU * WORLD_CELL_SIZE
+WORLD_WIDTH_RU: int = 35
+WORLD_HEIGHT_RU: int = 22
+WORLD_WIDTH: int = WORLD_WIDTH_RU * WORLD_CELL_SIZE
+WORLD_HEIGHT: int = WORLD_HEIGHT_RU * WORLD_CELL_SIZE
 
 WINDOW_WIDTH: int = 320
 WINDOW_HEIGHT: int = 180

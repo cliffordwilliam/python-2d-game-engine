@@ -4,7 +4,6 @@ from json import dump
 from os.path import exists
 from os.path import join
 from pathlib import Path
-from typing import Any
 from typing import TYPE_CHECKING
 
 from constants import FONT
@@ -87,6 +86,9 @@ class SpriteSheetJsonGenerator:
         self.combined_world_selected_tile_rect_x_tu = 0
         self.combined_world_selected_tile_rect_y_tu = 0
 
+        # If image is smaller than camera no need to move camera
+        self.is_sprite_smaller_than_camera: bool = True
+
     # Setups
     def _setup_curtain(self) -> None:
         """Setup curtain with event listeners."""
@@ -132,9 +134,9 @@ class SpriteSheetJsonGenerator:
 
         # Sprite sheet surf
         # TODO: Save the sprite sheet name instead
-        self.sprite_sheet_png_path: Any = None
-        self.sprite_sheet_surf: Any = None
-        self.sprite_sheet_rect: Any = None
+        self.sprite_sheet_png_path: (None | str) = None
+        self.sprite_sheet_surf: (None | pg.Surface) = None
+        self.sprite_sheet_rect: (None | pg.Rect) = None
 
         # To be saved json
         self.sprite_json: dict = {}
@@ -331,13 +333,14 @@ class SpriteSheetJsonGenerator:
         self.draw_grid()
 
         # Draw selected sprite sheet with camera offset
-        NATIVE_SURF.blit(
-            self.sprite_sheet_surf,
-            (
-                -self.camera.rect.x,
-                -self.camera.rect.y,
-            ),
-        )
+        if self.sprite_sheet_surf is not None:
+            NATIVE_SURF.blit(
+                self.sprite_sheet_surf,
+                (
+                    -self.camera.rect.x,
+                    -self.camera.rect.y,
+                ),
+            )
 
         # Draw cursor
         # Get mouse position
@@ -365,14 +368,15 @@ class SpriteSheetJsonGenerator:
         # Convert positions
         self.world_mouse_x = mouse_position_x_tuple_scaled + self.camera.rect.x
         self.world_mouse_y = mouse_position_y_tuple_scaled + self.camera.rect.y
-        self.world_mouse_x = min(
-            self.world_mouse_x,
-            self.sprite_sheet_rect.right - TILE_SIZE,
-        )
-        self.world_mouse_y = min(
-            self.world_mouse_y,
-            self.sprite_sheet_rect.bottom - TILE_SIZE,
-        )
+        if self.sprite_sheet_rect is not None:
+            self.world_mouse_x = min(
+                self.world_mouse_x,
+                self.sprite_sheet_rect.right - TILE_SIZE,
+            )
+            self.world_mouse_y = min(
+                self.world_mouse_y,
+                self.sprite_sheet_rect.bottom - TILE_SIZE,
+            )
         self.world_mouse_tu_x = int(self.world_mouse_x // TILE_SIZE)
         self.world_mouse_tu_y = int(self.world_mouse_y // TILE_SIZE)
         self.world_mouse_snapped_x = int(self.world_mouse_tu_x * TILE_SIZE)
@@ -403,13 +407,14 @@ class SpriteSheetJsonGenerator:
         self.draw_grid()
 
         # Draw selected sprite sheet with camera offset
-        NATIVE_SURF.blit(
-            self.sprite_sheet_surf,
-            (
-                -self.camera.rect.x,
-                -self.camera.rect.y,
-            ),
-        )
+        if self.sprite_sheet_surf is not None:
+            NATIVE_SURF.blit(
+                self.sprite_sheet_surf,
+                (
+                    -self.camera.rect.x,
+                    -self.camera.rect.y,
+                ),
+            )
 
         # Draw cursor
         # Get mouse position
@@ -437,14 +442,15 @@ class SpriteSheetJsonGenerator:
         # Convert positions
         self.world_mouse_x = mouse_position_x_tuple_scaled + self.camera.rect.x
         self.world_mouse_y = mouse_position_y_tuple_scaled + self.camera.rect.y
-        self.world_mouse_x = min(
-            self.world_mouse_x,
-            self.sprite_sheet_rect.right - TILE_SIZE,
-        )
-        self.world_mouse_y = min(
-            self.world_mouse_y,
-            self.sprite_sheet_rect.bottom - TILE_SIZE,
-        )
+        if self.sprite_sheet_rect is not None:
+            self.world_mouse_x = min(
+                self.world_mouse_x,
+                self.sprite_sheet_rect.right - TILE_SIZE,
+            )
+            self.world_mouse_y = min(
+                self.world_mouse_y,
+                self.sprite_sheet_rect.bottom - TILE_SIZE,
+            )
         self.world_mouse_tu_x = int(self.world_mouse_x // TILE_SIZE)
         self.world_mouse_tu_y = int(self.world_mouse_y // TILE_SIZE)
         self.world_mouse_snapped_x = int(self.world_mouse_tu_x * TILE_SIZE)
@@ -522,13 +528,18 @@ class SpriteSheetJsonGenerator:
                             self.sprite_sheet_png_path = self.input_text
                             self.sprite_sheet_surf = pg.image.load(self.sprite_sheet_png_path).convert_alpha()
                             self.sprite_sheet_rect = self.sprite_sheet_surf.get_rect()
-                            # Setup camera limits
-                            self.camera.set_rect_limit(
-                                float(self.sprite_sheet_rect.top),
-                                float(self.sprite_sheet_rect.bottom),
-                                float(self.sprite_sheet_rect.left),
-                                float(self.sprite_sheet_rect.right),
-                            )
+                            is_narrower = self.sprite_sheet_rect.width < self.camera.rect.width
+                            is_shorter = self.sprite_sheet_rect.height < self.camera.rect.height
+                            if not (is_narrower or is_shorter):
+                                # If image is smaller than camera no need to move camera
+                                self.is_sprite_smaller_than_camera = False
+                                # Setup camera limits
+                                self.camera.set_rect_limit(
+                                    float(self.sprite_sheet_rect.top),
+                                    float(self.sprite_sheet_rect.bottom),
+                                    float(self.sprite_sheet_rect.left),
+                                    float(self.sprite_sheet_rect.right),
+                                )
                             # Init room collision map list
                             sprite_sheet_width_tu: int = self.sprite_sheet_rect.width // TILE_SIZE
                             sprite_sheet_height_tu: int = self.sprite_sheet_rect.height // TILE_SIZE
@@ -801,17 +812,19 @@ class SpriteSheetJsonGenerator:
         """
         # Wait for curtain to be fully invisible
         if self.curtain.is_done:
-            # Camera movement
-            # Get direction_horizontal
-            direction_horizontal: int = self.game_event_handler.is_right_pressed - self.game_event_handler.is_left_pressed
-            # Update camera anchor position with direction and speed
-            self.camera_anchor_vector.x += direction_horizontal * self.camera_speed * dt
-            # Get direction_vertical
-            direction_vertical: int = self.game_event_handler.is_down_pressed - self.game_event_handler.is_up_pressed
-            # Update camera anchor position with direction and speed
-            self.camera_anchor_vector.y += direction_vertical * self.camera_speed * dt
-            # Lerp camera position to target camera anchor
-            self.camera.update(dt)
+            # If image is smaller than camera no need to move camera
+            if not self.is_sprite_smaller_than_camera:
+                # Camera movement
+                # Get direction_horizontal
+                direction_horizontal: int = self.game_event_handler.is_right_pressed - self.game_event_handler.is_left_pressed
+                # Update camera anchor position with direction and speed
+                self.camera_anchor_vector.x += direction_horizontal * self.camera_speed * dt
+                # Get direction_vertical
+                direction_vertical: int = self.game_event_handler.is_down_pressed - self.game_event_handler.is_up_pressed
+                # Update camera anchor position with direction and speed
+                self.camera_anchor_vector.y += direction_vertical * self.camera_speed * dt
+                # Lerp camera position to target camera anchor
+                self.camera.update(dt)
 
             # Sprite selection
             # Lmb just pressed
@@ -845,17 +858,19 @@ class SpriteSheetJsonGenerator:
         """
         # Wait for curtain to be fully invisible
         if self.curtain.is_done:
-            # Camera movement
-            # Get direction_horizontal
-            direction_horizontal: int = self.game_event_handler.is_right_pressed - self.game_event_handler.is_left_pressed
-            # Update camera anchor position with direction and speed
-            self.camera_anchor_vector.x += direction_horizontal * self.camera_speed * dt
-            # Get direction_vertical
-            direction_vertical: int = self.game_event_handler.is_down_pressed - self.game_event_handler.is_up_pressed
-            # Update camera anchor position with direction and speed
-            self.camera_anchor_vector.y += direction_vertical * self.camera_speed * dt
-            # Lerp camera position to target camera anchor
-            self.camera.update(dt)
+            # If image is smaller than camera no need to move camera
+            if not self.is_sprite_smaller_than_camera:
+                # Camera movement
+                # Get direction_horizontal
+                direction_horizontal: int = self.game_event_handler.is_right_pressed - self.game_event_handler.is_left_pressed
+                # Update camera anchor position with direction and speed
+                self.camera_anchor_vector.x += direction_horizontal * self.camera_speed * dt
+                # Get direction_vertical
+                direction_vertical: int = self.game_event_handler.is_down_pressed - self.game_event_handler.is_up_pressed
+                # Update camera anchor position with direction and speed
+                self.camera_anchor_vector.y += direction_vertical * self.camera_speed * dt
+                # Lerp camera position to target camera anchor
+                self.camera.update(dt)
 
             # Sprite selection
             # Lmb just pressed
@@ -921,14 +936,15 @@ class SpriteSheetJsonGenerator:
                                             world_mouse_tu_y2,
                                             1,
                                         )
-                                        # Draw marker on sprite sheet
-                                        self.sprite_sheet_surf.blit(
-                                            self.selected_surf_marker,
-                                            (
-                                                world_mouse_tu_x2 * TILE_SIZE,
-                                                world_mouse_tu_y2 * TILE_SIZE,
-                                            ),
-                                        )
+                                        if self.sprite_sheet_surf is not None:
+                                            # Draw marker on sprite sheet
+                                            self.sprite_sheet_surf.blit(
+                                                self.selected_surf_marker,
+                                                (
+                                                    world_mouse_tu_x2 * TILE_SIZE,
+                                                    world_mouse_tu_y2 * TILE_SIZE,
+                                                ),
+                                            )
                                 # Add to list
                                 self.sprites_list.append(
                                     {
@@ -945,28 +961,29 @@ class SpriteSheetJsonGenerator:
                                 )
 
                                 # Get file name
-                                sprite_sheet_png_path_obj = Path(self.sprite_sheet_png_path)
-                                sprite_sheet_png_name = sprite_sheet_png_path_obj.name
+                                if self.sprite_sheet_png_path is not None:
+                                    sprite_sheet_png_path_obj = Path(self.sprite_sheet_png_path)
+                                    sprite_sheet_png_name = sprite_sheet_png_path_obj.name
 
-                                self.sprite_json = {
-                                    "sprite_sheet_png_name": sprite_sheet_png_name,
-                                    "sprite_room_map_body_color": self.sprite_room_map_body_color,
-                                    "sprite_room_map_sub_division_color": self.sprite_room_map_sub_division_color,
-                                    "sprite_room_map_border_color": self.sprite_room_map_border_color,
-                                    "sprites_list": self.sprites_list,
-                                }
-                                # Write to json
-                                with open(
-                                    # Create new file
-                                    join(JSONS_PROJ_DIR_PATH, f"{self.file_name}.json"),
-                                    "w",
-                                ) as sprite_json:
-                                    dump(self.sprite_json, sprite_json, separators=(",", ":"))
-                                self.game.update_jsons_proj_paths_dict()
-                                # Close curtain
-                                # Exit to main menu
-                                self.game_music_manager.fade_out_music(int(self.curtain.fade_duration))
-                                self.curtain.go_to_opaque()
+                                    self.sprite_json = {
+                                        "sprite_sheet_png_name": sprite_sheet_png_name,
+                                        "sprite_room_map_body_color": self.sprite_room_map_body_color,
+                                        "sprite_room_map_sub_division_color": self.sprite_room_map_sub_division_color,
+                                        "sprite_room_map_border_color": self.sprite_room_map_border_color,
+                                        "sprites_list": self.sprites_list,
+                                    }
+                                    # Write to json
+                                    with open(
+                                        # Create new file
+                                        join(JSONS_PROJ_DIR_PATH, f"{self.file_name}.json"),
+                                        "w",
+                                    ) as sprite_json:
+                                        dump(self.sprite_json, sprite_json, separators=(",", ":"))
+                                    self.game.update_jsons_proj_paths_dict()
+                                    # Close curtain
+                                    # Exit to main menu
+                                    self.game_music_manager.fade_out_music(int(self.curtain.fade_duration))
+                                    self.curtain.go_to_opaque()
                             # 2 = Save and redo
                             elif self.input_text == str(self.save_and_redo_choice_after_add_sprites_state):
                                 self.selected_choice_after_add_sprites_state = self.save_and_redo_choice_after_add_sprites_state
@@ -984,13 +1001,14 @@ class SpriteSheetJsonGenerator:
                                             1,
                                         )
                                         # Draw marker on sprite sheet
-                                        self.sprite_sheet_surf.blit(
-                                            self.selected_surf_marker,
-                                            (
-                                                world_mouse_tu_x2 * TILE_SIZE,
-                                                world_mouse_tu_y2 * TILE_SIZE,
-                                            ),
-                                        )
+                                        if self.sprite_sheet_surf is not None:
+                                            self.sprite_sheet_surf.blit(
+                                                self.selected_surf_marker,
+                                                (
+                                                    world_mouse_tu_x2 * TILE_SIZE,
+                                                    world_mouse_tu_y2 * TILE_SIZE,
+                                                ),
+                                            )
                                 # Add to list
                                 self.sprites_list.append(
                                     {
@@ -1007,19 +1025,20 @@ class SpriteSheetJsonGenerator:
                                 )
 
                                 # Get file name
-                                sprite_sheet_png_path_obj = Path(self.sprite_sheet_png_path)
-                                sprite_sheet_png_name = sprite_sheet_png_path_obj.name
+                                if self.sprite_sheet_png_path is not None:
+                                    sprite_sheet_png_path_obj = Path(self.sprite_sheet_png_path)
+                                    sprite_sheet_png_name = sprite_sheet_png_path_obj.name
 
-                                self.sprite_json = {
-                                    "sprite_sheet_png_name": sprite_sheet_png_name,
-                                    "sprite_room_map_body_color": self.sprite_room_map_body_color,
-                                    "sprite_room_map_sub_division_color": self.sprite_room_map_sub_division_color,
-                                    "sprite_room_map_border_color": self.sprite_room_map_border_color,
-                                    "sprites_list": self.sprites_list,
-                                }
-                                # Close curtain
-                                # Exit to SPRITE_SIZE_QUERY
-                                self.curtain.go_to_opaque()
+                                    self.sprite_json = {
+                                        "sprite_sheet_png_name": sprite_sheet_png_name,
+                                        "sprite_room_map_body_color": self.sprite_room_map_body_color,
+                                        "sprite_room_map_sub_division_color": self.sprite_room_map_sub_division_color,
+                                        "sprite_room_map_border_color": self.sprite_room_map_border_color,
+                                        "sprites_list": self.sprites_list,
+                                    }
+                                    # Close curtain
+                                    # Exit to SPRITE_SIZE_QUERY
+                                    self.curtain.go_to_opaque()
                             # 3 = Redo
                             elif self.input_text == str(self.redo_choice_after_add_sprites_state):
                                 self.selected_choice_after_add_sprites_state = self.redo_choice_after_add_sprites_state

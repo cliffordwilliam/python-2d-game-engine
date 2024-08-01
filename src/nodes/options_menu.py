@@ -348,9 +348,7 @@ class OptionsMenu:
         self.decoration_vertical_start = (NATIVE_RECT.center[0], self.button_flex_col_topleft[1])
         self.decoration_vertical_x: int = self.decoration_vertical_start[0]
         self.decoration_vertical_top: int = self.decoration_vertical_start[1]
-        self.decoration_vetical_height: int = (
-            self.button_container.button_height_with_margin * self.button_container.limit
-        )
+        self.decoration_vetical_height: int = self.button_container.button_height_with_margin * self.button_container.limit
         self.decoration_vertical_bottom: int = self.decoration_vertical_top + self.decoration_vetical_height
         self.decoration_horizontal_y: int = self.decoration_vertical_bottom
         self.decoration_horizontal_left: int = self.button_flex_col_topleft[0]
@@ -444,9 +442,7 @@ class OptionsMenu:
         self.curtain.surf.blit(
             self.decoration_line_surf_horizontal, (self.decoration_horizontal_left, self.decoration_horizontal_y)
         )
-        self.curtain.surf.blit(
-            self.decoration_line_surf_vertical, (self.decoration_vertical_x, self.decoration_vertical_top)
-        )
+        self.curtain.surf.blit(self.decoration_line_surf_vertical, (self.decoration_vertical_x, self.decoration_vertical_top))
 
         # Draw curtain on native
         self.curtain.draw(NATIVE_SURF, 0)
@@ -470,9 +466,7 @@ class OptionsMenu:
         self.curtain.surf.blit(
             self.decoration_line_surf_horizontal, (self.decoration_horizontal_left, self.decoration_horizontal_y)
         )
-        self.curtain.surf.blit(
-            self.decoration_line_surf_vertical, (self.decoration_vertical_x, self.decoration_vertical_top)
-        )
+        self.curtain.surf.blit(self.decoration_line_surf_vertical, (self.decoration_vertical_x, self.decoration_vertical_top))
 
         # Draw curtain on native
         self.curtain.draw(NATIVE_SURF, 0)
@@ -496,9 +490,7 @@ class OptionsMenu:
         self.curtain.surf.blit(
             self.decoration_line_surf_horizontal, (self.decoration_horizontal_left, self.decoration_horizontal_y)
         )
-        self.curtain.surf.blit(
-            self.decoration_line_surf_vertical, (self.decoration_vertical_x, self.decoration_vertical_top)
-        )
+        self.curtain.surf.blit(self.decoration_line_surf_vertical, (self.decoration_vertical_x, self.decoration_vertical_top))
 
         # Draw curtain on native
         self.curtain.draw(NATIVE_SURF, 0)
@@ -525,9 +517,7 @@ class OptionsMenu:
         self.curtain.surf.blit(
             self.decoration_line_surf_horizontal, (self.decoration_horizontal_left, self.decoration_horizontal_y)
         )
-        self.curtain.surf.blit(
-            self.decoration_line_surf_vertical, (self.decoration_vertical_x, self.decoration_vertical_top)
-        )
+        self.curtain.surf.blit(self.decoration_line_surf_vertical, (self.decoration_vertical_x, self.decoration_vertical_top))
 
         # Draw curtain on native
         self.curtain.draw(NATIVE_SURF, 0)
@@ -577,41 +567,43 @@ class OptionsMenu:
             # Find if pressed key is used already?
             for key_name, key_int in self.game.local_settings_dict.items():
                 # Update text to alert message, return
-                if self.game_event_handler.this_frame_event.key == key_int:
-                    self.update_input_text(self.focused_button, f"used by '{key_name}'")
-                    return
+                if self.game_event_handler.this_frame_event is not None:
+                    if self.game_event_handler.this_frame_event.key == key_int:
+                        self.update_input_text(self.focused_button, f"used by '{key_name}'")
+                        return
 
             # Rebind, update game.local_settings_dict input
             # TODO: Create key val for this
-            if self.focused_button == self.up_input_button:
-                self.game.local_settings_dict["up"] = self.game_event_handler.this_frame_event.key
-            elif self.focused_button == self.down_input_button:
-                self.game.local_settings_dict["down"] = self.game_event_handler.this_frame_event.key
-            elif self.focused_button == self.left_input_button:
-                self.game.local_settings_dict["left"] = self.game_event_handler.this_frame_event.key
-            elif self.focused_button == self.right_input_button:
-                self.game.local_settings_dict["right"] = self.game_event_handler.this_frame_event.key
-            elif self.focused_button == self.enter_input_button:
-                self.game.local_settings_dict["enter"] = self.game_event_handler.this_frame_event.key
-            elif self.focused_button == self.pause_input_button:
-                self.game.local_settings_dict["pause"] = self.game_event_handler.this_frame_event.key
-            elif self.focused_button == self.jump_input_button:
-                self.game.local_settings_dict["jump"] = self.game_event_handler.this_frame_event.key
-            elif self.focused_button == self.attack_input_button:
-                self.game.local_settings_dict["attack"] = self.game_event_handler.this_frame_event.key
+            if self.game_event_handler.this_frame_event is not None:
+                if self.focused_button == self.up_input_button:
+                    self.game.local_settings_dict["up"] = self.game_event_handler.this_frame_event.key
+                elif self.focused_button == self.down_input_button:
+                    self.game.local_settings_dict["down"] = self.game_event_handler.this_frame_event.key
+                elif self.focused_button == self.left_input_button:
+                    self.game.local_settings_dict["left"] = self.game_event_handler.this_frame_event.key
+                elif self.focused_button == self.right_input_button:
+                    self.game.local_settings_dict["right"] = self.game_event_handler.this_frame_event.key
+                elif self.focused_button == self.enter_input_button:
+                    self.game.local_settings_dict["enter"] = self.game_event_handler.this_frame_event.key
+                elif self.focused_button == self.pause_input_button:
+                    self.game.local_settings_dict["pause"] = self.game_event_handler.this_frame_event.key
+                elif self.focused_button == self.jump_input_button:
+                    self.game.local_settings_dict["jump"] = self.game_event_handler.this_frame_event.key
+                elif self.focused_button == self.attack_input_button:
+                    self.game.local_settings_dict["attack"] = self.game_event_handler.this_frame_event.key
 
-            # Update input text
-            self.update_input_text(
-                self.focused_button,
-                pg.key.name(self.game_event_handler.this_frame_event.key),
-            )
+                # Update input text
+                self.update_input_text(
+                    self.focused_button,
+                    pg.key.name(self.game_event_handler.this_frame_event.key),
+                )
 
-            # Update event handler function binds
-            self.game_event_handler.init_keybind()
+                # Update event handler function binds
+                self.game_event_handler.init_keybind()
 
-            # Exit to normal state after rebind ok
-            self.state_machine_draw.change_state(OptionsMenu.State.CLOSED_SCENE_CURTAIN)
-            self.state_machine_update.change_state(OptionsMenu.State.CLOSED_SCENE_CURTAIN)
+                # Exit to normal state after rebind ok
+                self.state_machine_draw.change_state(OptionsMenu.State.CLOSED_SCENE_CURTAIN)
+                self.state_machine_update.change_state(OptionsMenu.State.CLOSED_SCENE_CURTAIN)
 
     # State transitions
     def _JUST_ENTERED_SCENE_to_CLOSING_SCENE_CURTAIN(self) -> None:

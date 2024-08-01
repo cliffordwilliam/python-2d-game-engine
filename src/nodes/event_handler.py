@@ -1,4 +1,3 @@
-from typing import Any
 from typing import TYPE_CHECKING
 
 from constants import pg
@@ -18,7 +17,7 @@ class EventHandler:
         # All game input flags.
         # Any just pressed and this event.
         self.is_any_key_just_pressed: bool = False
-        self.this_frame_event: Any = None
+        self.this_frame_event: (None | pg.Event) = None
         # REMOVE IN BUILD
         # Debug pressed.
         self.is_0_pressed: bool = False

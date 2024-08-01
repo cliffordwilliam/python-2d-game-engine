@@ -2,7 +2,6 @@ from json import dump
 from json import load
 from os.path import join
 from typing import Any
-from typing import Type
 
 from constants import create_paths_dict
 from constants import DEFAULT_SETTINGS_DICT
@@ -33,7 +32,7 @@ from typeguard import typechecked
 class Game:
     def __init__(self, initial_scene: str):
         # Prepare local settings data
-        self.local_settings_dict: dict[str, Any] = {}
+        self.local_settings_dict: dict[str, int] = DEFAULT_SETTINGS_DICT
 
         # jsons file paths dict, read disk and populate this dict, dynamic values
         self.jsons_pahts_dict: dict[str, str] = create_paths_dict(JSONS_DIR_PATH)
@@ -61,7 +60,7 @@ class Game:
         # Default values
         self.window_width: int = WINDOW_WIDTH * self.local_settings_dict["resolution_scale"]
         self.window_height: int = WINDOW_HEIGHT * self.local_settings_dict["resolution_scale"]
-        self.window_surf: Any | pg.Surface = None
+        self.window_surf: (None | pg.Surface) = None
         self.set_resolution_index(self.local_settings_dict["resolution_index"])
 
         # Handles sounds
@@ -79,12 +78,12 @@ class Game:
         # TODO: key is sprite sheet name and value is mem
         # TODO: do the above for bg classes also
         # All actors dict, name to memory
-        self.actors: dict[str, Type[Any]] = {
+        self.actors: dict[str, Any] = {
             # "fire": Fire,
         }
 
         # All scenes dict, name to memory
-        self.scenes: dict[str, Type[Any]] = {
+        self.scenes: dict[str, Any] = {
             "CreatedBySplashScreen": CreatedBySplashScreen,
             "MadeWithSplashScreen": MadeWithSplashScreen,
             "TitleScreen": TitleScreen,

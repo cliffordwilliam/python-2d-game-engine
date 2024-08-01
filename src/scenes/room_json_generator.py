@@ -4,7 +4,6 @@ from json import load
 from os import listdir
 from os.path import exists
 from os.path import join
-from typing import Any
 from typing import TYPE_CHECKING
 
 from constants import FONT
@@ -22,8 +21,9 @@ from constants import ROOM_WIDTH
 from constants import TILE_SIZE
 from constants import WORLD_CELL_SIZE
 from constants import WORLD_HEIGHT
+from constants import WORLD_HEIGHT_RU
 from constants import WORLD_WIDTH
-from constants import WORLD_WIDTH_TU
+from constants import WORLD_WIDTH_RU
 from nodes.camera import Camera
 from nodes.curtain import Curtain
 from nodes.state_machine import StateMachine
@@ -42,6 +42,7 @@ class RoomJsonGenerator:
         JUST_ENTERED_SCENE = auto()
         OPENING_SCENE_CURTAIN = auto()
         OPENED_SCENE_CURTAIN = auto()
+        ADD_OTHER_SPRITES = auto()
         FILE_NAME_QUERY = auto()
         SPRITE_SHEET_PNG_PATH_QUERY = auto()
         SPRITE_SHEET_JSON_PATH_QUERY = auto()
@@ -73,6 +74,17 @@ class RoomJsonGenerator:
         self._setup_music()
         self.state_machine_update = self._create_state_machine_update()
         self.state_machine_draw = self._create_state_machine_draw()
+
+        # First selected world cell rect
+        self.first_world_selected_tile_rect = pg.FRect(0.0, 0.0, WORLD_CELL_SIZE, WORLD_CELL_SIZE)
+        self.second_world_selected_tile_rect = pg.FRect(0.0, 0.0, WORLD_CELL_SIZE, WORLD_CELL_SIZE)
+        self.combined_world_selected_tile_rect = pg.FRect(0.0, 0.0, WORLD_CELL_SIZE, WORLD_CELL_SIZE)
+        self.screen_combined_world_selected_tile_rect_x = 0.0
+        self.screen_combined_world_selected_tile_rect_y = 0.0
+        self.combined_world_selected_tile_rect_width_tu = 0
+        self.combined_world_selected_tile_rect_height_tu = 0
+        self.combined_world_selected_tile_rect_x_tu = 0
+        self.combined_world_selected_tile_rect_y_tu = 0
 
     # Setups
     def _setup_curtain(self) -> None:
@@ -117,8 +129,8 @@ class RoomJsonGenerator:
         self.room_topleft_y: int = 0
 
         # Sprite sheet surf
-        self.sprite_sheet_png_path: Any = None
-        self.sprite_sheet_surf: Any = None
+        self.sprite_sheet_png_path: (None | str) = None
+        self.sprite_sheet_surf: (None | pg.Surface) = None
 
         # To be saved json
         self.file_name: str = ""
@@ -136,9 +148,7 @@ class RoomJsonGenerator:
 
     def _setup_collision_map(self) -> None:
         # World
-        self.world_collision_map_list: list[int] = []
-        self.world_collision_map_width_tu: int = 0
-        self.world_collision_map_height_tu: int = 0
+        self.world_collision_map_list: list[(int | str)] = [0 for _ in range(WORLD_WIDTH_RU * WORLD_HEIGHT_RU)]
 
         # Room
         # self.room_collision_map_list: list[int] = []
@@ -183,6 +193,7 @@ class RoomJsonGenerator:
                 RoomJsonGenerator.State.JUST_ENTERED_SCENE: self._JUST_ENTERED_SCENE,
                 RoomJsonGenerator.State.OPENING_SCENE_CURTAIN: self._OPENING_SCENE_CURTAIN,
                 RoomJsonGenerator.State.OPENED_SCENE_CURTAIN: self._OPENED_SCENE_CURTAIN,
+                RoomJsonGenerator.State.ADD_OTHER_SPRITES: self._ADD_OTHER_SPRITES,
                 RoomJsonGenerator.State.FILE_NAME_QUERY: self._FILE_NAME_QUERY,
                 RoomJsonGenerator.State.SPRITE_SHEET_PNG_PATH_QUERY: self._SPRITE_SHEET_PNG_PATH_QUERY,
                 RoomJsonGenerator.State.SPRITE_SHEET_JSON_PATH_QUERY: self._SPRITE_SHEET_JSON_PATH_QUERY,
@@ -200,8 +211,12 @@ class RoomJsonGenerator:
                 ): self._OPENING_SCENE_CURTAIN_to_OPENED_SCENE_CURTAIN,
                 (
                     RoomJsonGenerator.State.OPENED_SCENE_CURTAIN,
+                    RoomJsonGenerator.State.ADD_OTHER_SPRITES,
+                ): self._OPENED_SCENE_CURTAIN_to_ADD_OTHER_SPRITES,
+                (
+                    RoomJsonGenerator.State.ADD_OTHER_SPRITES,
                     RoomJsonGenerator.State.FILE_NAME_QUERY,
-                ): self._OPENED_SCENE_CURTAIN_to_FILE_NAME_QUERY,
+                ): self._ADD_OTHER_SPRITES_to_FILE_NAME_QUERY,
                 (
                     RoomJsonGenerator.State.FILE_NAME_QUERY,
                     RoomJsonGenerator.State.SPRITE_SHEET_PNG_PATH_QUERY,
@@ -225,6 +240,7 @@ class RoomJsonGenerator:
                 RoomJsonGenerator.State.JUST_ENTERED_SCENE: self._NOTHING,
                 RoomJsonGenerator.State.OPENING_SCENE_CURTAIN: self._QUERIES,
                 RoomJsonGenerator.State.OPENED_SCENE_CURTAIN: self._ADD_ROOM_DRAW,
+                RoomJsonGenerator.State.ADD_OTHER_SPRITES: self._ADD_OTHER_SPRITES_DRAW,
                 RoomJsonGenerator.State.FILE_NAME_QUERY: self._QUERIES,
                 RoomJsonGenerator.State.SPRITE_SHEET_PNG_PATH_QUERY: self._QUERIES,
                 RoomJsonGenerator.State.SPRITE_SHEET_JSON_PATH_QUERY: self._QUERIES,
@@ -322,6 +338,75 @@ class RoomJsonGenerator:
         # Curtain
         self.curtain.draw(NATIVE_SURF, 0)
 
+    def _ADD_OTHER_SPRITES_DRAW(self, _dt: int) -> None:
+        # Clear
+        NATIVE_SURF.fill(self.clear_color)
+
+        # Draw world surf
+        NATIVE_SURF.blit(self.world_surf, (0, 0))
+
+        # Draw cursor
+        # Get mouse position
+        mouse_position_tuple: tuple[int, int] = pg.mouse.get_pos()
+        mouse_position_x_tuple: int = mouse_position_tuple[0]
+        mouse_position_y_tuple: int = mouse_position_tuple[1]
+        # Scale mouse position
+        mouse_position_x_tuple_scaled: int | float = mouse_position_x_tuple // self.game.local_settings_dict["resolution_scale"]
+        mouse_position_y_tuple_scaled: int | float = mouse_position_y_tuple // self.game.local_settings_dict["resolution_scale"]
+        # Clamp this in the max room size instead (hardcoded 2 x 2, no point in increasing, if not too slow)
+        mouse_position_x_tuple_scaled = clamp(
+            mouse_position_x_tuple_scaled,
+            (self.first_world_selected_tile_rect.x - WORLD_CELL_SIZE),
+            # Because this will refer to top left of a cell
+            # If it is flushed to the right it is out of bound
+            (self.first_world_selected_tile_rect.x + 2 * WORLD_CELL_SIZE) - 1,
+        )
+        mouse_position_y_tuple_scaled = clamp(
+            mouse_position_y_tuple_scaled,
+            (self.first_world_selected_tile_rect.y - WORLD_CELL_SIZE),
+            # Because this will refer to top left of a cell
+            # If it is flushed to the bottom it is out of bound
+            (self.first_world_selected_tile_rect.y + 2 * WORLD_CELL_SIZE) - 1,
+        )
+        # Convert positions
+        self.world_mouse_x = mouse_position_x_tuple_scaled + self.camera.rect.x
+        self.world_mouse_y = mouse_position_y_tuple_scaled + self.camera.rect.y
+        self.world_mouse_x = min(
+            self.world_mouse_x,
+            WORLD_WIDTH - WORLD_CELL_SIZE,
+        )
+        self.world_mouse_y = min(
+            self.world_mouse_y,
+            WORLD_HEIGHT - WORLD_CELL_SIZE,
+        )
+        self.world_mouse_tu_x = int(self.world_mouse_x // WORLD_CELL_SIZE)
+        self.world_mouse_tu_y = int(self.world_mouse_y // WORLD_CELL_SIZE)
+        self.world_mouse_snapped_x = int(self.world_mouse_tu_x * WORLD_CELL_SIZE)
+        self.world_mouse_snapped_y = int(self.world_mouse_tu_y * WORLD_CELL_SIZE)
+        self.screen_mouse_x = self.world_mouse_snapped_x - self.camera.rect.x
+        self.screen_mouse_y = self.world_mouse_snapped_y - self.camera.rect.y
+        # Combine the first rect with this cursor
+        self.second_world_selected_tile_rect.x = self.world_mouse_snapped_x
+        self.second_world_selected_tile_rect.y = self.world_mouse_snapped_y
+        self.combined_world_selected_tile_rect = self.first_world_selected_tile_rect.union(self.second_world_selected_tile_rect)
+        self.screen_combined_world_selected_tile_rect_x = self.combined_world_selected_tile_rect.x - self.camera.rect.x
+        self.screen_combined_world_selected_tile_rect_y = self.combined_world_selected_tile_rect.y - self.camera.rect.y
+        # Draw combined cursor
+        pg.draw.rect(
+            NATIVE_SURF,
+            "green",
+            [
+                self.screen_combined_world_selected_tile_rect_x,
+                self.screen_combined_world_selected_tile_rect_y,
+                self.combined_world_selected_tile_rect.width,
+                self.combined_world_selected_tile_rect.height,
+            ],
+            1,
+        )
+
+        # Curtain
+        self.curtain.draw(NATIVE_SURF, 0)
+
     # State logics
     def _JUST_ENTERED_SCENE(self, dt: int) -> None:
         self.entry_delay_timer.update(dt)
@@ -337,26 +422,65 @@ class RoomJsonGenerator:
             # TODO: If click on a room, Load the room
             # TODO: So collision store the file name
             # TODO: If click on empty then make new one
-            pass
-            # is_lmb_just_pressed_occupied: bool = False
-            # if self.game_event_handler.is_lmb_just_pressed:
-            #     # Get what is clicked
-            #     found_tile_lmb_pressed: int = self.get_tile_from_room_collision_map_list(
-            #         self.world_mouse_tu_x,
-            #         self.world_mouse_tu_y,
-            #     )
-            #     # Clicked occupied? Return
-            #     if found_tile_lmb_pressed == 1:
-            #         is_lmb_just_pressed_occupied = True
+            if self.game_event_handler.is_lmb_just_pressed:
+                # Get what is clicked
+                found_tile_lmb_pressed: (int | str) = self.get_tile_from_world_collision_map_list(
+                    self.world_mouse_tu_x,
+                    self.world_mouse_tu_y,
+                )
 
-            #     # Clicked on empty?
-            #     if not is_lmb_just_pressed_occupied:
-            #         # Remember first selected tile rect
-            #         self.first_world_selected_tile_rect.x = self.world_mouse_snapped_x
-            #         self.first_world_selected_tile_rect.y = self.world_mouse_snapped_y
-            #         # Go to ADD_OTHER_SPRITES
-            #         self.state_machine_update.change_state(RoomJsonGenerator.State.ADD_OTHER_SPRITES)
-            #         self.state_machine_draw.change_state(RoomJsonGenerator.State.ADD_OTHER_SPRITES)
+                # Clicked occupied? Load the room
+                if found_tile_lmb_pressed != 0:
+                    pass
+
+                # Clicked on empty? Create new room
+                elif found_tile_lmb_pressed == 0:
+                    # Remember first selected tile rect
+                    self.first_world_selected_tile_rect.x = self.world_mouse_snapped_x
+                    self.first_world_selected_tile_rect.y = self.world_mouse_snapped_y
+                    # Go to ADD_OTHER_SPRITES
+                    self.state_machine_update.change_state(RoomJsonGenerator.State.ADD_OTHER_SPRITES)
+                    self.state_machine_draw.change_state(RoomJsonGenerator.State.ADD_OTHER_SPRITES)
+
+    def _ADD_OTHER_SPRITES(self, dt: int) -> None:
+        # Wait for curtain to be fully invisible
+        if self.curtain.is_done:
+            # Sprite selection
+            # Lmb just pressed
+            is_lmb_just_pressed_occupied: bool = False
+            if self.game_event_handler.is_lmb_just_pressed:
+                # Check if selection is all empty cells
+                # Iterate size to check all empty
+                self.combined_world_selected_tile_rect_width_tu = int(
+                    self.combined_world_selected_tile_rect.width // WORLD_CELL_SIZE
+                )
+                self.combined_world_selected_tile_rect_height_tu = int(
+                    self.combined_world_selected_tile_rect.height // WORLD_CELL_SIZE
+                )
+                self.combined_world_selected_tile_rect_x_tu = int(self.combined_world_selected_tile_rect.x // WORLD_CELL_SIZE)
+                self.combined_world_selected_tile_rect_y_tu = int(self.combined_world_selected_tile_rect.y // WORLD_CELL_SIZE)
+                for world_mouse_tu_xi in range(self.combined_world_selected_tile_rect_width_tu):
+                    for world_mouse_tu_yi in range(self.combined_world_selected_tile_rect_height_tu):
+                        world_mouse_tu_x: int = self.combined_world_selected_tile_rect_x_tu + world_mouse_tu_xi
+                        world_mouse_tu_y: int = self.combined_world_selected_tile_rect_y_tu + world_mouse_tu_yi
+                        # Get each one in room_collision_map_list
+                        found_tile_lmb_pressed: (int | str) = self.get_tile_from_world_collision_map_list(
+                            world_mouse_tu_x,
+                            world_mouse_tu_y,
+                        )
+                        # At least 1 of them is occupied? Return
+                        if found_tile_lmb_pressed != 0:
+                            is_lmb_just_pressed_occupied = True
+                # All cells are empty
+                if not is_lmb_just_pressed_occupied:
+                    # TODO: setup the new file room for editing from here
+                    # No need to fill, fill is done from first time read json rooms
+                    pass
+                    # Exit to edit state
+                    # self.curtain.go_to_opaque()
+
+        # Update curtain
+        self.curtain.update(dt)
 
         # Update curtain
         self.curtain.update(dt)
@@ -466,15 +590,23 @@ class RoomJsonGenerator:
                     # Extract and print the desired properties
                     extracted_data = {prop: data.get(prop) for prop in ROOM_JSON_PROPERTIES}
                     # Draw marks on the world surf
-                    room_x = extracted_data["room_x_ru"] * WORLD_CELL_SIZE
-                    room_y = extracted_data["room_y_ru"] * WORLD_CELL_SIZE
-                    room_cell_width = extracted_data["room_scale_x"] * WORLD_CELL_SIZE
-                    room_cell_height = extracted_data["room_scale_y"] * WORLD_CELL_SIZE
-                    # TODO: Style it with the border and body and so on
+                    file_name = extracted_data["file_name"]
+                    room_x_ru = extracted_data["room_x_ru"]
+                    room_y_ru = extracted_data["room_y_ru"]
+                    room_scale_x = extracted_data["room_scale_x"]
+                    room_scale_y = extracted_data["room_scale_y"]
+                    room_x = room_x_ru * WORLD_CELL_SIZE
+                    room_y = room_y_ru * WORLD_CELL_SIZE
+                    room_cell_width = room_scale_x * WORLD_CELL_SIZE
+                    room_cell_height = room_scale_y * WORLD_CELL_SIZE
+                    sprite_room_map_body_color = extracted_data["sprite_room_map_body_color"]
+                    sprite_room_map_sub_division_color = extracted_data["sprite_room_map_sub_division_color"]
+                    sprite_room_map_border_color = extracted_data["sprite_room_map_border_color"]
+
                     # TODO: Add collision and also render the doors
                     pg.draw.rect(
                         self.world_surf,
-                        "red",
+                        sprite_room_map_body_color,
                         (
                             room_x,
                             room_y,
@@ -483,7 +615,45 @@ class RoomJsonGenerator:
                         ),
                     )
 
-    def _OPENED_SCENE_CURTAIN_to_FILE_NAME_QUERY(self) -> None:
+                    for ru_xi in range(room_scale_x):
+                        for ru_yi in range(room_scale_y):
+                            ru_x: int = room_x_ru + ru_xi
+                            ru_y: int = room_y_ru + ru_yi
+                            pg.draw.rect(
+                                self.world_surf,
+                                sprite_room_map_sub_division_color,
+                                (
+                                    ru_x * WORLD_CELL_SIZE,
+                                    ru_y * WORLD_CELL_SIZE,
+                                    WORLD_CELL_SIZE,
+                                    WORLD_CELL_SIZE,
+                                ),
+                                1,
+                            )
+
+                            # Store each one in room_collision_map_list
+                            self.set_tile_from_world_collision_map_list(
+                                ru_x,
+                                ru_y,
+                                file_name,
+                            )
+
+                    pg.draw.rect(
+                        self.world_surf,
+                        sprite_room_map_border_color,
+                        (
+                            room_x,
+                            room_y,
+                            room_cell_width,
+                            room_cell_height,
+                        ),
+                        1,
+                    )
+
+    def _OPENED_SCENE_CURTAIN_to_ADD_OTHER_SPRITES(self) -> None:
+        pass
+
+    def _ADD_OTHER_SPRITES_to_FILE_NAME_QUERY(self) -> None:
         # Reset the input text
         self.set_input_text("")
         # Set my prompt text
@@ -525,6 +695,10 @@ class RoomJsonGenerator:
             self.state_machine_update.change_state(RoomJsonGenerator.State.SPRITE_SHEET_PNG_PATH_QUERY)
             self.state_machine_draw.change_state(RoomJsonGenerator.State.SPRITE_SHEET_PNG_PATH_QUERY)
             self.curtain.go_to_invisible()
+        elif self.state_machine_update.state == RoomJsonGenerator.State.ADD_OTHER_SPRITES:
+            self.state_machine_update.change_state(RoomJsonGenerator.State.FILE_NAME_QUERY)
+            self.state_machine_draw.change_state(RoomJsonGenerator.State.FILE_NAME_QUERY)
+            self.curtain.go_to_invisible()
         elif self.state_machine_update.state == RoomJsonGenerator.State.SPRITE_SHEET_PNG_PATH_QUERY:
             self.state_machine_update.change_state(RoomJsonGenerator.State.SPRITE_SHEET_JSON_PATH_QUERY)
             self.state_machine_draw.change_state(RoomJsonGenerator.State.SPRITE_SHEET_JSON_PATH_QUERY)
@@ -559,7 +733,7 @@ class RoomJsonGenerator:
     # Helpers
     def _draw_world_grid(self) -> None:
         blit_sequence = []
-        for i in range(WORLD_WIDTH_TU):
+        for i in range(WORLD_WIDTH_RU):
             vertical_line_x_position: float = (WORLD_CELL_SIZE * i - self.camera.rect.x) % WORLD_WIDTH
             blit_sequence.append(
                 (
@@ -576,6 +750,36 @@ class RoomJsonGenerator:
             )
 
         self.world_surf.fblits(blit_sequence)
+
+    def get_tile_from_world_collision_map_list(
+        self,
+        world_ru_x: int,
+        world_ru_y: int,
+    ) -> int | str:
+        """
+        Returns -1 if out of bounds
+        Because camera needs extra 1 and thus may get out of bound.
+        """
+        if 0 <= world_ru_x < WORLD_WIDTH_RU and 0 <= world_ru_y < WORLD_HEIGHT_RU:
+            return self.world_collision_map_list[world_ru_y * WORLD_WIDTH_RU + world_ru_x]
+        else:
+            return -1
+
+    def set_tile_from_world_collision_map_list(
+        self,
+        world_ru_x: int,
+        world_ru_y: int,
+        value: int | str,
+    ) -> None | int:
+        """
+        Returns -1 if out of bounds
+        Because camera needs extra 1 and thus may get out of bound.
+        """
+        if 0 <= world_ru_x < WORLD_WIDTH_RU and 0 <= world_ru_y < WORLD_HEIGHT_RU:
+            self.world_collision_map_list[world_ru_y * WORLD_WIDTH_RU + world_ru_x] = value
+            return None
+        else:
+            return -1
 
     def set_input_text(self, value: str) -> None:
         self.input_text = value
