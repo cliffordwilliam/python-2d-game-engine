@@ -72,12 +72,17 @@ APP_NAME = "python_2d_game_engine"
 # Directory paths
 JSONS_DIR_PATH: str = get_os_specific_directory(APP_NAME)
 JSONS_PROJ_DIR_PATH: str = "jsons"
+JSONS_ROOMS_PROJ_SUB_DIR_PATH: str = "rooms"
+JSONS_ROOMS_DIR_PATH = join(JSONS_PROJ_DIR_PATH, JSONS_ROOMS_PROJ_SUB_DIR_PATH)
 PNGS_DIR_PATH: str = "pngs"
 OGGS_DIR_PATH: str = "oggs"
 
 # Creating the dictionaries
 PNGS_PATHS_DICT: dict[str, str] = create_paths_dict(PNGS_DIR_PATH)
 OGGS_PATHS_DICT: dict[str, str] = create_paths_dict(OGGS_DIR_PATH)
+
+# Room json properties
+ROOM_JSON_PROPERTIES = ["room_x_ru", "room_y_ru", "room_scale_x", "room_scale_y"]
 
 # FPS
 FPS: int = 60

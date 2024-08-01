@@ -8,6 +8,7 @@ from constants import create_paths_dict
 from constants import DEFAULT_SETTINGS_DICT
 from constants import JSONS_DIR_PATH
 from constants import JSONS_PROJ_DIR_PATH
+from constants import JSONS_ROOMS_DIR_PATH
 from constants import NATIVE_WIDTH
 from constants import OGGS_PATHS_DICT
 from constants import pg
@@ -31,42 +32,43 @@ from typeguard import typechecked
 @typechecked
 class Game:
     def __init__(self, initial_scene: str):
-        # Prepare local settings data.
+        # Prepare local settings data
         self.local_settings_dict: dict[str, Any] = {}
 
-        # jsons file paths dict, read disk and populate this dict
+        # jsons file paths dict, read disk and populate this dict, dynamic values
         self.jsons_pahts_dict: dict[str, str] = create_paths_dict(JSONS_DIR_PATH)
         self.jsons_proj_pahts_dict: dict[str, str] = create_paths_dict(JSONS_PROJ_DIR_PATH)
+        self.jsons_proj_rooms_pahts_dict: dict[str, str] = create_paths_dict(JSONS_ROOMS_DIR_PATH)
 
-        # Update local settings dict.
+        # Update local settings dict
         self.load_or_create_settings()
 
         # Flags.
-        # Options menu flag, toggle options menu mode.
+        # Options menu flag, toggle options menu mode
         self.is_options_menu_active: bool = False
         # REMOVE IN BUILD
-        # Toggle drawing debug data.
+        # Toggle drawing debug data
         self.is_debug: bool = False
         # REMOVE IN BUILD
-        # The thing that does the actual debug data drawing.
+        # The thing that does the actual debug data drawing
         self.debug_draw: DebugDraw = DebugDraw()
         # REMOVE IN BUILD
-        # Toggle frame per frame debug mode.
+        # Toggle frame per frame debug mode
         self.is_per_frame: bool = False
 
-        # Window resolution scale, size, y offset.
-        # Y offset because native is shorter than window.
-        # Default values.
+        # Window resolution scale, size, y offset
+        # Y offset because native is shorter than window
+        # Default values
         self.window_width: int = WINDOW_WIDTH * self.local_settings_dict["resolution_scale"]
         self.window_height: int = WINDOW_HEIGHT * self.local_settings_dict["resolution_scale"]
         self.window_surf: Any | pg.Surface = None
         self.set_resolution_index(self.local_settings_dict["resolution_index"])
 
-        # Handles sounds.
+        # Handles sounds
         self.sound_manager: SoundManager = SoundManager()
         self.music_manager: MusicManager = MusicManager()
 
-        # Load all oggs.
+        # Load all oggs
         # TODO: Load when needed only in each scenes
         for ogg_name, ogg_path in OGGS_PATHS_DICT.items():
             self.sound_manager.load_sound(ogg_name, ogg_path)
@@ -76,12 +78,12 @@ class Game:
 
         # TODO: key is sprite sheet name and value is mem
         # TODO: do the above for bg classes also
-        # All actors dict, name to memory.
+        # All actors dict, name to memory
         self.actors: dict[str, Type[Any]] = {
             # "fire": Fire,
         }
 
-        # All scenes dict, name to memory.
+        # All scenes dict, name to memory
         self.scenes: dict[str, Type[Any]] = {
             "CreatedBySplashScreen": CreatedBySplashScreen,
             "MadeWithSplashScreen": MadeWithSplashScreen,
@@ -92,8 +94,11 @@ class Game:
             "RoomJsonGenerator": RoomJsonGenerator,
         }
 
-        # Keeps track of current scene.
+        # Keeps track of current scene
         self.current_scene: Any = self.scenes[initial_scene](self)
+
+    def update_jsons_proj_rooms_pahts_dict(self) -> None:
+        self.jsons_proj_pahts_dict = create_paths_dict(JSONS_ROOMS_DIR_PATH)
 
     def update_jsons_proj_paths_dict(self) -> None:
         self.jsons_proj_pahts_dict = create_paths_dict(JSONS_PROJ_DIR_PATH)
@@ -148,10 +153,10 @@ class Game:
         # Keep safe
         value = int(clamp(value, 0.0, 6.0))
 
-        # Full screen.
+        # Full screen
         if value == 6:
             self.local_settings_dict["resolution_index"] = value
-            # Set window surf to be fullscreen size.
+            # Set window surf to be fullscreen size
             self.window_surf = pg.display.set_mode(
                 (0, 0),
                 pg.FULLSCREEN,
@@ -163,7 +168,7 @@ class Game:
             self.window_height = self.window_surf.get_height()
             return
 
-        # Not fullscreen.
+        # Not fullscreen
         # Update self.local_settings_dict["resolution_scale"]
         self.local_settings_dict["resolution_index"] = value
         self.local_settings_dict["resolution_scale"] = value + 1

@@ -1,11 +1,15 @@
 from enum import auto
 from enum import Enum
+from json import load
+from os import listdir
 from os.path import exists
+from os.path import join
 from typing import Any
 from typing import TYPE_CHECKING
 
 from constants import FONT
 from constants import FONT_HEIGHT
+from constants import JSONS_ROOMS_DIR_PATH
 from constants import NATIVE_HEIGHT
 from constants import NATIVE_RECT
 from constants import NATIVE_SURF
@@ -13,6 +17,7 @@ from constants import NATIVE_WIDTH
 from constants import OGGS_PATHS_DICT
 from constants import pg
 from constants import ROOM_HEIGHT
+from constants import ROOM_JSON_PROPERTIES
 from constants import ROOM_WIDTH
 from constants import TILE_SIZE
 from constants import WORLD_CELL_SIZE
@@ -64,6 +69,7 @@ class RoomJsonGenerator:
         self._setup_mouse_positions()
         self._setup_collision_map()
         self._setup_surfs()
+        self._draw_world_grid()
         self._setup_music()
         self.state_machine_update = self._create_state_machine_update()
         self.state_machine_draw = self._create_state_machine_draw()
@@ -150,6 +156,10 @@ class RoomJsonGenerator:
         self.grid_world_vertical_line_surf: pg.Surface = pg.Surface((1, WORLD_HEIGHT))
         self.grid_world_vertical_line_surf.fill(self.grid_line_color)
 
+        # World surf
+        self.world_surf: pg.Surface = pg.Surface((WORLD_WIDTH, WORLD_HEIGHT))
+        self.world_surf.fill(self.clear_color)
+
     def _setup_mouse_positions(self) -> None:
         self.world_mouse_x: float = 0.0
         self.world_mouse_y: float = 0.0
@@ -231,8 +241,8 @@ class RoomJsonGenerator:
     def _QUERIES(self, _dt: int) -> None:
         # Clear
         NATIVE_SURF.fill(self.clear_color)
-        # Draw grid with camera offset
-        self._draw_world_grid()
+        # Draw world surf
+        NATIVE_SURF.blit(self.world_surf, (0, 0))
         # Draw promt and input
         FONT.render_to(
             NATIVE_SURF,
@@ -253,10 +263,8 @@ class RoomJsonGenerator:
         # Clear
         NATIVE_SURF.fill(self.clear_color)
 
-        # Draw grid
-        self._draw_world_grid()
-
-        # Draw the existing rooms from json read from entry
+        # Draw world surf
+        NATIVE_SURF.blit(self.world_surf, (0, 0))
 
         # Draw cursor
         # Get mouse position
@@ -326,7 +334,9 @@ class RoomJsonGenerator:
         if self.curtain.is_done:
             # Sprite selection
             # Lmb just pressed
-            # TODO
+            # TODO: If click on a room, Load the room
+            # TODO: So collision store the file name
+            # TODO: If click on empty then make new one
             pass
             # is_lmb_just_pressed_occupied: bool = False
             # if self.game_event_handler.is_lmb_just_pressed:
@@ -444,7 +454,34 @@ class RoomJsonGenerator:
 
     def _OPENING_SCENE_CURTAIN_to_OPENED_SCENE_CURTAIN(self) -> None:
         # Read all json room and mark it on grid
-        pass
+        for filename in listdir(JSONS_ROOMS_DIR_PATH):
+            if filename.endswith(".json"):
+                # Construct the full file path
+                file_path = join(JSONS_ROOMS_DIR_PATH, filename)
+
+                # Open and read the JSON file
+                with open(file_path, "r") as file:
+                    data = load(file)
+
+                    # Extract and print the desired properties
+                    extracted_data = {prop: data.get(prop) for prop in ROOM_JSON_PROPERTIES}
+                    # Draw marks on the world surf
+                    room_x = extracted_data["room_x_ru"] * WORLD_CELL_SIZE
+                    room_y = extracted_data["room_y_ru"] * WORLD_CELL_SIZE
+                    room_cell_width = extracted_data["room_scale_x"] * WORLD_CELL_SIZE
+                    room_cell_height = extracted_data["room_scale_y"] * WORLD_CELL_SIZE
+                    # TODO: Style it with the border and body and so on
+                    # TODO: Add collision and also render the doors
+                    pg.draw.rect(
+                        self.world_surf,
+                        "red",
+                        (
+                            room_x,
+                            room_y,
+                            room_cell_width,
+                            room_cell_height,
+                        ),
+                    )
 
     def _OPENED_SCENE_CURTAIN_to_FILE_NAME_QUERY(self) -> None:
         # Reset the input text
@@ -538,7 +575,7 @@ class RoomJsonGenerator:
                 )
             )
 
-        NATIVE_SURF.fblits(blit_sequence)
+        self.world_surf.fblits(blit_sequence)
 
     def set_input_text(self, value: str) -> None:
         self.input_text = value
