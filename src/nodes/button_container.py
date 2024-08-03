@@ -61,7 +61,7 @@ class ButtonContainer:
 
         # Needed by both default and pagination
         self.offset: int = offset
-        self.limit: int = limit
+        self.limit: int = min(limit, self.buttons_len)
         # Not pagination?
         if not self.is_pagination:
             # Set limit to total button len

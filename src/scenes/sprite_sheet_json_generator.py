@@ -955,8 +955,8 @@ class SpriteSheetJsonGenerator:
                                         "sprite_is_tile_mix": self.sprite_is_tile_mix,
                                         "width": self.combined_world_selected_tile_rect.width,
                                         "height": self.combined_world_selected_tile_rect.height,
-                                        "x": self.world_mouse_snapped_x,
-                                        "y": self.world_mouse_snapped_y,
+                                        "x": self.first_world_selected_tile_rect.x,
+                                        "y": self.combined_world_selected_tile_rect.y,
                                     }
                                 )
 
@@ -1019,8 +1019,8 @@ class SpriteSheetJsonGenerator:
                                         "sprite_is_tile_mix": self.sprite_is_tile_mix,
                                         "width": self.combined_world_selected_tile_rect.width,
                                         "height": self.combined_world_selected_tile_rect.height,
-                                        "x": self.world_mouse_snapped_x,
-                                        "y": self.world_mouse_snapped_y,
+                                        "x": self.combined_world_selected_tile_rect.x,
+                                        "y": self.combined_world_selected_tile_rect.y,
                                     }
                                 )
 

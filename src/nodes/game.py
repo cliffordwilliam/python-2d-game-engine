@@ -3,6 +3,11 @@ from json import load
 from os.path import join
 from typing import Any
 
+from actors.stage_1_clouds import Stage1Clouds
+from actors.stage_1_colonnade import Stage1Colonnade
+from actors.stage_1_glow import Stage1Glow
+from actors.stage_1_pine_trees import Stage1PineTrees
+from actors.stage_1_sky import Stage1Sky
 from constants import create_paths_dict
 from constants import DEFAULT_SETTINGS_DICT
 from constants import JSONS_DIR_PATH
@@ -75,11 +80,28 @@ class Game:
         # Handle events
         self.event_handler: EventHandler = EventHandler(self)
 
-        # TODO: key is sprite sheet name and value is mem
-        # TODO: do the above for bg classes also
-        # All actors dict, name to memory
-        self.actors: dict[str, Any] = {
-            # "fire": Fire,
+        self.stage_actors: dict[str, dict[str, Any]] = {
+            "stage_1_sprite_sheet.png": {
+                "Fire": CreatedBySplashScreen,
+            }
+        }
+
+        self.stage_surf_names: dict[str, list[str]] = {"stage_1_sprite_sheet.png": ["thin_fire_sprite_sheet.png"]}
+
+        self.stage_animation_jsons: dict[str, list[str]] = {
+            # sprite_sheet_png_name : surf name
+            "stage_1_sprite_sheet.png": ["thin_fire_animation.json"]
+        }
+
+        self.stage_parallax_background: dict[str, dict[str, Any]] = {
+            # sprite_sheet_png_name : surf name
+            "stage_1_sprite_sheet.png": {
+                "clouds": Stage1Clouds,
+                "colonnade": Stage1Colonnade,
+                "glow": Stage1Glow,
+                "pine_trees": Stage1PineTrees,
+                "sky": Stage1Sky,
+            }
         }
 
         # All scenes dict, name to memory

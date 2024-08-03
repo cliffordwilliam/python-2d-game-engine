@@ -81,19 +81,6 @@ OGGS_DIR_PATH: str = "oggs"
 PNGS_PATHS_DICT: dict[str, str] = create_paths_dict(PNGS_DIR_PATH)
 OGGS_PATHS_DICT: dict[str, str] = create_paths_dict(OGGS_DIR_PATH)
 
-# Room json properties
-ROOM_JSON_PROPERTIES = [
-    "file_name",
-    "room_x_ru",
-    "room_y_ru",
-    "room_scale_x",
-    "room_scale_y",
-    "sprite_sheet_png_name",
-    "sprite_room_map_body_color",
-    "sprite_room_map_sub_division_color",
-    "sprite_room_map_border_color",
-]
-
 # FPS
 FPS: int = 60
 
