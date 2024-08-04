@@ -305,3 +305,92 @@ class Button:
             text,
             self.BUTTON_HOVER_TEXT_COLOR,
         )
+
+    def draw_extra_surf_on_surf(
+        self,
+        surf: pg.Surface,
+        position_tuple_relative_to_button_surf_topleft: tuple[int, int],
+    ) -> None:
+        """
+        Clear both active and inactive surf.
+        Draw old texts on them.
+        Draw given surf on them.
+        """
+
+        # Clear surfs
+        self.surf.fill(self.BUTTON_INACTIVE_BODY_COLOR)
+        self.active_curtain.surf.fill(self.BUTTON_ACTIVE_BODY_COLOR)
+        self.hover_curtain.surf.fill(self.BUTTON_HOVER_BODY_COLOR)
+
+        # Draw decor on surf
+        pg.draw.line(
+            self.surf,
+            self.BUTTON_INACTIVE_LINE_COLOR,
+            (0, 0),
+            (0, self.rect.height),
+        )
+
+        # Draw original text to surf
+        FONT.render_to(
+            self.surf,
+            self.text_top_left,
+            self.text,
+            self.BUTTON_INACTIVE_TEXT_COLOR,
+        )
+
+        # Draw given surf to surf
+        self.surf.blit(
+            surf,
+            position_tuple_relative_to_button_surf_topleft,
+        )
+
+        # Draw decor on active curtain surf
+        pg.draw.line(
+            self.active_curtain.surf,
+            self.BUTTON_ACTIVE_TEXT_COLOR,
+            (0, 0),
+            (0, self.rect.height),
+        )
+        pg.draw.line(
+            self.active_curtain.surf,
+            self.BUTTON_ACTIVE_LINE_COLOR,
+            (1, 0),
+            (1, self.rect.height),
+        )
+        # Draw original text on active curtain surf
+        FONT.render_to(
+            self.active_curtain.surf,
+            self.text_top_left,
+            self.text,
+            self.BUTTON_ACTIVE_TEXT_COLOR,
+        )
+        # Draw given surf to surf
+        self.active_curtain.surf.blit(
+            surf,
+            position_tuple_relative_to_button_surf_topleft,
+        )
+        # Draw decor on hover curtain surf
+        pg.draw.line(
+            self.hover_curtain.surf,
+            self.BUTTON_HOVER_TEXT_COLOR,
+            (0, 0),
+            (0, self.rect.height),
+        )
+        pg.draw.line(
+            self.hover_curtain.surf,
+            self.BUTTON_HOVER_LINE_COLOR,
+            (1, 0),
+            (1, self.rect.height),
+        )
+        # Draw original text on hover curtain surf
+        FONT.render_to(
+            self.hover_curtain.surf,
+            self.text_top_left,
+            self.text,
+            self.BUTTON_HOVER_TEXT_COLOR,
+        )
+        # Draw given surf to surf
+        self.hover_curtain.surf.blit(
+            surf,
+            position_tuple_relative_to_button_surf_topleft,
+        )

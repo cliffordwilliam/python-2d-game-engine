@@ -90,13 +90,17 @@ class RoomJsonGenerator:
         self.combined_world_selected_tile_rect_height_ru = 0
         self.combined_world_selected_tile_rect_x_ru = 0
         self.combined_world_selected_tile_rect_y_ru = 0
+        self.cursor_width: int = TILE_SIZE
+        self.cursor_height: int = TILE_SIZE
 
         self.is_from_edit_pressed_jump: bool = False
         self.is_from_pallete_pressed_jump: bool = False
 
         self.button_container: (ButtonContainer | None) = None
-        self.selected_sprite_type: str = ""
         self.selected_sprite_name: str = ""
+
+        # Click button to update key name, used to access the values here
+        self.reformat_json_data: dict = {}
 
     # Setups
     def _setup_curtain(self) -> None:
@@ -149,9 +153,13 @@ class RoomJsonGenerator:
         self.sprite_sheet_parallax_background: dict[str, Any] = {}
 
         # Sprite sheet layers
+        # Parallax drawing layer data
         self.parallax_background_instances_list: list = []
-        self.static_background_region_list: list = []
-        self.static_background_collision_map_list: list = []
+
+        # Static drawing layer data
+        self.static_background_layers: int = 0
+        self.static_background_surf_and_collision_map_list: list = []
+
         self.solid_thin_regions_list: list = []
         self.solid_thin_collision_maps_list: list = []
         # TODO: static actors
@@ -197,9 +205,11 @@ class RoomJsonGenerator:
 
         # Grid world surf
         self.grid_horizontal_line_surf: pg.Surface = pg.Surface((NATIVE_WIDTH, 1))
-        self.grid_horizontal_line_surf.fill(self.grid_line_color)
+        self.grid_horizontal_line_surf.fill("black")
+        self.grid_horizontal_line_surf.set_alpha(21)
         self.grid_vertical_line_surf: pg.Surface = pg.Surface((1, NATIVE_HEIGHT))
-        self.grid_vertical_line_surf.fill(self.grid_line_color)
+        self.grid_vertical_line_surf.fill("black")
+        self.grid_vertical_line_surf.set_alpha(21)
 
         # World surf
         self.world_surf: pg.Surface = pg.Surface((WORLD_WIDTH, WORLD_HEIGHT))
@@ -392,6 +402,20 @@ class RoomJsonGenerator:
             if parallax_background is not None:
                 parallax_background.draw()
 
+        # Draw the static background
+        static_background_blit_sequence = []
+        for static_background_object in self.static_background_surf_and_collision_map_list:
+            static_background_blit_sequence.append(
+                (
+                    static_background_object["surf"],
+                    (
+                        -self.camera.rect.x,
+                        -self.camera.rect.y,
+                    ),
+                )
+            )
+        NATIVE_SURF.fblits(static_background_blit_sequence)
+
         # Draw grid
         self.draw_grid()
 
@@ -423,11 +447,11 @@ class RoomJsonGenerator:
         self.world_mouse_y = mouse_position_y_tuple_scaled + self.camera.rect.y
         self.world_mouse_x = min(
             self.world_mouse_x,
-            self.room_width - TILE_SIZE,
+            self.room_width - self.cursor_width,
         )
         self.world_mouse_y = min(
             self.world_mouse_y,
-            self.room_height - TILE_SIZE,
+            self.room_height - self.cursor_height,
         )
         self.world_mouse_tu_x = int(self.world_mouse_x // TILE_SIZE)
         self.world_mouse_tu_y = int(self.world_mouse_y // TILE_SIZE)
@@ -442,8 +466,8 @@ class RoomJsonGenerator:
             [
                 self.screen_mouse_x,
                 self.screen_mouse_y,
-                TILE_SIZE,
-                TILE_SIZE,
+                self.cursor_width,
+                self.cursor_height,
             ],
             1,
         )
@@ -453,7 +477,7 @@ class RoomJsonGenerator:
 
     def _SPRITE_PALLETE_DRAW(self, _dt: int) -> None:
         # Clear
-        NATIVE_SURF.fill(self.clear_color)
+        NATIVE_SURF.fill("black")
 
         if self.button_container is not None:
             self.button_container.draw(NATIVE_SURF)
@@ -693,34 +717,91 @@ class RoomJsonGenerator:
                                     buttons: list[Button] = []
 
                                     for object in data["sprites_list"]:
+                                        # Reformat to key sprite names and its data as values
+                                        self.reformat_json_data[object["sprite_name"]] = object
+
+                                        # Populate the pallete button
+                                        button: Button = Button(
+                                            # TODO: move the size to const self
+                                            surf_size_tuple=(264, 19),
+                                            topleft=(29, 14),
+                                            text=object["sprite_name"],
+                                            text_topleft=(53, 2),
+                                            description_text=object["sprite_type"],
+                                        )
+                                        # Create subsurf
+                                        subsurf: pg.Surface = self.sprite_sheet_surf.subsurface(
+                                            (
+                                                object["x"],
+                                                object["y"],
+                                                object["width"],
+                                                object["height"],
+                                            )
+                                        )
+                                        # Create base subsurf
+                                        base_subsurf_width: int = 49
+                                        base_subsurf_height: int = 19
+                                        base_subsurf: pg.Surface = pg.Surface((base_subsurf_width, base_subsurf_height))
+                                        base_subsurf.fill(self.clear_color)
+                                        scaled_height: float = base_subsurf_width * object["height"] / object["width"]
+                                        subsurf = pg.transform.scale(subsurf, (base_subsurf_width, scaled_height))
+                                        # subsurf = pg.transform.scale_by(subsurf, (49 / base_subsurf_width, 1))
+                                        y_diff: float = scaled_height - base_subsurf_height
+                                        base_subsurf.blit(subsurf, (0, -y_diff / 2))
+                                        # Scale so width is 49
+                                        button.draw_extra_surf_on_surf(base_subsurf, (1, 0))
+                                        buttons.append(button)
+
+                                        # Init parallax background
                                         if object["sprite_type"] == "parallax_background":
                                             # Init the instance container
                                             self.parallax_background_instances_list.append(None)
-                                            # Populate the pallete button
-                                            buttons.append(
-                                                Button(
-                                                    # TODO: move the size to const self
-                                                    surf_size_tuple=(236, 9),
-                                                    topleft=(43, 13),
-                                                    text=object["sprite_name"],
-                                                    text_topleft=(4, 2),
-                                                    description_text=object["sprite_type"],
-                                                )
-                                            )
+
+                                        # Init static background
+                                        if object["sprite_type"] == "static_background":
+                                            # Count static background total layers
+                                            if self.static_background_layers < object["sprite_layer"]:
+                                                self.static_background_layers = object["sprite_layer"]
+
+                                    # Static background layers total is ready here, populate
+                                    # Init surf and collision map for each static background layers
+                                    surf: pg.Surface = pg.Surface((self.room_width, self.room_height))
+                                    surf.set_colorkey("red")
+                                    surf.fill("red")
+                                    for _ in range(self.static_background_layers):
+                                        self.static_background_surf_and_collision_map_list.append(
+                                            {
+                                                "surf": surf,
+                                                "collision_map": [
+                                                    0
+                                                    for _ in range(
+                                                        self.room_collision_map_width_tu * self.room_collision_map_height_tu
+                                                    )
+                                                ],
+                                            }
+                                        )
 
                                     self.button_container = ButtonContainer(
                                         buttons=buttons,
                                         offset=0,
-                                        limit=13,
+                                        limit=7,
                                         is_pagination=True,
                                         game_event_handler=self.game_event_handler,
                                         game_sound_manager=self.game.sound_manager,
                                     )
+                                    # TODO: Draw the preview on the button
+                                    # So get the sub surface and stick it on it
+                                    # Use the load data ref buttons for this
                                     self.button_container.add_event_listener(
                                         self.on_button_selected, ButtonContainer.BUTTON_SELECTED
                                     )
-                                    self.selected_sprite_type = buttons[0].description_text
+                                    # Init the selected name
                                     self.selected_sprite_name = buttons[0].text
+                                    # Init the selected name
+                                    self.selected_sprite_name = buttons[0].text
+                                    # Init the cursor size
+                                    self.cursor_width = self.reformat_json_data[self.selected_sprite_name]["width"]
+                                    self.cursor_height = self.reformat_json_data[self.selected_sprite_name]["height"]
 
                                     # Extract properties
                                     # extracted_data = {prop: data.get(prop) for prop in ROOM_JSON_PROPERTIES}
@@ -758,7 +839,7 @@ class RoomJsonGenerator:
 
             # Parallax background state
             # TODO: Turn the block to a func and use the name as key
-            if self.selected_sprite_type == "parallax_background":
+            if self.reformat_json_data[self.selected_sprite_name]["sprite_type"] == "parallax_background":
                 # Lmb just pressed
                 if self.game_event_handler.is_lmb_just_pressed:
                     selected_layer_index = self.sprite_sheet_parallax_background[self.selected_sprite_name].sprite_layer - 1
@@ -777,6 +858,90 @@ class RoomJsonGenerator:
                     # Not None? Make it None
                     if self.parallax_background_instances_list[selected_layer_index] is not None:
                         self.parallax_background_instances_list[selected_layer_index] = None
+
+            # Static background state
+            # TODO: Turn the block to a func and use the name as key
+            if self.reformat_json_data[self.selected_sprite_name]["sprite_type"] == "static_background":
+                # Lmb just pressed
+                is_lmb_just_pressed_occupied: bool = False
+                if self.game_event_handler.is_lmb_just_pressed:
+                    # TODO: Seperate logic to do autotile or not
+                    # Get this sprite layer
+                    selected_layer_index = self.reformat_json_data[self.selected_sprite_name]["sprite_layer"] - 1
+                    # Unpack the object, get layer collision map and surf
+                    selected_layer_object = self.static_background_surf_and_collision_map_list[selected_layer_index]
+                    selected_layer_collision_map = selected_layer_object["collision_map"]
+                    selected_layer_surf = selected_layer_object["surf"]
+                    # Iterate size to check all empty
+                    self.cursor_width_tu = int(self.cursor_width // TILE_SIZE)
+                    self.cursor_height_tu = int(self.cursor_height // TILE_SIZE)
+                    for tu_xi in range(self.cursor_width_tu):
+                        for tu_yi in range(self.cursor_height_tu):
+                            tu_x = self.world_mouse_tu_x + tu_xi
+                            tu_y = self.world_mouse_tu_y + tu_yi
+                            # Get each one in room_collision_map_list
+                            found_tile_lmb_pressed: int = self.get_tile_from_collision_map_list(
+                                tu_x,
+                                tu_y,
+                                selected_layer_collision_map,
+                            )
+                            # At least 1 of them is occupied? Return
+                            if found_tile_lmb_pressed != 0:
+                                is_lmb_just_pressed_occupied = True
+                    # All cells are empty
+                    if not is_lmb_just_pressed_occupied:
+                        # Draw the sprite on the sprite sheet
+                        sprite_region_x = self.reformat_json_data[self.selected_sprite_name]["x"]
+                        sprite_region_y = self.reformat_json_data[self.selected_sprite_name]["y"]
+                        sprite_region_width = self.reformat_json_data[self.selected_sprite_name]["width"]
+                        sprite_region_height = self.reformat_json_data[self.selected_sprite_name]["height"]
+                        selected_layer_surf.blit(
+                            self.sprite_sheet_surf,
+                            (self.world_mouse_snapped_x, self.world_mouse_snapped_y),
+                            (sprite_region_x, sprite_region_y, sprite_region_width, sprite_region_height),
+                        )
+                        # Fill the collision map with 1 in cursor region
+                        for tu_xi in range(self.cursor_width_tu):
+                            for tu_yi in range(self.cursor_height_tu):
+                                tu_x = self.world_mouse_tu_x + tu_xi
+                                tu_y = self.world_mouse_tu_y + tu_yi
+                                self.set_tile_from_collision_map_list(
+                                    tu_x,
+                                    tu_y,
+                                    1,
+                                    selected_layer_collision_map,
+                                )
+                # Lmb just pressed
+                if self.game_event_handler.is_rmb_just_pressed:
+                    # Get this sprite layer
+                    selected_layer_index = self.reformat_json_data[self.selected_sprite_name]["sprite_layer"] - 1
+                    # Unpack the object, get layer collision map and surf
+                    selected_layer_object = self.static_background_surf_and_collision_map_list[selected_layer_index]
+                    selected_layer_collision_map = selected_layer_object["collision_map"]
+                    selected_layer_surf = selected_layer_object["surf"]
+                    # Iterate size to set to 0
+                    self.cursor_width_tu = int(self.cursor_width // TILE_SIZE)
+                    self.cursor_height_tu = int(self.cursor_height // TILE_SIZE)
+                    for tu_xi in range(self.cursor_width_tu):
+                        for tu_yi in range(self.cursor_height_tu):
+                            tu_x = self.world_mouse_tu_x + tu_xi
+                            tu_y = self.world_mouse_tu_y + tu_yi
+                            # Get each one in room_collision_map_list and set to 0
+                            self.set_tile_from_collision_map_list(
+                                tu_x,
+                                tu_y,
+                                0,
+                                selected_layer_collision_map,
+                            )
+                    # Erase the sprite on the sprite sheet in region
+                    sprite_region_x = self.reformat_json_data[self.selected_sprite_name]["x"]
+                    sprite_region_y = self.reformat_json_data[self.selected_sprite_name]["y"]
+                    sprite_region_width = self.reformat_json_data[self.selected_sprite_name]["width"]
+                    sprite_region_height = self.reformat_json_data[self.selected_sprite_name]["height"]
+                    selected_layer_surf.fill(
+                        "red",
+                        (self.world_mouse_snapped_x, self.world_mouse_snapped_y, self.cursor_width, self.cursor_height),
+                    )
 
             # Sprite selection
             # Lmb just pressed
@@ -968,8 +1133,11 @@ class RoomJsonGenerator:
                 self.curtain.go_to_invisible()
 
     def on_button_selected(self, selected_button: Button) -> None:
-        self.selected_sprite_type = selected_button.description_text
+        # Update selected name
         self.selected_sprite_name = selected_button.text
+        # Update cursor size
+        self.cursor_width = self.reformat_json_data[self.selected_sprite_name]["width"]
+        self.cursor_height = self.reformat_json_data[self.selected_sprite_name]["height"]
         # On select also counts as quiting pallete
         self.is_from_pallete_pressed_jump = True
         if self.button_container is not None:
