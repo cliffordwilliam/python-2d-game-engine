@@ -140,7 +140,7 @@ MAX_QUADTREE_DEPTH: int = 8
 
 # REMOVE IN BUILD
 # This is for room editor autotile mapping
-BINARY_VALUE_TO_OFFSET_DICT: dict[int, dict[str, int]] = {
+SPRITE_TILE_TYPE_NORMAL_BINARY_VALUE_TO_OFFSET_DICT: dict[int, dict[str, int]] = {
     208: {
         "x": TILE_SIZE * 0,
         "y": TILE_SIZE * 0,
@@ -328,6 +328,45 @@ BINARY_VALUE_TO_OFFSET_DICT: dict[int, dict[str, int]] = {
     90: {
         "x": TILE_SIZE * 8,
         "y": TILE_SIZE * 4,
+    },
+}
+
+SPRITE_TILE_TYPE_TOP_BOTTOM_BINARY_VALUE_TO_OFFSET_DICT: dict[int, dict[str, int]] = {
+    208: {
+        "x": TILE_SIZE * 0,
+        "y": TILE_SIZE * 0,
+    },
+    248: {
+        "x": TILE_SIZE * 1,
+        "y": TILE_SIZE * 0,
+    },
+    104: {
+        "x": TILE_SIZE * 2,
+        "y": TILE_SIZE * 0,
+    },
+    214: {
+        "x": TILE_SIZE * 0,
+        "y": TILE_SIZE * 1,
+    },
+    255: {
+        "x": TILE_SIZE * 1,
+        "y": TILE_SIZE * 1,
+    },
+    107: {
+        "x": TILE_SIZE * 2,
+        "y": TILE_SIZE * 1,
+    },
+    22: {
+        "x": TILE_SIZE * 0,
+        "y": TILE_SIZE * 1,
+    },
+    31: {
+        "x": TILE_SIZE * 1,
+        "y": TILE_SIZE * 1,
+    },
+    11: {
+        "x": TILE_SIZE * 2,
+        "y": TILE_SIZE * 1,
     },
 }
 

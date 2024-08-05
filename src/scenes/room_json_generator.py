@@ -7,7 +7,6 @@ from os.path import join
 from typing import Any
 from typing import TYPE_CHECKING
 
-from constants import BINARY_VALUE_TO_OFFSET_DICT
 from constants import FONT
 from constants import FONT_HEIGHT
 from constants import JSONS_ROOMS_DIR_PATH
@@ -21,6 +20,8 @@ from constants import pg
 from constants import PNGS_PATHS_DICT
 from constants import ROOM_HEIGHT
 from constants import ROOM_WIDTH
+from constants import SPRITE_TILE_TYPE_NORMAL_BINARY_VALUE_TO_OFFSET_DICT
+from constants import SPRITE_TILE_TYPE_TOP_BOTTOM_BINARY_VALUE_TO_OFFSET_DICT
 from constants import TILE_SIZE
 from constants import WORLD_CELL_SIZE
 from constants import WORLD_HEIGHT
@@ -593,7 +594,6 @@ class RoomJsonGenerator:
         if self.curtain.is_done:
             # Sprite selection
             # Lmb just pressed
-            is_lmb_just_pressed_occupied: bool = False
             if self.game_event_handler.is_lmb_just_pressed:
                 # Check if selection is all empty cells
                 # Iterate size to check all empty
@@ -605,7 +605,10 @@ class RoomJsonGenerator:
                 )
                 self.combined_world_selected_tile_rect_x_ru = int(self.combined_world_selected_tile_rect.x // WORLD_CELL_SIZE)
                 self.combined_world_selected_tile_rect_y_ru = int(self.combined_world_selected_tile_rect.y // WORLD_CELL_SIZE)
+                found_occupied = False
                 for world_mouse_tu_xi in range(self.combined_world_selected_tile_rect_width_ru):
+                    if found_occupied:
+                        break
                     for world_mouse_tu_yi in range(self.combined_world_selected_tile_rect_height_ru):
                         world_mouse_tu_x = self.combined_world_selected_tile_rect_x_ru + world_mouse_tu_xi
                         world_mouse_tu_y = self.combined_world_selected_tile_rect_y_ru + world_mouse_tu_yi
@@ -616,9 +619,10 @@ class RoomJsonGenerator:
                         )
                         # At least 1 of them is occupied? Return
                         if found_tile_lmb_pressed != 0:
-                            is_lmb_just_pressed_occupied = True
+                            found_occupied = True
+                            break
                 # All cells are empty
-                if not is_lmb_just_pressed_occupied:
+                if not found_occupied:
                     # Update room metadata dimension
                     self.room_height = self.combined_world_selected_tile_rect_width_ru * ROOM_HEIGHT
                     self.room_height_tu = int(self.room_height // TILE_SIZE)
@@ -764,10 +768,10 @@ class RoomJsonGenerator:
 
                                     # Static background layers total is ready here, populate
                                     # Init surf and collision map for each static background layers
-                                    surf: pg.Surface = pg.Surface((self.room_width, self.room_height))
-                                    surf.set_colorkey("red")
-                                    surf.fill("red")
                                     for _ in range(self.static_background_layers):
+                                        surf: pg.Surface = pg.Surface((self.room_width, self.room_height))
+                                        surf.set_colorkey("red")
+                                        surf.fill("red")
                                         self.static_background_surf_and_collision_map_list.append(
                                             {
                                                 "surf": surf,
@@ -831,12 +835,12 @@ class RoomJsonGenerator:
             self._move_camera(dt)
 
             # TODO: Turn the block to a func and use the name as key
+            # TODO: Remove repetitions
+            sprite_type: str = self.reformat_json_data[self.selected_sprite_name]["sprite_type"]
 
             #############################
             # PARALLAX BACKGROUND STATE #
             #############################
-
-            sprite_type: str = self.reformat_json_data[self.selected_sprite_name]["sprite_type"]
 
             if sprite_type == "parallax_background":
                 # Lmb just pressed
@@ -867,7 +871,6 @@ class RoomJsonGenerator:
                 # Lmb just pressed #
                 ####################
 
-                is_lmb_just_pressed_occupied: bool = False
                 if self.game_event_handler.is_lmb_just_pressed:
                     # Get this sprite layer
                     selected_layer_index = self.reformat_json_data[self.selected_sprite_name]["sprite_layer"] - 1
@@ -888,7 +891,10 @@ class RoomJsonGenerator:
                         # Iterate size to check all empty
                         self.cursor_width_tu = int(self.cursor_width // TILE_SIZE)
                         self.cursor_height_tu = int(self.cursor_height // TILE_SIZE)
+                        found_occupied = False
                         for tu_xi in range(self.cursor_width_tu):
+                            if found_occupied:
+                                break
                             for tu_yi in range(self.cursor_height_tu):
                                 tu_x = self.world_mouse_tu_x + tu_xi
                                 tu_y = self.world_mouse_tu_y + tu_yi
@@ -900,9 +906,10 @@ class RoomJsonGenerator:
                                 )
                                 # At least 1 of them is occupied? Return
                                 if found_tile_lmb_pressed != 0:
-                                    is_lmb_just_pressed_occupied = True
+                                    found_occupied = True
+                                    break
                         # All cells are empty
-                        if not is_lmb_just_pressed_occupied:
+                        if not found_occupied:
                             # Draw the sprite on the sprite sheet
                             sprite_region_x = self.reformat_json_data[self.selected_sprite_name]["x"]
                             sprite_region_y = self.reformat_json_data[self.selected_sprite_name]["y"]
@@ -914,6 +921,7 @@ class RoomJsonGenerator:
                                 (sprite_region_x, sprite_region_y, sprite_region_width, sprite_region_height),
                             )
                             # Fill the collision map with 1 in cursor region
+                            sprite_name = self.reformat_json_data[self.selected_sprite_name]["sprite_name"]
                             for tu_xi in range(self.cursor_width_tu):
                                 for tu_yi in range(self.cursor_height_tu):
                                     tu_x = self.world_mouse_tu_x + tu_xi
@@ -921,7 +929,7 @@ class RoomJsonGenerator:
                                     self.set_tile_from_collision_map_list(
                                         tu_x,
                                         tu_y,
-                                        1,
+                                        sprite_name,
                                         selected_static_background_layer_collision_map,
                                     )
 
@@ -936,28 +944,23 @@ class RoomJsonGenerator:
                             self.world_mouse_tu_y,
                             selected_static_background_layer_collision_map,
                         )
-                        # Occupied? Return
-                        if found_tile_lmb_pressed != 0:
-                            is_lmb_just_pressed_occupied = True
                         # Cell is empty
-                        if not is_lmb_just_pressed_occupied:
+                        if found_tile_lmb_pressed == 0:
                             # Check neighbour to determine x y offset
                             binary_value = self.get_surrounding_tile_value(
                                 self.world_mouse_tu_x,
                                 self.world_mouse_tu_y,
                                 selected_static_background_layer_collision_map,
                             )
-                            offset_object = BINARY_VALUE_TO_OFFSET_DICT[binary_value]
+                            offset_object = SPRITE_TILE_TYPE_NORMAL_BINARY_VALUE_TO_OFFSET_DICT[binary_value]
                             sprite_name = self.reformat_json_data[self.selected_sprite_name]["sprite_name"]
                             sprite_region_x = self.reformat_json_data[self.selected_sprite_name]["x"] + offset_object["x"]
                             sprite_region_y = self.reformat_json_data[self.selected_sprite_name]["y"] + offset_object["y"]
-                            sprite_region_width = TILE_SIZE
-                            sprite_region_height = TILE_SIZE
                             # Draw new sprite on the sprite sheet
                             selected_static_background_layer_surf.blit(
                                 self.sprite_sheet_surf,
                                 (self.world_mouse_snapped_x, self.world_mouse_snapped_y),
-                                (sprite_region_x, sprite_region_y, sprite_region_width, sprite_region_height),
+                                (sprite_region_x, sprite_region_y, TILE_SIZE, TILE_SIZE),
                             )
                             # Fill the collision map with sprite_name in cursor
                             self.set_tile_from_collision_map_list(
@@ -981,8 +984,7 @@ class RoomJsonGenerator:
                                 neighbor_world_snapped_x = neighbor_world_tu_x * TILE_SIZE
                                 neighbor_world_snapped_y = neighbor_world_tu_y * TILE_SIZE
                                 # Not my kind and not mixed? Return
-                                just_added_sprite_name = self.reformat_json_data[self.selected_sprite_name]["sprite_name"]
-                                if neighbor_tile_name != just_added_sprite_name:
+                                if neighbor_tile_name != self.selected_sprite_name:
                                     neighbor_sprite_is_tile_mix = self.reformat_json_data[neighbor_tile_name][
                                         "sprite_is_tile_mix"
                                     ]
@@ -994,26 +996,115 @@ class RoomJsonGenerator:
                                     neighbor_world_tu_y,
                                     selected_static_background_layer_collision_map,
                                 )
-                                offset_object = BINARY_VALUE_TO_OFFSET_DICT[binary_value]
+                                offset_object = SPRITE_TILE_TYPE_NORMAL_BINARY_VALUE_TO_OFFSET_DICT[binary_value]
                                 sprite_region_x = self.reformat_json_data[self.selected_sprite_name]["x"] + offset_object["x"]
                                 sprite_region_y = self.reformat_json_data[self.selected_sprite_name]["y"] + offset_object["y"]
-                                sprite_region_width = TILE_SIZE
-                                sprite_region_height = TILE_SIZE
                                 # Clear first before drawing new sprite
                                 selected_static_background_layer_surf.fill(
                                     "red",
                                     (
                                         neighbor_world_snapped_x,
                                         neighbor_world_snapped_y,
-                                        sprite_region_width,
-                                        sprite_region_height,
+                                        TILE_SIZE,
+                                        TILE_SIZE,
                                     ),
                                 )
                                 # Draw new sprite on the sprite sheet
                                 selected_static_background_layer_surf.blit(
                                     self.sprite_sheet_surf,
                                     (neighbor_world_snapped_x, neighbor_world_snapped_y),
-                                    (sprite_region_x, sprite_region_y, sprite_region_width, sprite_region_height),
+                                    (sprite_region_x, sprite_region_y, TILE_SIZE, TILE_SIZE),
+                                )
+
+                    ########################
+                    # TOP BOTTOM TILE TYPE #
+                    ########################
+
+                    if sprite_tile_type == "top_bottom":
+                        # Get one in room_collision_map_list
+                        found_tile_lmb_pressed = self.get_tile_from_collision_map_list(
+                            self.world_mouse_tu_x,
+                            self.world_mouse_tu_y,
+                            selected_static_background_layer_collision_map,
+                        )
+                        # Cell is empty
+                        if found_tile_lmb_pressed == 0:
+                            # Check neighbour to determine x y offset
+                            binary_value = self.get_surrounding_tile_value(
+                                self.world_mouse_tu_x,
+                                self.world_mouse_tu_y,
+                                selected_static_background_layer_collision_map,
+                            )
+                            # Binary not in dict? Return
+                            sprite_region_x = self.reformat_json_data[self.selected_sprite_name]["x"]
+                            sprite_region_y = self.reformat_json_data[self.selected_sprite_name]["y"]
+                            if binary_value in SPRITE_TILE_TYPE_TOP_BOTTOM_BINARY_VALUE_TO_OFFSET_DICT:
+                                offset_object = SPRITE_TILE_TYPE_TOP_BOTTOM_BINARY_VALUE_TO_OFFSET_DICT[binary_value]
+                                sprite_region_x = self.reformat_json_data[self.selected_sprite_name]["x"] + offset_object["x"]
+                                sprite_region_y = self.reformat_json_data[self.selected_sprite_name]["y"] + offset_object["y"]
+                            sprite_name = self.reformat_json_data[self.selected_sprite_name]["sprite_name"]
+                            # Draw new sprite on the sprite sheet
+                            selected_static_background_layer_surf.blit(
+                                self.sprite_sheet_surf,
+                                (self.world_mouse_snapped_x, self.world_mouse_snapped_y),
+                                (sprite_region_x, sprite_region_y, TILE_SIZE, TILE_SIZE),
+                            )
+                            # Fill the collision map with sprite_name in cursor
+                            self.set_tile_from_collision_map_list(
+                                self.world_mouse_tu_x,
+                                self.world_mouse_tu_y,
+                                sprite_name,
+                                selected_static_background_layer_collision_map,
+                            )
+                            # Get my adjacent neighbors
+                            adjacent_tile_obj_neighbors = self.get_adjacent_tiles(
+                                self.world_mouse_tu_x,
+                                self.world_mouse_tu_y,
+                                selected_static_background_layer_collision_map,
+                            )
+                            # Iterate each found neighbors
+                            for obj in adjacent_tile_obj_neighbors:
+                                # Unpack the object, get the name and tu coords
+                                neighbor_tile_name = obj["tile"]
+                                neighbor_world_tu_x = obj["world_tu_x"]
+                                neighbor_world_tu_y = obj["world_tu_y"]
+                                neighbor_world_snapped_x = neighbor_world_tu_x * TILE_SIZE
+                                neighbor_world_snapped_y = neighbor_world_tu_y * TILE_SIZE
+                                # Not my kind and not mixed? Return
+                                if neighbor_tile_name != self.selected_sprite_name:
+                                    neighbor_sprite_is_tile_mix = self.reformat_json_data[neighbor_tile_name][
+                                        "sprite_is_tile_mix"
+                                    ]
+                                    if not neighbor_sprite_is_tile_mix:
+                                        return
+                                # Check neighbor to determine x y offset to get the correct sprite region
+                                binary_value = self.get_surrounding_tile_value(
+                                    neighbor_world_tu_x,
+                                    neighbor_world_tu_y,
+                                    selected_static_background_layer_collision_map,
+                                )
+                                # Binary not in dict? Return
+                                sprite_region_x = self.reformat_json_data[self.selected_sprite_name]["x"]
+                                sprite_region_y = self.reformat_json_data[self.selected_sprite_name]["y"]
+                                if binary_value in SPRITE_TILE_TYPE_TOP_BOTTOM_BINARY_VALUE_TO_OFFSET_DICT:
+                                    offset_object = SPRITE_TILE_TYPE_TOP_BOTTOM_BINARY_VALUE_TO_OFFSET_DICT[binary_value]
+                                    sprite_region_x = self.reformat_json_data[self.selected_sprite_name]["x"] + offset_object["x"]
+                                    sprite_region_y = self.reformat_json_data[self.selected_sprite_name]["y"] + offset_object["y"]
+                                # Clear first before drawing new sprite
+                                selected_static_background_layer_surf.fill(
+                                    "red",
+                                    (
+                                        neighbor_world_snapped_x,
+                                        neighbor_world_snapped_y,
+                                        TILE_SIZE,
+                                        TILE_SIZE,
+                                    ),
+                                )
+                                # Draw new sprite on the sprite sheet
+                                selected_static_background_layer_surf.blit(
+                                    self.sprite_sheet_surf,
+                                    (neighbor_world_snapped_x, neighbor_world_snapped_y),
+                                    (sprite_region_x, sprite_region_y, TILE_SIZE, TILE_SIZE),
                                 )
 
                 ####################
@@ -1037,29 +1128,174 @@ class RoomJsonGenerator:
                     ##################
 
                     if sprite_tile_type == "none":
-                        # Iterate size to set to 0
-                        self.cursor_width_tu = int(self.cursor_width // TILE_SIZE)
-                        self.cursor_height_tu = int(self.cursor_height // TILE_SIZE)
-                        for tu_xi in range(self.cursor_width_tu):
-                            for tu_yi in range(self.cursor_height_tu):
-                                tu_x = self.world_mouse_tu_x + tu_xi
-                                tu_y = self.world_mouse_tu_y + tu_yi
-                                # Get each one in room_collision_map_list and set to 0
-                                self.set_tile_from_collision_map_list(
-                                    tu_x,
-                                    tu_y,
-                                    0,
+                        # Get one in room_collision_map_list
+                        found_tile_lmb_pressed = self.get_tile_from_collision_map_list(
+                            self.world_mouse_tu_x,
+                            self.world_mouse_tu_y,
+                            selected_static_background_layer_collision_map,
+                        )
+                        # It is occupied?
+                        if found_tile_lmb_pressed != 0:
+                            # Set to 0
+                            self.set_tile_from_collision_map_list(
+                                self.world_mouse_tu_x,
+                                self.world_mouse_tu_y,
+                                0,
+                                selected_static_background_layer_collision_map,
+                            )
+                            # Erase the sprite on the sprite sheet surf in region
+                            selected_static_background_layer_surf.fill(
+                                "red",
+                                (self.world_mouse_snapped_x, self.world_mouse_snapped_y, TILE_SIZE, TILE_SIZE),
+                            )
+
+                    ####################
+                    # NORMAL TILE TYPE #
+                    ####################
+
+                    if sprite_tile_type == "normal":
+                        # Get one in room_collision_map_list
+                        found_tile_lmb_pressed = self.get_tile_from_collision_map_list(
+                            self.world_mouse_tu_x,
+                            self.world_mouse_tu_y,
+                            selected_static_background_layer_collision_map,
+                        )
+                        # Cell is filled
+                        if found_tile_lmb_pressed != 0:
+                            # Set to 0
+                            self.set_tile_from_collision_map_list(
+                                self.world_mouse_tu_x,
+                                self.world_mouse_tu_y,
+                                0,
+                                selected_static_background_layer_collision_map,
+                            )
+                            # Erase the sprite on the sprite sheet surf in region
+                            selected_static_background_layer_surf.fill(
+                                "red",
+                                (self.world_mouse_snapped_x, self.world_mouse_snapped_y, TILE_SIZE, TILE_SIZE),
+                            )
+                            # Get my adjacent neighbors
+                            adjacent_tile_obj_neighbors = self.get_adjacent_tiles(
+                                self.world_mouse_tu_x,
+                                self.world_mouse_tu_y,
+                                selected_static_background_layer_collision_map,
+                            )
+                            # Iterate each found neighbors
+                            for obj in adjacent_tile_obj_neighbors:
+                                # Unpack the object, get the name and tu coords
+                                neighbor_tile_name = obj["tile"]
+                                neighbor_world_tu_x = obj["world_tu_x"]
+                                neighbor_world_tu_y = obj["world_tu_y"]
+                                neighbor_world_snapped_x = neighbor_world_tu_x * TILE_SIZE
+                                neighbor_world_snapped_y = neighbor_world_tu_y * TILE_SIZE
+                                # Not my kind and not mixed? Return
+                                if neighbor_tile_name != self.selected_sprite_name:
+                                    neighbor_sprite_is_tile_mix = self.reformat_json_data[neighbor_tile_name][
+                                        "sprite_is_tile_mix"
+                                    ]
+                                    if not neighbor_sprite_is_tile_mix:
+                                        return
+                                # Check neighbor to determine x y offset to get the correct sprite region
+                                binary_value = self.get_surrounding_tile_value(
+                                    neighbor_world_tu_x,
+                                    neighbor_world_tu_y,
                                     selected_static_background_layer_collision_map,
                                 )
-                        # Erase the sprite on the sprite sheet in region
-                        sprite_region_x = self.reformat_json_data[self.selected_sprite_name]["x"]
-                        sprite_region_y = self.reformat_json_data[self.selected_sprite_name]["y"]
-                        sprite_region_width = self.reformat_json_data[self.selected_sprite_name]["width"]
-                        sprite_region_height = self.reformat_json_data[self.selected_sprite_name]["height"]
-                        selected_static_background_layer_surf.fill(
-                            "red",
-                            (self.world_mouse_snapped_x, self.world_mouse_snapped_y, self.cursor_width, self.cursor_height),
+                                offset_object = SPRITE_TILE_TYPE_NORMAL_BINARY_VALUE_TO_OFFSET_DICT[binary_value]
+                                sprite_region_x = self.reformat_json_data[self.selected_sprite_name]["x"] + offset_object["x"]
+                                sprite_region_y = self.reformat_json_data[self.selected_sprite_name]["y"] + offset_object["y"]
+                                # Clear first before drawing new sprite
+                                selected_static_background_layer_surf.fill(
+                                    "red",
+                                    (
+                                        neighbor_world_snapped_x,
+                                        neighbor_world_snapped_y,
+                                        TILE_SIZE,
+                                        TILE_SIZE,
+                                    ),
+                                )
+                                # Draw new sprite on the sprite sheet
+                                selected_static_background_layer_surf.blit(
+                                    self.sprite_sheet_surf,
+                                    (neighbor_world_snapped_x, neighbor_world_snapped_y),
+                                    (sprite_region_x, sprite_region_y, TILE_SIZE, TILE_SIZE),
+                                )
+
+                    ########################
+                    # TOP BOTTOM TILE TYPE #
+                    ########################
+
+                    if sprite_tile_type == "top_bottom":
+                        # Get one in room_collision_map_list
+                        found_tile_lmb_pressed = self.get_tile_from_collision_map_list(
+                            self.world_mouse_tu_x,
+                            self.world_mouse_tu_y,
+                            selected_static_background_layer_collision_map,
                         )
+                        # Cell is empty
+                        if found_tile_lmb_pressed != 0:
+                            # Set to 0
+                            self.set_tile_from_collision_map_list(
+                                self.world_mouse_tu_x,
+                                self.world_mouse_tu_y,
+                                0,
+                                selected_static_background_layer_collision_map,
+                            )
+                            # Erase the sprite on the sprite sheet surf in region
+                            selected_static_background_layer_surf.fill(
+                                "red",
+                                (self.world_mouse_snapped_x, self.world_mouse_snapped_y, TILE_SIZE, TILE_SIZE),
+                            )
+                            # Get my adjacent neighbors
+                            adjacent_tile_obj_neighbors = self.get_adjacent_tiles(
+                                self.world_mouse_tu_x,
+                                self.world_mouse_tu_y,
+                                selected_static_background_layer_collision_map,
+                            )
+                            # Iterate each found neighbors
+                            for obj in adjacent_tile_obj_neighbors:
+                                # Unpack the object, get the name and tu coords
+                                neighbor_tile_name = obj["tile"]
+                                neighbor_world_tu_x = obj["world_tu_x"]
+                                neighbor_world_tu_y = obj["world_tu_y"]
+                                neighbor_world_snapped_x = neighbor_world_tu_x * TILE_SIZE
+                                neighbor_world_snapped_y = neighbor_world_tu_y * TILE_SIZE
+                                # Not my kind and not mixed? Return
+                                if neighbor_tile_name != self.selected_sprite_name:
+                                    neighbor_sprite_is_tile_mix = self.reformat_json_data[neighbor_tile_name][
+                                        "sprite_is_tile_mix"
+                                    ]
+                                    if not neighbor_sprite_is_tile_mix:
+                                        return
+                                # Check neighbor to determine x y offset to get the correct sprite region
+                                binary_value = self.get_surrounding_tile_value(
+                                    neighbor_world_tu_x,
+                                    neighbor_world_tu_y,
+                                    selected_static_background_layer_collision_map,
+                                )
+                                # Binary not in dict? Return
+                                sprite_region_x = self.reformat_json_data[self.selected_sprite_name]["x"]
+                                sprite_region_y = self.reformat_json_data[self.selected_sprite_name]["y"]
+                                if binary_value in SPRITE_TILE_TYPE_TOP_BOTTOM_BINARY_VALUE_TO_OFFSET_DICT:
+                                    offset_object = SPRITE_TILE_TYPE_TOP_BOTTOM_BINARY_VALUE_TO_OFFSET_DICT[binary_value]
+                                    sprite_region_x = self.reformat_json_data[self.selected_sprite_name]["x"] + offset_object["x"]
+                                    sprite_region_y = self.reformat_json_data[self.selected_sprite_name]["y"] + offset_object["y"]
+                                # Clear first before drawing new sprite
+                                selected_static_background_layer_surf.fill(
+                                    "red",
+                                    (
+                                        neighbor_world_snapped_x,
+                                        neighbor_world_snapped_y,
+                                        TILE_SIZE,
+                                        TILE_SIZE,
+                                    ),
+                                )
+                                # Draw new sprite on the sprite sheet
+                                selected_static_background_layer_surf.blit(
+                                    self.sprite_sheet_surf,
+                                    (neighbor_world_snapped_x, neighbor_world_snapped_y),
+                                    (sprite_region_x, sprite_region_y, TILE_SIZE, TILE_SIZE),
+                                )
 
             # Jump just pressed
             if self.game_event_handler.is_jump_just_pressed:
@@ -1457,6 +1693,13 @@ class RoomJsonGenerator:
             )
             # Found something
             if tile != -1 and tile != 0:
+                # Not my kind and not mixed? Skip this one
+                neighbor_tile_name = self.reformat_json_data[tile]["sprite_name"]
+                just_added_sprite_name = self.reformat_json_data[self.selected_sprite_name]["sprite_name"]
+                if neighbor_tile_name != just_added_sprite_name:
+                    neighbor_sprite_is_tile_mix = self.reformat_json_data[neighbor_tile_name]["sprite_is_tile_mix"]
+                    if not neighbor_sprite_is_tile_mix:
+                        continue
                 # For corner tiles, check that they have both neighbor in the cardinal directions
                 if (dx, dy) in cardinal_directions:
                     has_cardinal_neighbor = True
