@@ -140,54 +140,195 @@ MAX_QUADTREE_DEPTH: int = 8
 
 # REMOVE IN BUILD
 # This is for room editor autotile mapping
-MASK_ID_TO_INDEX: dict[str, int] = {
-    "208": 0,
-    "248": 1,
-    "104": 2,
-    "64": 3,
-    "80": 4,
-    "120": 5,
-    "216": 6,
-    "72": 7,
-    "88": 8,
-    "219": 9,
-    "214": 10,
-    "255": 11,
-    "107": 12,
-    "66": 13,
-    "86": 14,
-    "127": 15,
-    "223": 16,
-    "75": 17,
-    "95": 18,
-    "126": 19,
-    "22": 20,
-    "31": 21,
-    "11": 22,
-    "2": 23,
-    "210": 24,
-    "251": 25,
-    "254": 26,
-    "106": 27,
-    "250": 28,
-    "218": 29,
-    "122": 30,
-    "16": 31,
-    "24": 32,
-    "8": 33,
-    "0": 34,
-    "18": 35,
-    "27": 36,
-    "30": 37,
-    "10": 38,
-    "26": 39,
-    "94": 40,
-    "91": 41,
-    "82": 42,
-    "123": 43,
-    "222": 44,
-    "74": 45,
-    "90": 46,
+BINARY_VALUE_TO_OFFSET_DICT: dict[int, dict[str, int]] = {
+    208: {
+        "x": TILE_SIZE * 0,
+        "y": TILE_SIZE * 0,
+    },
+    248: {
+        "x": TILE_SIZE * 1,
+        "y": TILE_SIZE * 0,
+    },
+    104: {
+        "x": TILE_SIZE * 2,
+        "y": TILE_SIZE * 0,
+    },
+    64: {
+        "x": TILE_SIZE * 3,
+        "y": TILE_SIZE * 0,
+    },
+    80: {
+        "x": TILE_SIZE * 4,
+        "y": TILE_SIZE * 0,
+    },
+    120: {
+        "x": TILE_SIZE * 5,
+        "y": TILE_SIZE * 0,
+    },
+    216: {
+        "x": TILE_SIZE * 6,
+        "y": TILE_SIZE * 0,
+    },
+    72: {
+        "x": TILE_SIZE * 7,
+        "y": TILE_SIZE * 0,
+    },
+    88: {
+        "x": TILE_SIZE * 8,
+        "y": TILE_SIZE * 0,
+    },
+    219: {
+        "x": TILE_SIZE * 9,
+        "y": TILE_SIZE * 0,
+    },
+    214: {
+        "x": TILE_SIZE * 0,
+        "y": TILE_SIZE * 1,
+    },
+    255: {
+        "x": TILE_SIZE * 1,
+        "y": TILE_SIZE * 1,
+    },
+    107: {
+        "x": TILE_SIZE * 2,
+        "y": TILE_SIZE * 1,
+    },
+    66: {
+        "x": TILE_SIZE * 3,
+        "y": TILE_SIZE * 1,
+    },
+    86: {
+        "x": TILE_SIZE * 4,
+        "y": TILE_SIZE * 1,
+    },
+    127: {
+        "x": TILE_SIZE * 5,
+        "y": TILE_SIZE * 1,
+    },
+    223: {
+        "x": TILE_SIZE * 6,
+        "y": TILE_SIZE * 1,
+    },
+    75: {
+        "x": TILE_SIZE * 7,
+        "y": TILE_SIZE * 1,
+    },
+    95: {
+        "x": TILE_SIZE * 8,
+        "y": TILE_SIZE * 1,
+    },
+    126: {
+        "x": TILE_SIZE * 9,
+        "y": TILE_SIZE * 1,
+    },
+    22: {
+        "x": TILE_SIZE * 0,
+        "y": TILE_SIZE * 2,
+    },
+    31: {
+        "x": TILE_SIZE * 1,
+        "y": TILE_SIZE * 2,
+    },
+    11: {
+        "x": TILE_SIZE * 2,
+        "y": TILE_SIZE * 2,
+    },
+    2: {
+        "x": TILE_SIZE * 3,
+        "y": TILE_SIZE * 2,
+    },
+    210: {
+        "x": TILE_SIZE * 4,
+        "y": TILE_SIZE * 2,
+    },
+    251: {
+        "x": TILE_SIZE * 5,
+        "y": TILE_SIZE * 2,
+    },
+    254: {
+        "x": TILE_SIZE * 6,
+        "y": TILE_SIZE * 2,
+    },
+    106: {
+        "x": TILE_SIZE * 7,
+        "y": TILE_SIZE * 2,
+    },
+    250: {
+        "x": TILE_SIZE * 8,
+        "y": TILE_SIZE * 2,
+    },
+    218: {
+        "x": TILE_SIZE * 9,
+        "y": TILE_SIZE * 2,
+    },
+    122: {
+        "x": TILE_SIZE * 10,
+        "y": TILE_SIZE * 2,
+    },
+    16: {
+        "x": TILE_SIZE * 0,
+        "y": TILE_SIZE * 3,
+    },
+    24: {
+        "x": TILE_SIZE * 1,
+        "y": TILE_SIZE * 3,
+    },
+    8: {
+        "x": TILE_SIZE * 2,
+        "y": TILE_SIZE * 3,
+    },
+    0: {
+        "x": TILE_SIZE * 3,
+        "y": TILE_SIZE * 3,
+    },
+    18: {
+        "x": TILE_SIZE * 4,
+        "y": TILE_SIZE * 3,
+    },
+    27: {
+        "x": TILE_SIZE * 5,
+        "y": TILE_SIZE * 3,
+    },
+    30: {
+        "x": TILE_SIZE * 6,
+        "y": TILE_SIZE * 3,
+    },
+    10: {
+        "x": TILE_SIZE * 7,
+        "y": TILE_SIZE * 3,
+    },
+    26: {
+        "x": TILE_SIZE * 8,
+        "y": TILE_SIZE * 3,
+    },
+    94: {
+        "x": TILE_SIZE * 9,
+        "y": TILE_SIZE * 3,
+    },
+    91: {
+        "x": TILE_SIZE * 10,
+        "y": TILE_SIZE * 3,
+    },
+    82: {
+        "x": TILE_SIZE * 4,
+        "y": TILE_SIZE * 4,
+    },
+    123: {
+        "x": TILE_SIZE * 5,
+        "y": TILE_SIZE * 4,
+    },
+    222: {
+        "x": TILE_SIZE * 6,
+        "y": TILE_SIZE * 4,
+    },
+    74: {
+        "x": TILE_SIZE * 7,
+        "y": TILE_SIZE * 4,
+    },
+    90: {
+        "x": TILE_SIZE * 8,
+        "y": TILE_SIZE * 4,
+    },
 }
 
 # REMOVE IN BUILD

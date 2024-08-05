@@ -163,9 +163,11 @@ class SpriteSheetJsonGenerator:
 
         # Grid surf
         self.grid_horizontal_line_surf: pg.Surface = pg.Surface((NATIVE_WIDTH, 1))
-        self.grid_horizontal_line_surf.fill(self.grid_line_color)
+        self.grid_horizontal_line_surf.fill("black")
+        self.grid_horizontal_line_surf.set_alpha(21)
         self.grid_vertical_line_surf: pg.Surface = pg.Surface((1, NATIVE_HEIGHT))
-        self.grid_vertical_line_surf.fill(self.grid_line_color)
+        self.grid_vertical_line_surf.fill("black")
+        self.grid_vertical_line_surf.set_alpha(21)
 
     def _setup_loop_options(self) -> None:
         self.selected_choice_after_add_sprites_state: int = 0
@@ -329,9 +331,6 @@ class SpriteSheetJsonGenerator:
         # Clear
         NATIVE_SURF.fill(self.clear_color)
 
-        # Draw grid
-        self.draw_grid()
-
         # Draw selected sprite sheet with camera offset
         if self.sprite_sheet_surf is not None:
             NATIVE_SURF.blit(
@@ -341,6 +340,9 @@ class SpriteSheetJsonGenerator:
                     -self.camera.rect.y,
                 ),
             )
+
+        # Draw grid
+        self.draw_grid()
 
         # Draw cursor
         # Get mouse position
@@ -416,65 +418,73 @@ class SpriteSheetJsonGenerator:
                 ),
             )
 
-        # Draw cursor
-        # Get mouse position
-        mouse_position_tuple: tuple[int, int] = pg.mouse.get_pos()
-        mouse_position_x_tuple: int = mouse_position_tuple[0]
-        mouse_position_y_tuple: int = mouse_position_tuple[1]
-        # Scale mouse position
-        mouse_position_x_tuple_scaled: int | float = mouse_position_x_tuple // self.game.local_settings_dict["resolution_scale"]
-        mouse_position_y_tuple_scaled: int | float = mouse_position_y_tuple // self.game.local_settings_dict["resolution_scale"]
-        # Keep mouse inside scaled NATIVE_RECT
-        mouse_position_x_tuple_scaled = clamp(
-            mouse_position_x_tuple_scaled,
-            NATIVE_RECT.left,
-            # Because this will refer to top left of a cell
-            # If it is flushed to the right it is out of bound
-            NATIVE_RECT.right - 1,
-        )
-        mouse_position_y_tuple_scaled = clamp(
-            mouse_position_y_tuple_scaled,
-            NATIVE_RECT.top,
-            # Because this will refer to top left of a cell
-            # If it is flushed to the bottom it is out of bound
-            NATIVE_RECT.bottom - 1,
-        )
-        # Convert positions
-        self.world_mouse_x = mouse_position_x_tuple_scaled + self.camera.rect.x
-        self.world_mouse_y = mouse_position_y_tuple_scaled + self.camera.rect.y
-        if self.sprite_sheet_rect is not None:
-            self.world_mouse_x = min(
-                self.world_mouse_x,
-                self.sprite_sheet_rect.right - TILE_SIZE,
+        # Draw and update cursor position
+        # When it is done stop, so that it does not mess with saving
+        if not self.curtain.is_done:
+            # Get mouse position
+            mouse_position_tuple: tuple[int, int] = pg.mouse.get_pos()
+            mouse_position_x_tuple: int = mouse_position_tuple[0]
+            mouse_position_y_tuple: int = mouse_position_tuple[1]
+            # Scale mouse position
+            mouse_position_x_tuple_scaled: int | float = (
+                mouse_position_x_tuple // self.game.local_settings_dict["resolution_scale"]
             )
-            self.world_mouse_y = min(
-                self.world_mouse_y,
-                self.sprite_sheet_rect.bottom - TILE_SIZE,
+            mouse_position_y_tuple_scaled: int | float = (
+                mouse_position_y_tuple // self.game.local_settings_dict["resolution_scale"]
             )
-        self.world_mouse_tu_x = int(self.world_mouse_x // TILE_SIZE)
-        self.world_mouse_tu_y = int(self.world_mouse_y // TILE_SIZE)
-        self.world_mouse_snapped_x = int(self.world_mouse_tu_x * TILE_SIZE)
-        self.world_mouse_snapped_y = int(self.world_mouse_tu_y * TILE_SIZE)
-        self.screen_mouse_x = self.world_mouse_snapped_x - self.camera.rect.x
-        self.screen_mouse_y = self.world_mouse_snapped_y - self.camera.rect.y
-        # Combine the first rect with this cursor
-        self.second_world_selected_tile_rect.x = self.world_mouse_snapped_x
-        self.second_world_selected_tile_rect.y = self.world_mouse_snapped_y
-        self.combined_world_selected_tile_rect = self.first_world_selected_tile_rect.union(self.second_world_selected_tile_rect)
-        self.screen_combined_world_selected_tile_rect_x = self.combined_world_selected_tile_rect.x - self.camera.rect.x
-        self.screen_combined_world_selected_tile_rect_y = self.combined_world_selected_tile_rect.y - self.camera.rect.y
-        # Draw combined cursor
-        pg.draw.rect(
-            NATIVE_SURF,
-            "green",
-            [
-                self.screen_combined_world_selected_tile_rect_x,
-                self.screen_combined_world_selected_tile_rect_y,
-                self.combined_world_selected_tile_rect.width,
-                self.combined_world_selected_tile_rect.height,
-            ],
-            1,
-        )
+            # Keep mouse inside scaled NATIVE_RECT
+            mouse_position_x_tuple_scaled = clamp(
+                mouse_position_x_tuple_scaled,
+                NATIVE_RECT.left,
+                # Because this will refer to top left of a cell
+                # If it is flushed to the right it is out of bound
+                NATIVE_RECT.right - 1,
+            )
+            mouse_position_y_tuple_scaled = clamp(
+                mouse_position_y_tuple_scaled,
+                NATIVE_RECT.top,
+                # Because this will refer to top left of a cell
+                # If it is flushed to the bottom it is out of bound
+                NATIVE_RECT.bottom - 1,
+            )
+            # Convert positions
+            self.world_mouse_x = mouse_position_x_tuple_scaled + self.camera.rect.x
+            self.world_mouse_y = mouse_position_y_tuple_scaled + self.camera.rect.y
+            if self.sprite_sheet_rect is not None:
+                self.world_mouse_x = min(
+                    self.world_mouse_x,
+                    self.sprite_sheet_rect.right - TILE_SIZE,
+                )
+                self.world_mouse_y = min(
+                    self.world_mouse_y,
+                    self.sprite_sheet_rect.bottom - TILE_SIZE,
+                )
+            self.world_mouse_tu_x = int(self.world_mouse_x // TILE_SIZE)
+            self.world_mouse_tu_y = int(self.world_mouse_y // TILE_SIZE)
+            self.world_mouse_snapped_x = int(self.world_mouse_tu_x * TILE_SIZE)
+            self.world_mouse_snapped_y = int(self.world_mouse_tu_y * TILE_SIZE)
+            self.screen_mouse_x = self.world_mouse_snapped_x - self.camera.rect.x
+            self.screen_mouse_y = self.world_mouse_snapped_y - self.camera.rect.y
+            # Combine the first rect with this cursor
+            self.second_world_selected_tile_rect.x = self.world_mouse_snapped_x
+            self.second_world_selected_tile_rect.y = self.world_mouse_snapped_y
+            self.combined_world_selected_tile_rect = self.first_world_selected_tile_rect.union(
+                self.second_world_selected_tile_rect
+            )
+            self.screen_combined_world_selected_tile_rect_x = self.combined_world_selected_tile_rect.x - self.camera.rect.x
+            self.screen_combined_world_selected_tile_rect_y = self.combined_world_selected_tile_rect.y - self.camera.rect.y
+            # Draw combined cursor
+            pg.draw.rect(
+                NATIVE_SURF,
+                "green",
+                [
+                    self.screen_combined_world_selected_tile_rect_x,
+                    self.screen_combined_world_selected_tile_rect_y,
+                    self.combined_world_selected_tile_rect.width,
+                    self.combined_world_selected_tile_rect.height,
+                ],
+                1,
+            )
 
         # Curtain
         self.curtain.draw(NATIVE_SURF, 0)

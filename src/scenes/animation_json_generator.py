@@ -161,9 +161,11 @@ class AnimationJsonGenerator:
 
         # Grid surf
         self.grid_horizontal_line_surf: pg.Surface = pg.Surface((NATIVE_WIDTH, 1))
-        self.grid_horizontal_line_surf.fill(self.grid_line_color)
+        self.grid_horizontal_line_surf.fill("black")
+        self.grid_horizontal_line_surf.set_alpha(21)
         self.grid_vertical_line_surf: pg.Surface = pg.Surface((1, NATIVE_HEIGHT))
-        self.grid_vertical_line_surf.fill(self.grid_line_color)
+        self.grid_vertical_line_surf.fill("black")
+        self.grid_vertical_line_surf.set_alpha(21)
 
     def _setup_loop_options(self) -> None:
         self.selected_choice_after_add_sprites_state: int = 0
@@ -309,9 +311,6 @@ class AnimationJsonGenerator:
         # Clear
         NATIVE_SURF.fill(self.clear_color)
 
-        # Draw grid
-        self.draw_grid()
-
         # Draw selected sprite sheet with camera offset
         if self.sprite_sheet_surf is not None:
             NATIVE_SURF.blit(
@@ -321,6 +320,9 @@ class AnimationJsonGenerator:
                     -self.camera.rect.y,
                 ),
             )
+
+        # Draw grid
+        self.draw_grid()
 
         # Draw cursor
         # Get mouse position
