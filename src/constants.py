@@ -370,6 +370,71 @@ SPRITE_TILE_TYPE_TOP_BOTTOM_BINARY_VALUE_TO_OFFSET_DICT: dict[int, dict[str, int
     },
 }
 
+SPRITE_TILE_TYPE_LEFT_RIGHT_BINARY_VALUE_TO_OFFSET_DICT: dict[int, dict[str, int]] = {
+    208: {
+        "x": TILE_SIZE * 0,
+        "y": TILE_SIZE * 0,
+    },
+    104: {
+        "x": TILE_SIZE * 1,
+        "y": TILE_SIZE * 0,
+    },
+    214: {
+        "x": TILE_SIZE * 0,
+        "y": TILE_SIZE * 1,
+    },
+    107: {
+        "x": TILE_SIZE * 1,
+        "y": TILE_SIZE * 1,
+    },
+    22: {
+        "x": TILE_SIZE * 0,
+        "y": TILE_SIZE * 2,
+    },
+    11: {
+        "x": TILE_SIZE * 1,
+        "y": TILE_SIZE * 2,
+    },
+}
+
+SPRITE_TILE_TYPE_VERTICAL_BINARY_VALUE_TO_OFFSET_DICT: dict[int, dict[str, int]] = {
+    64: {
+        "x": TILE_SIZE * 0,
+        "y": TILE_SIZE * 0,
+    },
+    66: {
+        "x": TILE_SIZE * 0,
+        "y": TILE_SIZE * 1,
+    },
+    2: {
+        "x": TILE_SIZE * 0,
+        "y": TILE_SIZE * 2,
+    },
+}
+
+SPRITE_TILE_TYPE_HORIZONTAL_BINARY_VALUE_TO_OFFSET_DICT: dict[int, dict[str, int]] = {
+    16: {
+        "x": TILE_SIZE * 0,
+        "y": TILE_SIZE * 0,
+    },
+    24: {
+        "x": TILE_SIZE * 1,
+        "y": TILE_SIZE * 0,
+    },
+    8: {
+        "x": TILE_SIZE * 2,
+        "y": TILE_SIZE * 0,
+    },
+}
+
+SPRITE_TILE_TYPE_BINARY_TO_OFFSET_DICT: dict[str, dict[int, dict[str, int]]] = {
+    "normal": SPRITE_TILE_TYPE_NORMAL_BINARY_VALUE_TO_OFFSET_DICT,
+    "top_bottom": SPRITE_TILE_TYPE_TOP_BOTTOM_BINARY_VALUE_TO_OFFSET_DICT,
+    "left_right": SPRITE_TILE_TYPE_LEFT_RIGHT_BINARY_VALUE_TO_OFFSET_DICT,
+    "vertical": SPRITE_TILE_TYPE_VERTICAL_BINARY_VALUE_TO_OFFSET_DICT,
+    "horizontal": SPRITE_TILE_TYPE_HORIZONTAL_BINARY_VALUE_TO_OFFSET_DICT,
+}
+
 # REMOVE IN BUILD
 # This is for frame by frame debug tool
 NEXT_FRAME: int = pg.K_8

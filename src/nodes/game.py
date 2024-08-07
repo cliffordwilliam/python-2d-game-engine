@@ -93,7 +93,7 @@ class Game:
             "stage_1_sprite_sheet.png": ["thin_fire_animation.json"]
         }
 
-        self.stage_parallax_background: dict[str, dict[str, Any]] = {
+        self.stage_parallax_background_memory_dict: dict[str, dict[str, Any]] = {
             # sprite_sheet_png_name : surf name
             "stage_1_sprite_sheet.png": {
                 "clouds": Stage1Clouds,
