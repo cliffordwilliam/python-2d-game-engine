@@ -405,9 +405,6 @@ class SpriteSheetJsonGenerator:
         # Clear
         NATIVE_SURF.fill(self.clear_color)
 
-        # Draw grid
-        self.draw_grid()
-
         # Draw selected sprite sheet with camera offset
         if self.sprite_sheet_surf is not None:
             NATIVE_SURF.blit(
@@ -418,9 +415,12 @@ class SpriteSheetJsonGenerator:
                 ),
             )
 
+        # Draw grid
+        self.draw_grid()
+
         # Draw and update cursor position
-        # When it is done stop, so that it does not mess with saving
-        if not self.curtain.is_done:
+        # When it is done only, so that it does not mess with saving
+        if self.curtain.is_done:
             # Get mouse position
             mouse_position_tuple: tuple[int, int] = pg.mouse.get_pos()
             mouse_position_x_tuple: int = mouse_position_tuple[0]
@@ -963,10 +963,10 @@ class SpriteSheetJsonGenerator:
                                         "sprite_tile_type": self.sprite_tile_type,
                                         "sprite_type": self.sprite_type,
                                         "sprite_is_tile_mix": self.sprite_is_tile_mix,
-                                        "width": self.combined_world_selected_tile_rect.width,
-                                        "height": self.combined_world_selected_tile_rect.height,
-                                        "x": self.first_world_selected_tile_rect.x,
-                                        "y": self.combined_world_selected_tile_rect.y,
+                                        "width": int(self.combined_world_selected_tile_rect.width),
+                                        "height": int(self.combined_world_selected_tile_rect.height),
+                                        "x": int(self.combined_world_selected_tile_rect.x),
+                                        "y": int(self.combined_world_selected_tile_rect.y),
                                     }
                                 )
 
@@ -1027,10 +1027,10 @@ class SpriteSheetJsonGenerator:
                                         "sprite_tile_type": self.sprite_tile_type,
                                         "sprite_type": self.sprite_type,
                                         "sprite_is_tile_mix": self.sprite_is_tile_mix,
-                                        "width": self.combined_world_selected_tile_rect.width,
-                                        "height": self.combined_world_selected_tile_rect.height,
-                                        "x": self.combined_world_selected_tile_rect.x,
-                                        "y": self.combined_world_selected_tile_rect.y,
+                                        "width": int(self.combined_world_selected_tile_rect.width),
+                                        "height": int(self.combined_world_selected_tile_rect.height),
+                                        "x": int(self.combined_world_selected_tile_rect.x),
+                                        "y": int(self.combined_world_selected_tile_rect.y),
                                     }
                                 )
 

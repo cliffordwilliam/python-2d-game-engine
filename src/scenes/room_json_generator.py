@@ -21,6 +21,7 @@ from constants import PNGS_PATHS_DICT
 from constants import ROOM_HEIGHT
 from constants import ROOM_WIDTH
 from constants import SPRITE_TILE_TYPE_BINARY_TO_OFFSET_DICT
+from constants import SPRITE_TILE_TYPE_SPRITE_ADJACENT_NEIGHBOR_DIRECTIONS_LIST
 from constants import TILE_SIZE
 from constants import WORLD_CELL_SIZE
 from constants import WORLD_HEIGHT
@@ -93,8 +94,8 @@ class RoomJsonGenerator:
         self.combined_world_selected_tile_rect_y_ru = 0
         self.cursor_width: int = TILE_SIZE
         self.cursor_height: int = TILE_SIZE
-        self.cursor_width_tu: int = int(self.cursor_width // TILE_SIZE)
-        self.cursor_height_tu: int = int(self.cursor_height // TILE_SIZE)
+        self.cursor_width_tu: int = 1
+        self.cursor_height_tu: int = 1
 
         self.is_from_edit_pressed_jump: bool = False
         self.is_from_pallete_pressed_jump: bool = False
@@ -202,9 +203,11 @@ class RoomJsonGenerator:
 
         # Grid world surf
         self.grid_world_horizontal_line_surf: pg.Surface = pg.Surface((WORLD_WIDTH, 1))
-        self.grid_world_horizontal_line_surf.fill(self.grid_line_color)
+        self.grid_world_horizontal_line_surf.fill("black")
+        self.grid_world_horizontal_line_surf.set_alpha(21)
         self.grid_world_vertical_line_surf: pg.Surface = pg.Surface((1, WORLD_HEIGHT))
-        self.grid_world_vertical_line_surf.fill(self.grid_line_color)
+        self.grid_world_vertical_line_surf.fill("black")
+        self.grid_world_vertical_line_surf.set_alpha(21)
 
         # Grid world surf
         self.grid_horizontal_line_surf: pg.Surface = pg.Surface((NATIVE_WIDTH, 1))
@@ -337,6 +340,9 @@ class RoomJsonGenerator:
 
         # Draw world surf
         NATIVE_SURF.blit(self.world_surf, (0, 0))
+
+        # Draw grid
+        self._draw_world_grid()
 
         # Draw cursor
         # Get mouse position
@@ -493,64 +499,76 @@ class RoomJsonGenerator:
         # Draw world surf
         NATIVE_SURF.blit(self.world_surf, (0, 0))
 
-        # Draw cursor
-        # Get mouse position
-        mouse_position_tuple: tuple[int, int] = pg.mouse.get_pos()
-        mouse_position_x_tuple: int = mouse_position_tuple[0]
-        mouse_position_y_tuple: int = mouse_position_tuple[1]
-        # Scale mouse position
-        mouse_position_x_tuple_scaled: int | float = mouse_position_x_tuple // self.game.local_settings_dict["resolution_scale"]
-        mouse_position_y_tuple_scaled: int | float = mouse_position_y_tuple // self.game.local_settings_dict["resolution_scale"]
-        # Clamp this in the max room size instead (hardcoded 2 x 2, no point in increasing, if not too slow)
-        mouse_position_x_tuple_scaled = clamp(
-            mouse_position_x_tuple_scaled,
-            (self.first_world_selected_tile_rect.x - WORLD_CELL_SIZE),
-            # Because this will refer to top left of a cell
-            # If it is flushed to the right it is out of bound
-            (self.first_world_selected_tile_rect.x + 2 * WORLD_CELL_SIZE) - 1,
-        )
-        mouse_position_y_tuple_scaled = clamp(
-            mouse_position_y_tuple_scaled,
-            (self.first_world_selected_tile_rect.y - WORLD_CELL_SIZE),
-            # Because this will refer to top left of a cell
-            # If it is flushed to the bottom it is out of bound
-            (self.first_world_selected_tile_rect.y + 2 * WORLD_CELL_SIZE) - 1,
-        )
-        # Convert positions
-        self.world_mouse_x = mouse_position_x_tuple_scaled + self.camera.rect.x
-        self.world_mouse_y = mouse_position_y_tuple_scaled + self.camera.rect.y
-        self.world_mouse_x = min(
-            self.world_mouse_x,
-            WORLD_WIDTH - WORLD_CELL_SIZE,
-        )
-        self.world_mouse_y = min(
-            self.world_mouse_y,
-            WORLD_HEIGHT - WORLD_CELL_SIZE,
-        )
-        self.world_mouse_tu_x = int(self.world_mouse_x // WORLD_CELL_SIZE)
-        self.world_mouse_tu_y = int(self.world_mouse_y // WORLD_CELL_SIZE)
-        self.world_mouse_snapped_x = int(self.world_mouse_tu_x * WORLD_CELL_SIZE)
-        self.world_mouse_snapped_y = int(self.world_mouse_tu_y * WORLD_CELL_SIZE)
-        self.screen_mouse_x = self.world_mouse_snapped_x - self.camera.rect.x
-        self.screen_mouse_y = self.world_mouse_snapped_y - self.camera.rect.y
-        # Combine the first rect with this cursor
-        self.second_world_selected_tile_rect.x = self.world_mouse_snapped_x
-        self.second_world_selected_tile_rect.y = self.world_mouse_snapped_y
-        self.combined_world_selected_tile_rect = self.first_world_selected_tile_rect.union(self.second_world_selected_tile_rect)
-        self.screen_combined_world_selected_tile_rect_x = self.combined_world_selected_tile_rect.x - self.camera.rect.x
-        self.screen_combined_world_selected_tile_rect_y = self.combined_world_selected_tile_rect.y - self.camera.rect.y
-        # Draw combined cursor
-        pg.draw.rect(
-            NATIVE_SURF,
-            "green",
-            [
-                self.screen_combined_world_selected_tile_rect_x,
-                self.screen_combined_world_selected_tile_rect_y,
-                self.combined_world_selected_tile_rect.width,
-                self.combined_world_selected_tile_rect.height,
-            ],
-            1,
-        )
+        # Draw grid
+        self._draw_world_grid()
+
+        # Draw and update cursor position
+        # When it is done only, so that it does not mess with saving
+        if self.curtain.is_done:
+            # Draw cursor
+            # Get mouse position
+            mouse_position_tuple: tuple[int, int] = pg.mouse.get_pos()
+            mouse_position_x_tuple: int = mouse_position_tuple[0]
+            mouse_position_y_tuple: int = mouse_position_tuple[1]
+            # Scale mouse position
+            mouse_position_x_tuple_scaled: int | float = (
+                mouse_position_x_tuple // self.game.local_settings_dict["resolution_scale"]
+            )
+            mouse_position_y_tuple_scaled: int | float = (
+                mouse_position_y_tuple // self.game.local_settings_dict["resolution_scale"]
+            )
+            # Clamp this in the max room size instead (hardcoded 2 x 2, no point in increasing, if not too slow)
+            mouse_position_x_tuple_scaled = clamp(
+                mouse_position_x_tuple_scaled,
+                (self.first_world_selected_tile_rect.x - WORLD_CELL_SIZE),
+                # Because this will refer to top left of a cell
+                # If it is flushed to the right it is out of bound
+                (self.first_world_selected_tile_rect.x + 2 * WORLD_CELL_SIZE) - 1,
+            )
+            mouse_position_y_tuple_scaled = clamp(
+                mouse_position_y_tuple_scaled,
+                (self.first_world_selected_tile_rect.y - WORLD_CELL_SIZE),
+                # Because this will refer to top left of a cell
+                # If it is flushed to the bottom it is out of bound
+                (self.first_world_selected_tile_rect.y + 2 * WORLD_CELL_SIZE) - 1,
+            )
+            # Convert positions
+            self.world_mouse_x = mouse_position_x_tuple_scaled + self.camera.rect.x
+            self.world_mouse_y = mouse_position_y_tuple_scaled + self.camera.rect.y
+            self.world_mouse_x = min(
+                self.world_mouse_x,
+                WORLD_WIDTH - WORLD_CELL_SIZE,
+            )
+            self.world_mouse_y = min(
+                self.world_mouse_y,
+                WORLD_HEIGHT - WORLD_CELL_SIZE,
+            )
+            self.world_mouse_tu_x = int(self.world_mouse_x // WORLD_CELL_SIZE)
+            self.world_mouse_tu_y = int(self.world_mouse_y // WORLD_CELL_SIZE)
+            self.world_mouse_snapped_x = int(self.world_mouse_tu_x * WORLD_CELL_SIZE)
+            self.world_mouse_snapped_y = int(self.world_mouse_tu_y * WORLD_CELL_SIZE)
+            self.screen_mouse_x = self.world_mouse_snapped_x - self.camera.rect.x
+            self.screen_mouse_y = self.world_mouse_snapped_y - self.camera.rect.y
+            # Combine the first rect with this cursor
+            self.second_world_selected_tile_rect.x = self.world_mouse_snapped_x
+            self.second_world_selected_tile_rect.y = self.world_mouse_snapped_y
+            self.combined_world_selected_tile_rect = self.first_world_selected_tile_rect.union(
+                self.second_world_selected_tile_rect
+            )
+            self.screen_combined_world_selected_tile_rect_x = self.combined_world_selected_tile_rect.x - self.camera.rect.x
+            self.screen_combined_world_selected_tile_rect_y = self.combined_world_selected_tile_rect.y - self.camera.rect.y
+            # Draw combined cursor
+            pg.draw.rect(
+                NATIVE_SURF,
+                "green",
+                [
+                    self.screen_combined_world_selected_tile_rect_x,
+                    self.screen_combined_world_selected_tile_rect_y,
+                    self.combined_world_selected_tile_rect.width,
+                    self.combined_world_selected_tile_rect.height,
+                ],
+                1,
+            )
 
         # Curtain
         self.curtain.draw(NATIVE_SURF, 0)
@@ -808,13 +826,13 @@ class RoomJsonGenerator:
                                     if sprite_sheet_obj["sprite_tile_type"] == "none":
                                         self.cursor_width = sprite_sheet_obj["width"]
                                         self.cursor_height = sprite_sheet_obj["height"]
-                                        self.cursor_width_tu = int(self.cursor_width // TILE_SIZE)
-                                        self.cursor_height_tu = int(self.cursor_height // TILE_SIZE)
+                                        self.cursor_width_tu = self.cursor_width // TILE_SIZE
+                                        self.cursor_height_tu = self.cursor_height // TILE_SIZE
                                     else:
                                         self.cursor_width = TILE_SIZE
                                         self.cursor_height = TILE_SIZE
-                                        self.cursor_width_tu = int(self.cursor_width // TILE_SIZE)
-                                        self.cursor_height_tu = int(self.cursor_height // TILE_SIZE)
+                                        self.cursor_width_tu = 1
+                                        self.cursor_height_tu = 1
 
                                     # Extract properties
                                     # extracted_data = {prop: data.get(prop) for prop in ROOM_JSON_PROPERTIES}
@@ -1347,10 +1365,9 @@ class RoomJsonGenerator:
     ) -> None:
         # Get the proper binary to offset dict
         binary_to_offset_dict = SPRITE_TILE_TYPE_BINARY_TO_OFFSET_DICT[sprite_tile_type]
-        # TODO: If it is vert, then only get the top and bottom neighbor
+        directions = SPRITE_TILE_TYPE_SPRITE_ADJACENT_NEIGHBOR_DIRECTIONS_LIST[sprite_tile_type]
         # TODO: Turn the big pillar into left side and right side, tile type type vert (so no left right)
         # TODO: Turn the top bottom name to square
-        # TODO: Turn the sprite save into int and not float for tile pos from sprite generator
 
         # Prepare top left with offset
         sprite_x_with_offset = sprite_x
@@ -1361,6 +1378,7 @@ class RoomJsonGenerator:
             sprite_world_tu_x,
             sprite_world_tu_y,
             selected_layer_collision_map,
+            directions,
         )
 
         # Is binary available in map?
@@ -1464,7 +1482,7 @@ class RoomJsonGenerator:
                 )
             )
 
-        self.world_surf.fblits(blit_sequence)
+        NATIVE_SURF.fblits(blit_sequence)
 
     def draw_grid(self) -> None:
         blit_sequence = []
@@ -1573,22 +1591,12 @@ class RoomJsonGenerator:
         world_tu_x: int,
         world_tu_y: int,
         collision_map_list: list,
+        directions: list[tuple[tuple[int, int], int]],
     ) -> int:
         """
         Returns an integer representing the presence of surrounding tiles using 8-bit directional values.
         A corner tile is included only if it has both adjacent neighbors in the cardinal directions.
         """
-        # Directions and their corresponding values
-        directions = [
-            ((-1, -1), 1),  # North West
-            ((0, -1), 2),  # North
-            ((1, -1), 4),  # North East
-            ((-1, 0), 8),  # West
-            ((1, 0), 16),  # East
-            ((-1, 1), 32),  # South West
-            ((0, 1), 64),  # South
-            ((1, 1), 128),  # South East
-        ]
         # Cardinal directions for checking neighbor presence
         cardinal_directions = {
             (-1, -1): [(-1, 0), (0, -1)],  # North West

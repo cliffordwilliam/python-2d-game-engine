@@ -331,7 +331,7 @@ SPRITE_TILE_TYPE_NORMAL_BINARY_VALUE_TO_OFFSET_DICT: dict[int, dict[str, int]] =
     },
 }
 
-SPRITE_TILE_TYPE_TOP_BOTTOM_BINARY_VALUE_TO_OFFSET_DICT: dict[int, dict[str, int]] = {
+SPRITE_TILE_TYPE_SQUARE_BINARY_VALUE_TO_OFFSET_DICT: dict[int, dict[str, int]] = {
     208: {
         "x": TILE_SIZE * 0,
         "y": TILE_SIZE * 0,
@@ -370,33 +370,6 @@ SPRITE_TILE_TYPE_TOP_BOTTOM_BINARY_VALUE_TO_OFFSET_DICT: dict[int, dict[str, int
     },
 }
 
-SPRITE_TILE_TYPE_LEFT_RIGHT_BINARY_VALUE_TO_OFFSET_DICT: dict[int, dict[str, int]] = {
-    208: {
-        "x": TILE_SIZE * 0,
-        "y": TILE_SIZE * 0,
-    },
-    104: {
-        "x": TILE_SIZE * 1,
-        "y": TILE_SIZE * 0,
-    },
-    214: {
-        "x": TILE_SIZE * 0,
-        "y": TILE_SIZE * 1,
-    },
-    107: {
-        "x": TILE_SIZE * 1,
-        "y": TILE_SIZE * 1,
-    },
-    22: {
-        "x": TILE_SIZE * 0,
-        "y": TILE_SIZE * 2,
-    },
-    11: {
-        "x": TILE_SIZE * 1,
-        "y": TILE_SIZE * 2,
-    },
-}
-
 SPRITE_TILE_TYPE_VERTICAL_BINARY_VALUE_TO_OFFSET_DICT: dict[int, dict[str, int]] = {
     64: {
         "x": TILE_SIZE * 0,
@@ -429,10 +402,37 @@ SPRITE_TILE_TYPE_HORIZONTAL_BINARY_VALUE_TO_OFFSET_DICT: dict[int, dict[str, int
 
 SPRITE_TILE_TYPE_BINARY_TO_OFFSET_DICT: dict[str, dict[int, dict[str, int]]] = {
     "normal": SPRITE_TILE_TYPE_NORMAL_BINARY_VALUE_TO_OFFSET_DICT,
-    "top_bottom": SPRITE_TILE_TYPE_TOP_BOTTOM_BINARY_VALUE_TO_OFFSET_DICT,
-    "left_right": SPRITE_TILE_TYPE_LEFT_RIGHT_BINARY_VALUE_TO_OFFSET_DICT,
+    "square": SPRITE_TILE_TYPE_SQUARE_BINARY_VALUE_TO_OFFSET_DICT,
     "vertical": SPRITE_TILE_TYPE_VERTICAL_BINARY_VALUE_TO_OFFSET_DICT,
     "horizontal": SPRITE_TILE_TYPE_HORIZONTAL_BINARY_VALUE_TO_OFFSET_DICT,
+}
+
+SPRITE_ALL_ADJACENT_NEIGHBOR_DIRECTIONS: list[tuple[tuple[int, int], int]] = [
+    ((-1, -1), 1),  # North West
+    ((0, -1), 2),  # North
+    ((1, -1), 4),  # North East
+    ((-1, 0), 8),  # West
+    ((1, 0), 16),  # East
+    ((-1, 1), 32),  # South West
+    ((0, 1), 64),  # South
+    ((1, 1), 128),  # South East
+]
+
+SPRITE_TOP_BOTTOM_ADJACENT_NEIGHBOR_DIRECTIONS: list[tuple[tuple[int, int], int]] = [
+    ((0, -1), 2),  # North
+    ((0, 1), 64),  # South
+]
+
+SPRITE_LEFT_RIGHT_ADJACENT_NEIGHBOR_DIRECTIONS: list[tuple[tuple[int, int], int]] = [
+    ((-1, 0), 8),  # West
+    ((1, 0), 16),  # East
+]
+
+SPRITE_TILE_TYPE_SPRITE_ADJACENT_NEIGHBOR_DIRECTIONS_LIST: dict[str, list[tuple[tuple[int, int], int]]] = {
+    "normal": SPRITE_ALL_ADJACENT_NEIGHBOR_DIRECTIONS,
+    "square": SPRITE_ALL_ADJACENT_NEIGHBOR_DIRECTIONS,
+    "vertical": SPRITE_TOP_BOTTOM_ADJACENT_NEIGHBOR_DIRECTIONS,
+    "horizontal": SPRITE_LEFT_RIGHT_ADJACENT_NEIGHBOR_DIRECTIONS,
 }
 
 # REMOVE IN BUILD
