@@ -65,7 +65,6 @@ class RoomJsonGenerator:
 
         # Colors
         self.clear_color: str = "#7f7f7f"
-        self.grid_line_color: str = "#999999"
         self.font_color: str = "#ffffff"
 
         # Setups
@@ -162,17 +161,14 @@ class RoomJsonGenerator:
 
         # Static background drawing layer data
         self.static_background_layers: int = 0
-        self.static_background_surf_and_collision_map_list: list = []
+        self.static_background_collision_map_list: list[list[Any]] = []
 
         # Solid drawing layer data
-        self.solid_background_surf: pg.Surface = pg.Surface((self.room_width, self.room_height))
-        self.solid_background_surf.set_colorkey("red")
-        self.solid_background_surf.fill("red")
         self.solid_collision_map_list: list = [0 for _ in range(self.room_width_tu * self.room_height_tu)]
 
         # Foreground drawing layer data
         self.foreground_layers: int = 0
-        self.foreground_surf_and_collision_map_list: list = []
+        self.foreground_collision_map_list: list[list[Any]] = []
 
         # Pre render static background
         self.pre_render_static_background: pg.Surface = pg.Surface((self.room_width, self.room_height))
@@ -183,13 +179,9 @@ class RoomJsonGenerator:
         self.pre_render_solid_foreground.set_colorkey("red")
         self.pre_render_solid_foreground.fill("red")
 
-        self.solid_thin_regions_list: list = []
-        self.solid_thin_collision_maps_list: list = []
         # TODO: static actors
         # TODO: actors
         # TODO: player
-        self.foreground_regions_list: list = []
-        self.foreground_collision_maps_list: list = []
 
         # To be saved json
         # file name is room name
@@ -208,12 +200,7 @@ class RoomJsonGenerator:
 
     def _setup_collision_map(self) -> None:
         # World
-        self.world_collision_map_list: list[(int | str)] = [0 for _ in range(WORLD_WIDTH_RU * WORLD_HEIGHT_RU)]
-
-        # Room
-        self.room_solid_collision_map_list: list[int] = []
-        self.room_solid_collision_map_width_tu: int = 0
-        self.room_solid_collision_map_height_tu: int = 0
+        self.world_collision_map_list: list[Any] = [0 for _ in range(WORLD_WIDTH_RU * WORLD_HEIGHT_RU)]
 
     def _setup_surfs(self) -> None:
         # Selected surf marker
@@ -797,35 +784,20 @@ class RoomJsonGenerator:
                                                 self.foreground_layers = object["sprite_layer"]
 
                                     # Static background layers total is ready here, populate
-                                    # Init surf and collision map for each static background layers
+                                    # Init collision map for each static background layers
                                     for _ in range(self.static_background_layers):
-                                        surf: pg.Surface = pg.Surface((self.room_width, self.room_height))
-                                        surf.set_colorkey("red")
-                                        surf.fill("red")
-                                        self.static_background_surf_and_collision_map_list.append(
-                                            {
-                                                "surf": surf,
-                                                "collision_map": [0 for _ in range(self.room_width_tu * self.room_height_tu)],
-                                            }
+                                        self.static_background_collision_map_list.append(
+                                            [0 for _ in range(self.room_width_tu * self.room_height_tu)],
                                         )
 
-                                    # Init surf and collision map for solid layer
-                                    self.solid_background_surf = pg.Surface((self.room_width, self.room_height))
-                                    self.solid_background_surf.set_colorkey("red")
-                                    self.solid_background_surf.fill("red")
+                                    # Init collision map for solid layer
                                     self.solid_collision_map_list = [0 for _ in range(self.room_width_tu * self.room_height_tu)]
 
                                     # Foreground layers total is ready here, populate
-                                    # Init surf and collision map for each foreground layers
+                                    # Init collision map for each foreground layers
                                     for _ in range(self.foreground_layers):
-                                        surf = pg.Surface((self.room_width, self.room_height))
-                                        surf.set_colorkey("red")
-                                        surf.fill("red")
-                                        self.foreground_surf_and_collision_map_list.append(
-                                            {
-                                                "surf": surf,
-                                                "collision_map": [0 for _ in range(self.room_width_tu * self.room_height_tu)],
-                                            }
+                                        self.foreground_collision_map_list.append(
+                                            [0 for _ in range(self.room_width_tu * self.room_height_tu)],
                                         )
 
                                     # Init pre render static background
@@ -897,10 +869,8 @@ class RoomJsonGenerator:
             selected_sprite_tile_type: str = self.reformat_sprite_sheet_json_metadata[self.selected_sprite_name][
                 "sprite_tile_type"
             ]
-            selected_sprite_x: float = self.reformat_sprite_sheet_json_metadata[self.selected_sprite_name]["x"]
-            selected_sprite_y: float = self.reformat_sprite_sheet_json_metadata[self.selected_sprite_name]["y"]
-            selected_sprite_width: float = self.reformat_sprite_sheet_json_metadata[self.selected_sprite_name]["width"]
-            selected_sprite_height: float = self.reformat_sprite_sheet_json_metadata[self.selected_sprite_name]["height"]
+            selected_sprite_x: int = self.reformat_sprite_sheet_json_metadata[self.selected_sprite_name]["x"]
+            selected_sprite_y: int = self.reformat_sprite_sheet_json_metadata[self.selected_sprite_name]["y"]
             selected_sprite_name: str = self.reformat_sprite_sheet_json_metadata[self.selected_sprite_name]["sprite_name"]
 
             #############################
@@ -932,12 +902,10 @@ class RoomJsonGenerator:
             ###########################
 
             if selected_sprite_type == "static_background":
-                # Get static background layer collision map and layer surf
-                selected_static_background_layer_object: dict[str, Any] = self.static_background_surf_and_collision_map_list[
+                # Get static background layer collision map
+                selected_static_background_layer_collision_map: list = self.static_background_collision_map_list[
                     selected_sprite_layer_index
                 ]
-                selected_static_background_layer_collision_map: list = selected_static_background_layer_object["collision_map"]
-                selected_static_background_layer_surf: pg.Surface = selected_static_background_layer_object["surf"]
 
                 ####################
                 # Lmb just pressed #
@@ -950,12 +918,9 @@ class RoomJsonGenerator:
 
                     if selected_sprite_tile_type == "none":
                         self._on_lmb_just_pressed_none_tile_type(
-                            selected_static_background_layer_surf,
                             selected_static_background_layer_collision_map,
                             selected_sprite_x,
                             selected_sprite_y,
-                            selected_sprite_width,
-                            selected_sprite_height,
                             selected_sprite_name,
                         )
 
@@ -965,7 +930,6 @@ class RoomJsonGenerator:
 
                     if selected_sprite_tile_type != "none":
                         self._on_lmb_just_pressed_blob_tile_type(
-                            selected_static_background_layer_surf,
                             selected_static_background_layer_collision_map,
                             selected_sprite_x,
                             selected_sprite_y,
@@ -984,7 +948,6 @@ class RoomJsonGenerator:
 
                     if selected_sprite_tile_type == "none":
                         self._on_rmb_just_pressed_none_tile_type(
-                            selected_static_background_layer_surf,
                             selected_static_background_layer_collision_map,
                         )
 
@@ -994,7 +957,6 @@ class RoomJsonGenerator:
 
                     if selected_sprite_tile_type != "none":
                         self._on_rmb_just_pressed_blob_tile_type(
-                            selected_static_background_layer_surf,
                             selected_static_background_layer_collision_map,
                         )
 
@@ -1014,12 +976,9 @@ class RoomJsonGenerator:
 
                     if selected_sprite_tile_type == "none":
                         self._on_lmb_just_pressed_none_tile_type(
-                            self.solid_background_surf,
                             self.solid_collision_map_list,
                             selected_sprite_x,
                             selected_sprite_y,
-                            selected_sprite_width,
-                            selected_sprite_height,
                             selected_sprite_name,
                         )
 
@@ -1029,7 +988,6 @@ class RoomJsonGenerator:
 
                     if selected_sprite_tile_type != "none":
                         self._on_lmb_just_pressed_blob_tile_type(
-                            self.solid_background_surf,
                             self.solid_collision_map_list,
                             selected_sprite_x,
                             selected_sprite_y,
@@ -1048,7 +1006,6 @@ class RoomJsonGenerator:
 
                     if selected_sprite_tile_type == "none":
                         self._on_rmb_just_pressed_none_tile_type(
-                            self.solid_background_surf,
                             self.solid_collision_map_list,
                         )
 
@@ -1058,7 +1015,6 @@ class RoomJsonGenerator:
 
                     if selected_sprite_tile_type != "none":
                         self._on_rmb_just_pressed_blob_tile_type(
-                            self.solid_background_surf,
                             self.solid_collision_map_list,
                         )
 
@@ -1078,12 +1034,9 @@ class RoomJsonGenerator:
 
                     if selected_sprite_tile_type == "none":
                         self._on_lmb_just_pressed_none_tile_type(
-                            self.solid_background_surf,
                             self.solid_collision_map_list,
                             selected_sprite_x,
                             selected_sprite_y,
-                            selected_sprite_width,
-                            selected_sprite_height,
                             selected_sprite_name,
                         )
 
@@ -1093,7 +1046,6 @@ class RoomJsonGenerator:
 
                     if selected_sprite_tile_type != "none":
                         self._on_lmb_just_pressed_blob_tile_type(
-                            self.solid_background_surf,
                             self.solid_collision_map_list,
                             selected_sprite_x,
                             selected_sprite_y,
@@ -1112,7 +1064,6 @@ class RoomJsonGenerator:
 
                     if selected_sprite_tile_type == "none":
                         self._on_rmb_just_pressed_none_tile_type(
-                            self.solid_background_surf,
                             self.solid_collision_map_list,
                         )
 
@@ -1122,7 +1073,6 @@ class RoomJsonGenerator:
 
                     if selected_sprite_tile_type != "none":
                         self._on_rmb_just_pressed_blob_tile_type(
-                            self.solid_background_surf,
                             self.solid_collision_map_list,
                         )
 
@@ -1131,12 +1081,8 @@ class RoomJsonGenerator:
             ####################
 
             if selected_sprite_type == "foreground":
-                # Get static background layer collision map and layer surf
-                selected_foreground_layer_object: dict[str, Any] = self.foreground_surf_and_collision_map_list[
-                    selected_sprite_layer_index
-                ]
-                selected_foreground_layer_collision_map: list = selected_foreground_layer_object["collision_map"]
-                selected_foreground_layer_surf: pg.Surface = selected_foreground_layer_object["surf"]
+                # Get static background layer collision map
+                selected_foreground_layer_collision_map: list = self.foreground_collision_map_list[selected_sprite_layer_index]
 
                 ####################
                 # Lmb just pressed #
@@ -1149,12 +1095,9 @@ class RoomJsonGenerator:
 
                     if selected_sprite_tile_type == "none":
                         self._on_lmb_just_pressed_none_tile_type(
-                            selected_foreground_layer_surf,
                             selected_foreground_layer_collision_map,
                             selected_sprite_x,
                             selected_sprite_y,
-                            selected_sprite_width,
-                            selected_sprite_height,
                             selected_sprite_name,
                         )
 
@@ -1164,7 +1107,6 @@ class RoomJsonGenerator:
 
                     if selected_sprite_tile_type != "none":
                         self._on_lmb_just_pressed_blob_tile_type(
-                            selected_foreground_layer_surf,
                             selected_foreground_layer_collision_map,
                             selected_sprite_x,
                             selected_sprite_y,
@@ -1183,7 +1125,6 @@ class RoomJsonGenerator:
 
                     if selected_sprite_tile_type == "none":
                         self._on_rmb_just_pressed_none_tile_type(
-                            selected_foreground_layer_surf,
                             selected_foreground_layer_collision_map,
                         )
 
@@ -1193,7 +1134,6 @@ class RoomJsonGenerator:
 
                     if selected_sprite_tile_type != "none":
                         self._on_rmb_just_pressed_blob_tile_type(
-                            selected_foreground_layer_surf,
                             selected_foreground_layer_collision_map,
                         )
 
@@ -1431,50 +1371,59 @@ class RoomJsonGenerator:
         self.pre_render_solid_foreground.set_colorkey("red")
         self.pre_render_solid_foreground.fill("red")
 
-        static_background_layers_blit_sequence = []
-        for static_background_object in self.static_background_surf_and_collision_map_list:
-            static_background_layers_blit_sequence.append(
-                (
-                    static_background_object["surf"],
-                    (
-                        0,
-                        0,
-                    ),
-                )
-            )
-        self.pre_render_static_background.fblits(static_background_layers_blit_sequence)
+        # Iter over each static collision map layer
+        for collision_map in self.static_background_collision_map_list:
+            # Iter over cells
+            for cell in collision_map:
+                # Ignore air
+                if cell == 0:
+                    continue
+                # Get metadata
+                x = cell["x"]
+                y = cell["y"]
+                region_x = cell["region_x"]
+                region_y = cell["region_y"]
+                # Draw each one on pre_render_static_background
+                if self.sprite_sheet_surf is not None:
+                    self.pre_render_static_background.blit(
+                        self.sprite_sheet_surf, (x, y), (region_x, region_y, TILE_SIZE, TILE_SIZE)
+                    )
 
-        # Draw the solid
-        foreground_layers_blit_sequence = []
-        foreground_layers_blit_sequence.append(
-            (
-                self.solid_background_surf,
-                (
-                    0,
-                    0,
-                ),
-            )
-        )
+        # Iter over cells
+        for cell in self.solid_collision_map_list:
+            # Ignore air
+            if cell == 0:
+                continue
+            # Get metadata
+            x = cell["x"]
+            y = cell["y"]
+            region_x = cell["region_x"]
+            region_y = cell["region_y"]
+            # Draw each one on pre render
+            if self.sprite_sheet_surf is not None:
+                self.pre_render_solid_foreground.blit(self.sprite_sheet_surf, (x, y), (region_x, region_y, TILE_SIZE, TILE_SIZE))
 
-        # Draw the foreground
-        for foreground_object in self.foreground_surf_and_collision_map_list:
-            foreground_layers_blit_sequence.append(
-                (
-                    foreground_object["surf"],
-                    (
-                        0,
-                        0,
-                    ),
-                )
-            )
-
-        self.pre_render_solid_foreground.fblits(foreground_layers_blit_sequence)
+        # Iter over each foreground collision map layer
+        for collision_map in self.foreground_collision_map_list:
+            # Iter over cells
+            for cell in collision_map:
+                # Ignore air
+                if cell == 0:
+                    continue
+                # Get metadata
+                x = cell["x"]
+                y = cell["y"]
+                region_x = cell["region_x"]
+                region_y = cell["region_y"]
+                # Draw each one on pre render
+                if self.sprite_sheet_surf is not None:
+                    self.pre_render_solid_foreground.blit(
+                        self.sprite_sheet_surf, (x, y), (region_x, region_y, TILE_SIZE, TILE_SIZE)
+                    )
 
     def _on_rmb_just_pressed_none_tile_type(
         self,
-        # Surf and collision map
-        surf: pg.Surface,
-        collision_map_list: list[(int | str)],
+        collision_map_list: list[Any],
     ) -> None:
         """
         Click filled tile. Erase and set to 0.
@@ -1495,20 +1444,12 @@ class RoomJsonGenerator:
                 collision_map_list,
             )
 
-            # Erase on surf in cursor pos
-            surf.fill(
-                "red",
-                (self.world_mouse_snapped_x, self.world_mouse_snapped_y, TILE_SIZE, TILE_SIZE),
-            )
-
             # Update pre render
             self._update_pre_render()
 
     def _on_rmb_just_pressed_blob_tile_type(
         self,
-        # Surf and collision map
-        surf: pg.Surface,
-        collision_map_list: list[(int | str)],
+        collision_map_list: list[Any],
     ) -> None:
         """
         Click filled tile. Erase and set to 0.
@@ -1530,12 +1471,6 @@ class RoomJsonGenerator:
                 collision_map_list,
             )
 
-            # Erase on surf in cursor pos
-            surf.fill(
-                "red",
-                (self.world_mouse_snapped_x, self.world_mouse_snapped_y, TILE_SIZE, TILE_SIZE),
-            )
-
             # Update pre render
             self._update_pre_render()
 
@@ -1575,21 +1510,17 @@ class RoomJsonGenerator:
                     neighbor_world_tu_x,
                     neighbor_world_tu_y,
                     collision_map_list,
-                    surf,
+                    # surf,
                     neighbor_world_snapped_x,
                     neighbor_world_snapped_y,
+                    neighbor_tile_name,
                 )
 
     def _on_lmb_just_pressed_none_tile_type(
         self,
-        # Surf and collision map
-        surf: pg.Surface,
-        collision_map_list: list[(int | str)],
-        # Selected sprite metadata
-        selected_sprite_x: float,
-        selected_sprite_y: float,
-        selected_sprite_width: float,
-        selected_sprite_height: float,
+        collision_map_list: list[Any],
+        selected_sprite_x: int,
+        selected_sprite_y: int,
         selected_sprite_name: str,
     ) -> None:
         """
@@ -1597,35 +1528,18 @@ class RoomJsonGenerator:
         """
         # All cells in cursor region empty
         if not self._is_cursor_region_collision_map_empty(collision_map_list):
-            # Draw on surf in cursor area
-            if self.sprite_sheet_surf is not None:
-                surf.blit(
-                    self.sprite_sheet_surf,
-                    (
-                        self.world_mouse_snapped_x,
-                        self.world_mouse_snapped_y,
-                    ),
-                    (
-                        selected_sprite_x,
-                        selected_sprite_y,
-                        selected_sprite_width,
-                        selected_sprite_height,
-                    ),
-                )
-            # Set sprite name to collision in cursor area
-            self._fill_cursor_region_collision_map(collision_map_list, selected_sprite_name)
+            self._fill_cursor_region_collision_map_with_metadata(
+                collision_map_list, selected_sprite_name, selected_sprite_x, selected_sprite_y
+            )
 
             # Update pre render
             self._update_pre_render()
 
     def _on_lmb_just_pressed_blob_tile_type(
         self,
-        # Surf and collision map
-        surf: pg.Surface,
-        collision_map_list: list[(int | str)],
-        # Selected sprite metadata
-        selected_sprite_x: float,
-        selected_sprite_y: float,
+        collision_map_list: list[Any],
+        selected_sprite_x: int,
+        selected_sprite_y: int,
         selected_sprite_tile_type: str,
         selected_sprite_name: str,
     ) -> None:
@@ -1645,7 +1559,13 @@ class RoomJsonGenerator:
             self.set_tile_from_collision_map_list(
                 self.world_mouse_tu_x,
                 self.world_mouse_tu_y,
-                selected_sprite_name,
+                {
+                    "name": selected_sprite_name,
+                    "x": self.world_mouse_snapped_x,
+                    "y": self.world_mouse_snapped_y,
+                    "region_x": selected_sprite_x,
+                    "region_y": selected_sprite_y,
+                },
                 collision_map_list,
             )
 
@@ -1657,9 +1577,10 @@ class RoomJsonGenerator:
                 self.world_mouse_tu_x,
                 self.world_mouse_tu_y,
                 collision_map_list,
-                surf,
+                # surf,
                 self.world_mouse_snapped_x,
                 self.world_mouse_snapped_y,
+                selected_sprite_name,
             )
 
             # Get my neighbors
@@ -1698,22 +1619,24 @@ class RoomJsonGenerator:
                     neighbor_world_tu_x,
                     neighbor_world_tu_y,
                     collision_map_list,
-                    surf,
+                    # surf,
                     neighbor_world_snapped_x,
                     neighbor_world_snapped_y,
+                    neighbor_tile_name,
                 )
 
     def _draw_autotile_sprite_on_given_pos(
         self,
         sprite_tile_type: str,
-        sprite_x: float,
-        sprite_y: float,
+        sprite_x: int,
+        sprite_y: int,
         sprite_world_tu_x: int,
         sprite_world_tu_y: int,
-        selected_layer_collision_map: list[(int | str)],
-        selected_layer_surf: pg.Surface,
+        selected_layer_collision_map: list[Any],
+        # selected_layer_surf: pg.Surface,
         sprite_snapped_x: int,
         sprite_snapped_y: int,
+        sprite_name: str,
     ) -> None:
         # Get the proper binary to offset dict
         binary_to_offset_dict = SPRITE_TILE_TYPE_BINARY_TO_OFFSET_DICT[sprite_tile_type]
@@ -1739,46 +1662,47 @@ class RoomJsonGenerator:
             sprite_x_with_offset = sprite_x + offset_object["x"]
             sprite_y_with_offset = sprite_y + offset_object["y"]
 
-        # Clear surf on neighbor pos
-        selected_layer_surf.fill(
-            "red",
-            (
-                sprite_snapped_x,
-                sprite_snapped_y,
-                TILE_SIZE,
-                TILE_SIZE,
-            ),
+        # Override this sprite collision with new metadata
+        self.set_tile_from_collision_map_list(
+            sprite_world_tu_x,
+            sprite_world_tu_y,
+            {
+                "name": sprite_name,
+                "x": sprite_snapped_x,
+                "y": sprite_snapped_y,
+                "region_x": sprite_x_with_offset,
+                "region_y": sprite_y_with_offset,
+            },
+            selected_layer_collision_map,
         )
-
-        # Draw on surf on cursor pos
-        if self.sprite_sheet_surf is not None:
-            selected_layer_surf.blit(
-                self.sprite_sheet_surf,
-                (
-                    sprite_snapped_x,
-                    sprite_snapped_y,
-                ),
-                (
-                    sprite_x_with_offset,
-                    sprite_y_with_offset,
-                    TILE_SIZE,
-                    TILE_SIZE,
-                ),
-            )
 
         # Update pre render
         self._update_pre_render()
 
-    def _fill_cursor_region_collision_map(self, collision_map: list, value: (str | int)) -> None:
+    def _fill_cursor_region_collision_map_with_metadata(
+        self, collision_map: list, sprite_name: str, region_x: int, region_y: int
+    ) -> None:
         # Fill collision map with sprite name in cursor area
         for cursor_tu_x in range(self.cursor_width_tu):
             for cursor_tu_y in range(self.cursor_height_tu):
                 tu_x = self.world_mouse_tu_x + cursor_tu_x
                 tu_y = self.world_mouse_tu_y + cursor_tu_y
+                world_mouse_x_snapped = self.world_mouse_snapped_x + (cursor_tu_x * TILE_SIZE)
+                world_mouse_y_snapped = self.world_mouse_snapped_y + (cursor_tu_y * TILE_SIZE)
+                region_x_with_offset = region_x + (cursor_tu_x * TILE_SIZE)
+                region_y_with_offset = region_y + (cursor_tu_y * TILE_SIZE)
+                # TODO: top left of sprite sheet
+                # TODO: then fill with region
                 self.set_tile_from_collision_map_list(
                     tu_x,
                     tu_y,
-                    value,
+                    {
+                        "name": sprite_name,
+                        "x": world_mouse_x_snapped,
+                        "y": world_mouse_y_snapped,
+                        "region_x": region_x_with_offset,
+                        "region_y": region_y_with_offset,
+                    },
                     collision_map,
                 )
 
@@ -1861,7 +1785,7 @@ class RoomJsonGenerator:
         self,
         world_ru_x: int,
         world_ru_y: int,
-    ) -> int | str:
+    ) -> Any:
         """
         Returns -1 if out of bounds
         Because camera needs extra 1 and thus may get out of bound.
@@ -1875,7 +1799,7 @@ class RoomJsonGenerator:
         self,
         world_ru_x: int,
         world_ru_y: int,
-        value: (int | str),
+        value: Any,
     ) -> None | int:
         """
         Returns -1 if out of bounds
@@ -1903,7 +1827,7 @@ class RoomJsonGenerator:
         world_tu_x: int,
         world_tu_y: int,
         collision_map_list: list,
-    ) -> int | str:
+    ) -> Any:
         """
         Returns -1 if out of bounds
         Because camera needs extra 1 and thus may get out of bound.
@@ -1917,7 +1841,7 @@ class RoomJsonGenerator:
         self,
         world_tu_x: int,
         world_tu_y: int,
-        value: (int | str),
+        value: Any,
         collision_map_list: list,
     ) -> None | int:
         """
@@ -1963,7 +1887,7 @@ class RoomJsonGenerator:
             # Found something
             if tile != -1 and tile != 0:
                 # Not my kind and not mixed? Skip this one
-                neighbor_tile_name = self.reformat_sprite_sheet_json_metadata[tile]["sprite_name"]
+                neighbor_tile_name = self.reformat_sprite_sheet_json_metadata[tile["name"]]["sprite_name"]
                 just_added_sprite_name = self.reformat_sprite_sheet_json_metadata[self.selected_sprite_name]["sprite_name"]
                 if neighbor_tile_name != just_added_sprite_name:
                     neighbor_sprite_is_tile_mix = self.reformat_sprite_sheet_json_metadata[neighbor_tile_name][
@@ -2022,7 +1946,7 @@ class RoomJsonGenerator:
             if tile != -1 and tile != 0:
                 adjacent_tiles.append(
                     {
-                        "tile": tile,
+                        "tile": tile["name"],
                         "world_tu_x": adjacent_x,
                         "world_tu_y": adjacent_y,
                     }
