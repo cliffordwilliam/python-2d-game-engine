@@ -160,9 +160,28 @@ class RoomJsonGenerator:
         # Parallax drawing layer data
         self.parallax_background_instances_list: list = []
 
-        # Static drawing layer data
+        # Static background drawing layer data
         self.static_background_layers: int = 0
         self.static_background_surf_and_collision_map_list: list = []
+
+        # Solid drawing layer data
+        self.solid_background_surf: pg.Surface = pg.Surface((self.room_width, self.room_height))
+        self.solid_background_surf.set_colorkey("red")
+        self.solid_background_surf.fill("red")
+        self.solid_collision_map_list: list = [0 for _ in range(self.room_width_tu * self.room_height_tu)]
+
+        # Foreground drawing layer data
+        self.foreground_layers: int = 0
+        self.foreground_surf_and_collision_map_list: list = []
+
+        # Pre render static background
+        self.pre_render_static_background: pg.Surface = pg.Surface((self.room_width, self.room_height))
+        self.pre_render_static_background.set_colorkey("red")
+        self.pre_render_static_background.fill("red")
+        # Pre render solid and foreground
+        self.pre_render_solid_foreground: pg.Surface = pg.Surface((self.room_width, self.room_height))
+        self.pre_render_solid_foreground.set_colorkey("red")
+        self.pre_render_solid_foreground.fill("red")
 
         self.solid_thin_regions_list: list = []
         self.solid_thin_collision_maps_list: list = []
@@ -409,19 +428,23 @@ class RoomJsonGenerator:
             if parallax_background is not None:
                 parallax_background.draw()
 
-        # Draw the static background
-        static_background_blit_sequence = []
-        for static_background_object in self.static_background_surf_and_collision_map_list:
-            static_background_blit_sequence.append(
-                (
-                    static_background_object["surf"],
-                    (
-                        -self.camera.rect.x,
-                        -self.camera.rect.y,
-                    ),
-                )
-            )
-        NATIVE_SURF.fblits(static_background_blit_sequence)
+        # Draw the pre render static background
+        NATIVE_SURF.blit(
+            self.pre_render_static_background,
+            (
+                -self.camera.rect.x,
+                -self.camera.rect.y,
+            ),
+        )
+
+        # Draw the pre render solid foreground
+        NATIVE_SURF.blit(
+            self.pre_render_solid_foreground,
+            (
+                -self.camera.rect.x,
+                -self.camera.rect.y,
+            ),
+        )
 
         # Draw grid
         self.draw_grid()
@@ -656,11 +679,6 @@ class RoomJsonGenerator:
                         float(0),
                         float(self.room_width),
                     )
-                    # Init room collision map list
-                    self.init_room_collision_map_list(
-                        self.room_width_tu,
-                        self.room_height_tu,
-                    )
                     self.curtain.go_to_opaque()
 
         # Update curtain
@@ -701,7 +719,7 @@ class RoomJsonGenerator:
                     # Accept
                     if self.game_event_handler.this_frame_event.key == pg.K_RETURN:
                         if exists(self.input_text) and self.input_text.endswith(".json"):
-                            # Setup the sprite sheet metadata
+                            # Get the sprite sheet metadata
                             with open(self.input_text, "r") as file:
                                 data = load(file)
 
@@ -723,28 +741,16 @@ class RoomJsonGenerator:
                                         self.game.stage_parallax_background_memory_dict[self.sprite_sheet_png_name]
                                     )
 
-                                    # TODO: create dict for key names and surf and jsons values from above
-
-                                    # TODO:
-                                    # Read sprites list
-                                    # Get sprite type parallax background
-                                    # Get names for keys and values as the mem
-                                    # When button selected
-                                    # Click on grid
-                                    # Pop or push on instance layer prop
-                                    # So here just count and fill the parallax background list
-
-                                    # Press jump to see items options curtain
-
+                                    # Prepare button list
                                     buttons: list[Button] = []
 
+                                    # Iterate each sprite metadata
                                     for object in data["sprites_list"]:
                                         # Reformat to key sprite names and its data as values
                                         self.reformat_sprite_sheet_json_metadata[object["sprite_name"]] = object
 
                                         # Populate the pallete button
                                         button: Button = Button(
-                                            # TODO: move the size to const self
                                             surf_size_tuple=(264, 19),
                                             topleft=(29, 14),
                                             text=object["sprite_name"],
@@ -766,11 +772,10 @@ class RoomJsonGenerator:
                                         base_subsurf: pg.Surface = pg.Surface((base_subsurf_width, base_subsurf_height))
                                         base_subsurf.fill(self.clear_color)
                                         scaled_height: float = base_subsurf_width * object["height"] / object["width"]
+                                        # Scale so width is 49
                                         subsurf = pg.transform.scale(subsurf, (base_subsurf_width, scaled_height))
-                                        # subsurf = pg.transform.scale_by(subsurf, (49 / base_subsurf_width, 1))
                                         y_diff: float = scaled_height - base_subsurf_height
                                         base_subsurf.blit(subsurf, (0, -y_diff / 2))
-                                        # Scale so width is 49
                                         button.draw_extra_surf_on_surf(base_subsurf, (1, 0))
                                         buttons.append(button)
 
@@ -785,6 +790,12 @@ class RoomJsonGenerator:
                                             if self.static_background_layers < object["sprite_layer"]:
                                                 self.static_background_layers = object["sprite_layer"]
 
+                                        # Init foreground
+                                        if object["sprite_type"] == "foreground":
+                                            # Count foreground total layers
+                                            if self.foreground_layers < object["sprite_layer"]:
+                                                self.foreground_layers = object["sprite_layer"]
+
                                     # Static background layers total is ready here, populate
                                     # Init surf and collision map for each static background layers
                                     for _ in range(self.static_background_layers):
@@ -794,15 +805,39 @@ class RoomJsonGenerator:
                                         self.static_background_surf_and_collision_map_list.append(
                                             {
                                                 "surf": surf,
-                                                "collision_map": [
-                                                    0
-                                                    for _ in range(
-                                                        self.room_collision_map_width_tu * self.room_collision_map_height_tu
-                                                    )
-                                                ],
+                                                "collision_map": [0 for _ in range(self.room_width_tu * self.room_height_tu)],
                                             }
                                         )
 
+                                    # Init surf and collision map for solid layer
+                                    self.solid_background_surf = pg.Surface((self.room_width, self.room_height))
+                                    self.solid_background_surf.set_colorkey("red")
+                                    self.solid_background_surf.fill("red")
+                                    self.solid_collision_map_list = [0 for _ in range(self.room_width_tu * self.room_height_tu)]
+
+                                    # Foreground layers total is ready here, populate
+                                    # Init surf and collision map for each foreground layers
+                                    for _ in range(self.foreground_layers):
+                                        surf = pg.Surface((self.room_width, self.room_height))
+                                        surf.set_colorkey("red")
+                                        surf.fill("red")
+                                        self.foreground_surf_and_collision_map_list.append(
+                                            {
+                                                "surf": surf,
+                                                "collision_map": [0 for _ in range(self.room_width_tu * self.room_height_tu)],
+                                            }
+                                        )
+
+                                    # Init pre render static background
+                                    self.pre_render_static_background = pg.Surface((self.room_width, self.room_height))
+                                    self.pre_render_static_background.set_colorkey("red")
+                                    self.pre_render_static_background.fill("red")
+                                    # Init pre render solid and foreground
+                                    self.pre_render_solid_foreground = pg.Surface((self.room_width, self.room_height))
+                                    self.pre_render_solid_foreground.set_colorkey("red")
+                                    self.pre_render_solid_foreground.fill("red")
+
+                                    # Init button container
                                     self.button_container = ButtonContainer(
                                         buttons=buttons,
                                         offset=0,
@@ -811,14 +846,9 @@ class RoomJsonGenerator:
                                         game_event_handler=self.game_event_handler,
                                         game_sound_manager=self.game.sound_manager,
                                     )
-                                    # TODO: Draw the preview on the button
-                                    # So get the sub surface and stick it on it
-                                    # Use the load data ref buttons for this
                                     self.button_container.add_event_listener(
                                         self.on_button_selected, ButtonContainer.BUTTON_SELECTED
                                     )
-                                    # Init the selected name
-                                    self.selected_sprite_name = buttons[0].text
                                     # Init the selected name
                                     self.selected_sprite_name = buttons[0].text
                                     # Init the cursor size
@@ -834,8 +864,6 @@ class RoomJsonGenerator:
                                         self.cursor_width_tu = 1
                                         self.cursor_height_tu = 1
 
-                                    # Extract properties
-                                    # extracted_data = {prop: data.get(prop) for prop in ROOM_JSON_PROPERTIES}
                             self.curtain.go_to_opaque()
                         else:
                             self.set_input_text("json path does not exist!")
@@ -860,7 +888,6 @@ class RoomJsonGenerator:
             self._move_camera(dt)
 
             # TODO: Turn the block to a func and use the name as key
-            # TODO: Remove repetitions
 
             # Get sprite metadata
             selected_sprite_type: str = self.reformat_sprite_sheet_json_metadata[self.selected_sprite_name]["sprite_type"]
@@ -922,106 +949,29 @@ class RoomJsonGenerator:
                     ##################
 
                     if selected_sprite_tile_type == "none":
-                        # All cells in cursor region empty
-                        if not self._is_cursor_region_collision_map_empty(selected_static_background_layer_collision_map):
-                            # Draw on surf in cursor area
-                            if self.sprite_sheet_surf is not None:
-                                selected_static_background_layer_surf.blit(
-                                    self.sprite_sheet_surf,
-                                    (
-                                        self.world_mouse_snapped_x,
-                                        self.world_mouse_snapped_y,
-                                    ),
-                                    (
-                                        selected_sprite_x,
-                                        selected_sprite_y,
-                                        selected_sprite_width,
-                                        selected_sprite_height,
-                                    ),
-                                )
-                            # Set sprite name to collision in cursor area
-                            self._fill_cursor_region_collision_map(
-                                selected_static_background_layer_collision_map, selected_sprite_name
-                            )
+                        self._on_lmb_just_pressed_none_tile_type(
+                            selected_static_background_layer_surf,
+                            selected_static_background_layer_collision_map,
+                            selected_sprite_x,
+                            selected_sprite_y,
+                            selected_sprite_width,
+                            selected_sprite_height,
+                            selected_sprite_name,
+                        )
 
                     ##################
                     # BLOB TILE TYPE #
                     ##################
 
                     if selected_sprite_tile_type != "none":
-                        # Get clicked cell
-                        found_tile = self.get_tile_from_collision_map_list(
-                            self.world_mouse_tu_x,
-                            self.world_mouse_tu_y,
+                        self._on_lmb_just_pressed_blob_tile_type(
+                            selected_static_background_layer_surf,
                             selected_static_background_layer_collision_map,
+                            selected_sprite_x,
+                            selected_sprite_y,
+                            selected_sprite_tile_type,
+                            selected_sprite_name,
                         )
-                        # Cell is empty
-                        if found_tile == 0:
-                            # Fill collision map with sprite name in cursor pos
-                            self.set_tile_from_collision_map_list(
-                                self.world_mouse_tu_x,
-                                self.world_mouse_tu_y,
-                                selected_sprite_name,
-                                selected_static_background_layer_collision_map,
-                            )
-
-                            # Draw autotile on surf with proper offset
-                            self._draw_autotile_sprite_on_given_pos(
-                                selected_sprite_tile_type,
-                                selected_sprite_x,
-                                selected_sprite_y,
-                                self.world_mouse_tu_x,
-                                self.world_mouse_tu_y,
-                                selected_static_background_layer_collision_map,
-                                selected_static_background_layer_surf,
-                                self.world_mouse_snapped_x,
-                                self.world_mouse_snapped_y,
-                            )
-
-                            # Get my neighbors
-                            adjacent_tile_obj_neighbors = self.get_adjacent_tiles(
-                                self.world_mouse_tu_x,
-                                self.world_mouse_tu_y,
-                                selected_static_background_layer_collision_map,
-                            )
-                            # Iterate each neighbors
-                            for neighbor_obj in adjacent_tile_obj_neighbors:
-                                # Unpack the neighbor object, get name and coords
-                                neighbor_tile_name = neighbor_obj["tile"]
-                                neighbor_world_tu_x = neighbor_obj["world_tu_x"]
-                                neighbor_world_tu_y = neighbor_obj["world_tu_y"]
-                                neighbor_world_snapped_x = neighbor_world_tu_x * TILE_SIZE
-                                neighbor_world_snapped_y = neighbor_world_tu_y * TILE_SIZE
-
-                                # Get neighbor sprite metadata
-                                neighbor_sprite_is_tile_mix = self.reformat_sprite_sheet_json_metadata[neighbor_tile_name][
-                                    "sprite_is_tile_mix"
-                                ]
-                                neighbor_sprite_x = self.reformat_sprite_sheet_json_metadata[neighbor_tile_name]["x"]
-                                neighbor_sprite_y = self.reformat_sprite_sheet_json_metadata[neighbor_tile_name]["y"]
-                                neighbor_sprite_tile_type = self.reformat_sprite_sheet_json_metadata[neighbor_tile_name][
-                                    "sprite_tile_type"
-                                ]
-
-                                # Neighbor not my kind?
-                                if neighbor_tile_name != self.selected_sprite_name:
-                                    # Neighbor not mixed?
-                                    if neighbor_sprite_is_tile_mix == 0:
-                                        # Skip this neighbor
-                                        continue
-
-                                # Draw autotile on surf with proper offset
-                                self._draw_autotile_sprite_on_given_pos(
-                                    neighbor_sprite_tile_type,
-                                    neighbor_sprite_x,
-                                    neighbor_sprite_y,
-                                    neighbor_world_tu_x,
-                                    neighbor_world_tu_y,
-                                    selected_static_background_layer_collision_map,
-                                    selected_static_background_layer_surf,
-                                    neighbor_world_snapped_x,
-                                    neighbor_world_snapped_y,
-                                )
 
                 ####################
                 # Rmb just pressed #
@@ -1033,99 +983,219 @@ class RoomJsonGenerator:
                     ##################
 
                     if selected_sprite_tile_type == "none":
-                        # Get clicked cell
-                        found_tile_lmb_pressed = self.get_tile_from_collision_map_list(
-                            self.world_mouse_tu_x,
-                            self.world_mouse_tu_y,
+                        self._on_rmb_just_pressed_none_tile_type(
+                            selected_static_background_layer_surf,
                             selected_static_background_layer_collision_map,
                         )
-                        # Cell filled
-                        if found_tile_lmb_pressed != 0:
-                            # Fill collision map with 0 in cursor pos
-                            self.set_tile_from_collision_map_list(
-                                self.world_mouse_tu_x,
-                                self.world_mouse_tu_y,
-                                0,
-                                selected_static_background_layer_collision_map,
-                            )
-
-                            # Erase on surf in cursor pos
-                            selected_static_background_layer_surf.fill(
-                                "red",
-                                (self.world_mouse_snapped_x, self.world_mouse_snapped_y, TILE_SIZE, TILE_SIZE),
-                            )
 
                     ##################
                     # BLOB TILE TYPE #
                     ##################
 
                     if selected_sprite_tile_type != "none":
-                        # Get clicked cell
-                        found_tile = self.get_tile_from_collision_map_list(
-                            self.world_mouse_tu_x,
-                            self.world_mouse_tu_y,
+                        self._on_rmb_just_pressed_blob_tile_type(
+                            selected_static_background_layer_surf,
                             selected_static_background_layer_collision_map,
                         )
-                        # Cell is filled
-                        if found_tile != 0:
-                            # Fill collision map with 0 in cursor pos
-                            self.set_tile_from_collision_map_list(
-                                self.world_mouse_tu_x,
-                                self.world_mouse_tu_y,
-                                0,
-                                selected_static_background_layer_collision_map,
-                            )
 
-                            # Erase on surf in cursor pos
-                            selected_static_background_layer_surf.fill(
-                                "red",
-                                (self.world_mouse_snapped_x, self.world_mouse_snapped_y, TILE_SIZE, TILE_SIZE),
-                            )
+            ###############
+            # SOLID STATE #
+            ###############
 
-                            # Get my neighbors
-                            adjacent_tile_obj_neighbors = self.get_adjacent_tiles(
-                                self.world_mouse_tu_x,
-                                self.world_mouse_tu_y,
-                                selected_static_background_layer_collision_map,
-                            )
-                            # Iterate each neighbors
-                            for neighbor_obj in adjacent_tile_obj_neighbors:
-                                # Unpack the neighbor object, get name and coords
-                                neighbor_tile_name = neighbor_obj["tile"]
-                                neighbor_world_tu_x = neighbor_obj["world_tu_x"]
-                                neighbor_world_tu_y = neighbor_obj["world_tu_y"]
-                                neighbor_world_snapped_x = neighbor_world_tu_x * TILE_SIZE
-                                neighbor_world_snapped_y = neighbor_world_tu_y * TILE_SIZE
+            if selected_sprite_type == "solid":
+                ####################
+                # Lmb just pressed #
+                ####################
 
-                                # Get neighbor sprite metadata
-                                neighbor_sprite_is_tile_mix = self.reformat_sprite_sheet_json_metadata[neighbor_tile_name][
-                                    "sprite_is_tile_mix"
-                                ]
-                                neighbor_sprite_x = self.reformat_sprite_sheet_json_metadata[neighbor_tile_name]["x"]
-                                neighbor_sprite_y = self.reformat_sprite_sheet_json_metadata[neighbor_tile_name]["y"]
-                                neighbor_sprite_tile_type = self.reformat_sprite_sheet_json_metadata[neighbor_tile_name][
-                                    "sprite_tile_type"
-                                ]
+                if self.game_event_handler.is_lmb_just_pressed:
+                    ##################
+                    # NONE TILE TYPE #
+                    ##################
 
-                                # Neighbor not my kind?
-                                if neighbor_tile_name != self.selected_sprite_name:
-                                    # Neighbor not mixed?
-                                    if neighbor_sprite_is_tile_mix == 0:
-                                        # Skip this neighbor
-                                        continue
+                    if selected_sprite_tile_type == "none":
+                        self._on_lmb_just_pressed_none_tile_type(
+                            self.solid_background_surf,
+                            self.solid_collision_map_list,
+                            selected_sprite_x,
+                            selected_sprite_y,
+                            selected_sprite_width,
+                            selected_sprite_height,
+                            selected_sprite_name,
+                        )
 
-                                # Draw autotile on surf with proper offset
-                                self._draw_autotile_sprite_on_given_pos(
-                                    neighbor_sprite_tile_type,
-                                    neighbor_sprite_x,
-                                    neighbor_sprite_y,
-                                    neighbor_world_tu_x,
-                                    neighbor_world_tu_y,
-                                    selected_static_background_layer_collision_map,
-                                    selected_static_background_layer_surf,
-                                    neighbor_world_snapped_x,
-                                    neighbor_world_snapped_y,
-                                )
+                    ##################
+                    # BLOB TILE TYPE #
+                    ##################
+
+                    if selected_sprite_tile_type != "none":
+                        self._on_lmb_just_pressed_blob_tile_type(
+                            self.solid_background_surf,
+                            self.solid_collision_map_list,
+                            selected_sprite_x,
+                            selected_sprite_y,
+                            selected_sprite_tile_type,
+                            selected_sprite_name,
+                        )
+
+                ####################
+                # Rmb just pressed #
+                ####################
+
+                if self.game_event_handler.is_rmb_just_pressed:
+                    ##################
+                    # NONE TILE TYPE #
+                    ##################
+
+                    if selected_sprite_tile_type == "none":
+                        self._on_rmb_just_pressed_none_tile_type(
+                            self.solid_background_surf,
+                            self.solid_collision_map_list,
+                        )
+
+                    ##################
+                    # BLOB TILE TYPE #
+                    ##################
+
+                    if selected_sprite_tile_type != "none":
+                        self._on_rmb_just_pressed_blob_tile_type(
+                            self.solid_background_surf,
+                            self.solid_collision_map_list,
+                        )
+
+            ##############
+            # THIN STATE #
+            ##############
+
+            if selected_sprite_type == "thin":
+                ####################
+                # Lmb just pressed #
+                ####################
+
+                if self.game_event_handler.is_lmb_just_pressed:
+                    ##################
+                    # NONE TILE TYPE #
+                    ##################
+
+                    if selected_sprite_tile_type == "none":
+                        self._on_lmb_just_pressed_none_tile_type(
+                            self.solid_background_surf,
+                            self.solid_collision_map_list,
+                            selected_sprite_x,
+                            selected_sprite_y,
+                            selected_sprite_width,
+                            selected_sprite_height,
+                            selected_sprite_name,
+                        )
+
+                    ##################
+                    # BLOB TILE TYPE #
+                    ##################
+
+                    if selected_sprite_tile_type != "none":
+                        self._on_lmb_just_pressed_blob_tile_type(
+                            self.solid_background_surf,
+                            self.solid_collision_map_list,
+                            selected_sprite_x,
+                            selected_sprite_y,
+                            selected_sprite_tile_type,
+                            selected_sprite_name,
+                        )
+
+                ####################
+                # Rmb just pressed #
+                ####################
+
+                if self.game_event_handler.is_rmb_just_pressed:
+                    ##################
+                    # NONE TILE TYPE #
+                    ##################
+
+                    if selected_sprite_tile_type == "none":
+                        self._on_rmb_just_pressed_none_tile_type(
+                            self.solid_background_surf,
+                            self.solid_collision_map_list,
+                        )
+
+                    ##################
+                    # BLOB TILE TYPE #
+                    ##################
+
+                    if selected_sprite_tile_type != "none":
+                        self._on_rmb_just_pressed_blob_tile_type(
+                            self.solid_background_surf,
+                            self.solid_collision_map_list,
+                        )
+
+            ####################
+            # FOREGROUND STATE #
+            ####################
+
+            if selected_sprite_type == "foreground":
+                # Get static background layer collision map and layer surf
+                selected_foreground_layer_object: dict[str, Any] = self.foreground_surf_and_collision_map_list[
+                    selected_sprite_layer_index
+                ]
+                selected_foreground_layer_collision_map: list = selected_foreground_layer_object["collision_map"]
+                selected_foreground_layer_surf: pg.Surface = selected_foreground_layer_object["surf"]
+
+                ####################
+                # Lmb just pressed #
+                ####################
+
+                if self.game_event_handler.is_lmb_just_pressed:
+                    ##################
+                    # NONE TILE TYPE #
+                    ##################
+
+                    if selected_sprite_tile_type == "none":
+                        self._on_lmb_just_pressed_none_tile_type(
+                            selected_foreground_layer_surf,
+                            selected_foreground_layer_collision_map,
+                            selected_sprite_x,
+                            selected_sprite_y,
+                            selected_sprite_width,
+                            selected_sprite_height,
+                            selected_sprite_name,
+                        )
+
+                    ##################
+                    # BLOB TILE TYPE #
+                    ##################
+
+                    if selected_sprite_tile_type != "none":
+                        self._on_lmb_just_pressed_blob_tile_type(
+                            selected_foreground_layer_surf,
+                            selected_foreground_layer_collision_map,
+                            selected_sprite_x,
+                            selected_sprite_y,
+                            selected_sprite_tile_type,
+                            selected_sprite_name,
+                        )
+
+                ####################
+                # Rmb just pressed #
+                ####################
+
+                if self.game_event_handler.is_rmb_just_pressed:
+                    ##################
+                    # NONE TILE TYPE #
+                    ##################
+
+                    if selected_sprite_tile_type == "none":
+                        self._on_rmb_just_pressed_none_tile_type(
+                            selected_foreground_layer_surf,
+                            selected_foreground_layer_collision_map,
+                        )
+
+                    ##################
+                    # BLOB TILE TYPE #
+                    ##################
+
+                    if selected_sprite_tile_type != "none":
+                        self._on_rmb_just_pressed_blob_tile_type(
+                            selected_foreground_layer_surf,
+                            selected_foreground_layer_collision_map,
+                        )
 
             # Jump just pressed
             if self.game_event_handler.is_jump_just_pressed:
@@ -1172,7 +1242,6 @@ class RoomJsonGenerator:
 
                 # Open and read the JSON file
                 with open(file_path, "r") as file:
-                    # TODO: Create a const to know what are the keys
                     data = load(file)
 
                     # Draw marks on the world surf
@@ -1351,6 +1420,289 @@ class RoomJsonGenerator:
         self.state_machine_update.handle(dt)
 
     # Helpers
+    def _update_pre_render(self) -> None:
+        # Clear pre render, make new ones so it does not build up data
+        # Pre render static background
+        self.pre_render_static_background = pg.Surface((self.room_width, self.room_height))
+        self.pre_render_static_background.set_colorkey("red")
+        self.pre_render_static_background.fill("red")
+        # Pre render solid and foreground
+        self.pre_render_solid_foreground = pg.Surface((self.room_width, self.room_height))
+        self.pre_render_solid_foreground.set_colorkey("red")
+        self.pre_render_solid_foreground.fill("red")
+
+        static_background_layers_blit_sequence = []
+        for static_background_object in self.static_background_surf_and_collision_map_list:
+            static_background_layers_blit_sequence.append(
+                (
+                    static_background_object["surf"],
+                    (
+                        0,
+                        0,
+                    ),
+                )
+            )
+        self.pre_render_static_background.fblits(static_background_layers_blit_sequence)
+
+        # Draw the solid
+        foreground_layers_blit_sequence = []
+        foreground_layers_blit_sequence.append(
+            (
+                self.solid_background_surf,
+                (
+                    0,
+                    0,
+                ),
+            )
+        )
+
+        # Draw the foreground
+        for foreground_object in self.foreground_surf_and_collision_map_list:
+            foreground_layers_blit_sequence.append(
+                (
+                    foreground_object["surf"],
+                    (
+                        0,
+                        0,
+                    ),
+                )
+            )
+
+        self.pre_render_solid_foreground.fblits(foreground_layers_blit_sequence)
+
+    def _on_rmb_just_pressed_none_tile_type(
+        self,
+        # Surf and collision map
+        surf: pg.Surface,
+        collision_map_list: list[(int | str)],
+    ) -> None:
+        """
+        Click filled tile. Erase and set to 0.
+        """
+        # Get clicked cell
+        found_tile_lmb_pressed = self.get_tile_from_collision_map_list(
+            self.world_mouse_tu_x,
+            self.world_mouse_tu_y,
+            collision_map_list,
+        )
+        # Cell filled
+        if found_tile_lmb_pressed != 0:
+            # Fill collision map with 0 in cursor pos
+            self.set_tile_from_collision_map_list(
+                self.world_mouse_tu_x,
+                self.world_mouse_tu_y,
+                0,
+                collision_map_list,
+            )
+
+            # Erase on surf in cursor pos
+            surf.fill(
+                "red",
+                (self.world_mouse_snapped_x, self.world_mouse_snapped_y, TILE_SIZE, TILE_SIZE),
+            )
+
+            # Update pre render
+            self._update_pre_render()
+
+    def _on_rmb_just_pressed_blob_tile_type(
+        self,
+        # Surf and collision map
+        surf: pg.Surface,
+        collision_map_list: list[(int | str)],
+    ) -> None:
+        """
+        Click filled tile. Erase and set to 0.
+        Tell neighbor to autotile update draw.
+        """
+        # Get clicked cell
+        found_tile = self.get_tile_from_collision_map_list(
+            self.world_mouse_tu_x,
+            self.world_mouse_tu_y,
+            collision_map_list,
+        )
+        # Cell is filled
+        if found_tile != 0:
+            # Fill collision map with 0 in cursor pos
+            self.set_tile_from_collision_map_list(
+                self.world_mouse_tu_x,
+                self.world_mouse_tu_y,
+                0,
+                collision_map_list,
+            )
+
+            # Erase on surf in cursor pos
+            surf.fill(
+                "red",
+                (self.world_mouse_snapped_x, self.world_mouse_snapped_y, TILE_SIZE, TILE_SIZE),
+            )
+
+            # Update pre render
+            self._update_pre_render()
+
+            # Get my neighbors
+            adjacent_tile_obj_neighbors = self.get_adjacent_tiles(
+                self.world_mouse_tu_x,
+                self.world_mouse_tu_y,
+                collision_map_list,
+            )
+            # Iterate each neighbors
+            for neighbor_obj in adjacent_tile_obj_neighbors:
+                # Unpack the neighbor object, get name and coords
+                neighbor_tile_name = neighbor_obj["tile"]
+                neighbor_world_tu_x = neighbor_obj["world_tu_x"]
+                neighbor_world_tu_y = neighbor_obj["world_tu_y"]
+                neighbor_world_snapped_x = neighbor_world_tu_x * TILE_SIZE
+                neighbor_world_snapped_y = neighbor_world_tu_y * TILE_SIZE
+
+                # Get neighbor sprite metadata
+                neighbor_sprite_is_tile_mix = self.reformat_sprite_sheet_json_metadata[neighbor_tile_name]["sprite_is_tile_mix"]
+                neighbor_sprite_x = self.reformat_sprite_sheet_json_metadata[neighbor_tile_name]["x"]
+                neighbor_sprite_y = self.reformat_sprite_sheet_json_metadata[neighbor_tile_name]["y"]
+                neighbor_sprite_tile_type = self.reformat_sprite_sheet_json_metadata[neighbor_tile_name]["sprite_tile_type"]
+
+                # Neighbor not my kind?
+                if neighbor_tile_name != self.selected_sprite_name:
+                    # Neighbor not mixed?
+                    if neighbor_sprite_is_tile_mix == 0:
+                        # Skip this neighbor
+                        continue
+
+                # Draw autotile on surf with proper offset
+                self._draw_autotile_sprite_on_given_pos(
+                    neighbor_sprite_tile_type,
+                    neighbor_sprite_x,
+                    neighbor_sprite_y,
+                    neighbor_world_tu_x,
+                    neighbor_world_tu_y,
+                    collision_map_list,
+                    surf,
+                    neighbor_world_snapped_x,
+                    neighbor_world_snapped_y,
+                )
+
+    def _on_lmb_just_pressed_none_tile_type(
+        self,
+        # Surf and collision map
+        surf: pg.Surface,
+        collision_map_list: list[(int | str)],
+        # Selected sprite metadata
+        selected_sprite_x: float,
+        selected_sprite_y: float,
+        selected_sprite_width: float,
+        selected_sprite_height: float,
+        selected_sprite_name: str,
+    ) -> None:
+        """
+        If cursor region is empty, draw and set collision.
+        """
+        # All cells in cursor region empty
+        if not self._is_cursor_region_collision_map_empty(collision_map_list):
+            # Draw on surf in cursor area
+            if self.sprite_sheet_surf is not None:
+                surf.blit(
+                    self.sprite_sheet_surf,
+                    (
+                        self.world_mouse_snapped_x,
+                        self.world_mouse_snapped_y,
+                    ),
+                    (
+                        selected_sprite_x,
+                        selected_sprite_y,
+                        selected_sprite_width,
+                        selected_sprite_height,
+                    ),
+                )
+            # Set sprite name to collision in cursor area
+            self._fill_cursor_region_collision_map(collision_map_list, selected_sprite_name)
+
+            # Update pre render
+            self._update_pre_render()
+
+    def _on_lmb_just_pressed_blob_tile_type(
+        self,
+        # Surf and collision map
+        surf: pg.Surface,
+        collision_map_list: list[(int | str)],
+        # Selected sprite metadata
+        selected_sprite_x: float,
+        selected_sprite_y: float,
+        selected_sprite_tile_type: str,
+        selected_sprite_name: str,
+    ) -> None:
+        """
+        If cursor region is empty, draw and set collision.
+        Draw with correct autotile and tell neighbor to do it too.
+        """
+        # Get clicked cell
+        found_tile = self.get_tile_from_collision_map_list(
+            self.world_mouse_tu_x,
+            self.world_mouse_tu_y,
+            collision_map_list,
+        )
+        # Cell is empty
+        if found_tile == 0:
+            # Fill collision map with sprite name in cursor pos
+            self.set_tile_from_collision_map_list(
+                self.world_mouse_tu_x,
+                self.world_mouse_tu_y,
+                selected_sprite_name,
+                collision_map_list,
+            )
+
+            # Draw autotile on surf with proper offset
+            self._draw_autotile_sprite_on_given_pos(
+                selected_sprite_tile_type,
+                selected_sprite_x,
+                selected_sprite_y,
+                self.world_mouse_tu_x,
+                self.world_mouse_tu_y,
+                collision_map_list,
+                surf,
+                self.world_mouse_snapped_x,
+                self.world_mouse_snapped_y,
+            )
+
+            # Get my neighbors
+            adjacent_tile_obj_neighbors = self.get_adjacent_tiles(
+                self.world_mouse_tu_x,
+                self.world_mouse_tu_y,
+                collision_map_list,
+            )
+            # Iterate each neighbors
+            for neighbor_obj in adjacent_tile_obj_neighbors:
+                # Unpack the neighbor object, get name and coords
+                neighbor_tile_name = neighbor_obj["tile"]
+                neighbor_world_tu_x = neighbor_obj["world_tu_x"]
+                neighbor_world_tu_y = neighbor_obj["world_tu_y"]
+                neighbor_world_snapped_x = neighbor_world_tu_x * TILE_SIZE
+                neighbor_world_snapped_y = neighbor_world_tu_y * TILE_SIZE
+
+                # Get neighbor sprite metadata
+                neighbor_sprite_is_tile_mix = self.reformat_sprite_sheet_json_metadata[neighbor_tile_name]["sprite_is_tile_mix"]
+                neighbor_sprite_x = self.reformat_sprite_sheet_json_metadata[neighbor_tile_name]["x"]
+                neighbor_sprite_y = self.reformat_sprite_sheet_json_metadata[neighbor_tile_name]["y"]
+                neighbor_sprite_tile_type = self.reformat_sprite_sheet_json_metadata[neighbor_tile_name]["sprite_tile_type"]
+
+                # Neighbor not my kind?
+                if neighbor_tile_name != self.selected_sprite_name:
+                    # Neighbor not mixed?
+                    if neighbor_sprite_is_tile_mix == 0:
+                        # Skip this neighbor
+                        continue
+
+                # Draw autotile on surf with proper offset
+                self._draw_autotile_sprite_on_given_pos(
+                    neighbor_sprite_tile_type,
+                    neighbor_sprite_x,
+                    neighbor_sprite_y,
+                    neighbor_world_tu_x,
+                    neighbor_world_tu_y,
+                    collision_map_list,
+                    surf,
+                    neighbor_world_snapped_x,
+                    neighbor_world_snapped_y,
+                )
+
     def _draw_autotile_sprite_on_given_pos(
         self,
         sprite_tile_type: str,
@@ -1366,8 +1718,6 @@ class RoomJsonGenerator:
         # Get the proper binary to offset dict
         binary_to_offset_dict = SPRITE_TILE_TYPE_BINARY_TO_OFFSET_DICT[sprite_tile_type]
         directions = SPRITE_TILE_TYPE_SPRITE_ADJACENT_NEIGHBOR_DIRECTIONS_LIST[sprite_tile_type]
-        # TODO: Turn the big pillar into left side and right side, tile type type vert (so no left right)
-        # TODO: Turn the top bottom name to square
 
         # Prepare top left with offset
         sprite_x_with_offset = sprite_x
@@ -1415,6 +1765,9 @@ class RoomJsonGenerator:
                     TILE_SIZE,
                 ),
             )
+
+        # Update pre render
+        self._update_pre_render()
 
     def _fill_cursor_region_collision_map(self, collision_map: list, value: (str | int)) -> None:
         # Fill collision map with sprite name in cursor area
@@ -1504,15 +1857,6 @@ class RoomJsonGenerator:
 
         NATIVE_SURF.fblits(blit_sequence)
 
-    def init_room_collision_map_list(
-        self,
-        room_width_tu: int,
-        room_height_tu: int,
-    ) -> None:
-        self.room_collision_map_width_tu = room_width_tu
-        self.room_collision_map_height_tu = room_height_tu
-        self.room_collision_map_list = [0 for _ in range(self.room_collision_map_width_tu * self.room_collision_map_height_tu)]
-
     def get_tile_from_world_collision_map_list(
         self,
         world_ru_x: int,
@@ -1564,8 +1908,8 @@ class RoomJsonGenerator:
         Returns -1 if out of bounds
         Because camera needs extra 1 and thus may get out of bound.
         """
-        if 0 <= world_tu_x < self.room_collision_map_width_tu and 0 <= world_tu_y < self.room_collision_map_height_tu:
-            return collision_map_list[world_tu_y * self.room_collision_map_width_tu + world_tu_x]
+        if 0 <= world_tu_x < self.room_width_tu and 0 <= world_tu_y < self.room_height_tu:
+            return collision_map_list[world_tu_y * self.room_width_tu + world_tu_x]
         else:
             return -1
 
@@ -1580,8 +1924,8 @@ class RoomJsonGenerator:
         Returns -1 if out of bounds
         Because camera needs extra 1 and thus may get out of bound.
         """
-        if 0 <= world_tu_x < self.room_collision_map_width_tu and 0 <= world_tu_y < self.room_collision_map_height_tu:
-            collision_map_list[world_tu_y * self.room_collision_map_width_tu + world_tu_x] = value
+        if 0 <= world_tu_x < self.room_width_tu and 0 <= world_tu_y < self.room_height_tu:
+            collision_map_list[world_tu_y * self.room_width_tu + world_tu_x] = value
             return None
         else:
             return -1
