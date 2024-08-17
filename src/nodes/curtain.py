@@ -8,7 +8,7 @@ from typeguard import typechecked
 
 @typechecked
 class Curtain:
-    # Events
+    # Event names
     INVISIBLE_END: int = 0
     OPAQUE_END: int = 1
 
@@ -70,16 +70,19 @@ class Curtain:
         # Fade direction
         self.direction: int = 0
 
-        # Event subscribers list
-        self.listener_invisible_ends: list[Callable] = []
-        self.listener_opaque_ends: list[Callable] = []
+        # Key is event name, value is a list of listeners
+        self.event_listeners: dict[int, list[Callable]] = {
+            self.INVISIBLE_END: [],
+            self.OPAQUE_END: [],
+        }
 
         # True when reached INVISIBLE_END / OPAQUE_END
         self.is_done: bool = True
 
     def go_to_opaque(self) -> None:
         """
-        Lerp the curtain to my max alpha.
+        Set dir to opaque.
+        Set is done false.
         """
 
         # Go right opaque
@@ -90,7 +93,8 @@ class Curtain:
 
     def go_to_invisible(self) -> None:
         """
-        Lerp the curtain to alpha 0.
+        Set dir to invisible.
+        Set is done false.
         """
 
         # Go left invisible
@@ -101,41 +105,44 @@ class Curtain:
 
     def add_event_listener(self, value: Callable, event: int) -> None:
         """
-        Use this to subscribe to my events:
-        - INVISIBLE_END
-        - OPAQUE_END
+        Subscribe to my events.
         """
 
-        if event == self.INVISIBLE_END:
-            self.listener_invisible_ends.append(value)
-        elif event == self.OPAQUE_END:
-            self.listener_opaque_ends.append(value)
+        # The event user is supported?
+        if event in self.event_listeners:
+            # Collect it
+            self.event_listeners[event].append(value)
+        else:
+            # Throw error
+            raise ValueError(f"Unsupported event type: {event}")
 
     def jump_to_opaque(self) -> None:
         """
-        Forces the alpha to jump to opaque, mutates:
-        - alpha.
-        - remainder.
-        - fade_counter.
+        Forces the alpha to jump to opaque.
         """
 
-        self.direction = 1
-        self.alpha = self.max_alpha
-        self.remainder = 0
+        self.is_done = True
         self.fade_counter = self.fade_duration
+        self.remainder = 0
+        self.alpha = self.max_alpha
+        self.surf.set_alpha(self.alpha)
+        self.direction = 1
+        for callback in self.event_listeners[self.OPAQUE_END]:
+            callback()
 
     def jump_to_invisible(self) -> None:
         """
-        Forces the alpha to jump to opaque, mutates:
-        - alpha.
-        - remainder.
-        - fade_counter.
+        Forces the alpha to jump to opaque.
         """
 
-        self.direction = -1
-        self.alpha = 0
-        self.remainder = 0
+        self.is_done = True
         self.fade_counter = 0
+        self.remainder = 0
+        self.alpha = 0
+        self.surf.set_alpha(self.alpha)
+        self.direction = -1
+        for callback in self.event_listeners[self.INVISIBLE_END]:
+            callback()
 
     def set_max_alpha(self, value: int) -> None:
         """
@@ -167,29 +174,30 @@ class Curtain:
         - Fire OPAQUE_END event.
         """
 
-        # No need to count when is done true
+        # Prev frame counted past duration?
         if self.is_done:
+            # Return
             return
 
-        # Count up or down
+        # Count
         self.fade_counter += dt * self.direction
 
         # Clamp counter
         self.fade_counter = clamp(self.fade_counter, 0.0, self.fade_duration)
 
-        # Get fraction with counter and duration
+        # Get counter over duration fraction
         fraction: float = self.fade_counter / self.fade_duration
 
-        # Get alpha with fraction
+        # Use fraction to map duration position to alpha position
         lerp_alpha: float = lerp(0, self.max_alpha, fraction)
 
-        # Add lost truncated alpha
+        # Add lost truncated alpha from prev frame
         lerp_alpha += self.remainder
 
         # Truncate alpha
         self.alpha = int(clamp(lerp_alpha, 0.0, float(self.max_alpha)))
 
-        # Store truncated floats
+        # Store truncated floats for next frame
         self.remainder = lerp_alpha - float(self.alpha)
 
         # Set surf alpha
@@ -201,11 +209,12 @@ class Curtain:
             self.is_done = True
 
             # Fire INVISIBLE_END event
-            for callback in self.listener_invisible_ends:
+            for callback in self.event_listeners[self.INVISIBLE_END]:
                 callback()
 
             # Make sure it is zero
             self.alpha = 0
+            self.surf.set_alpha(self.alpha)
 
         # Counter reached duration?
         elif self.fade_counter == self.fade_duration:
@@ -213,8 +222,9 @@ class Curtain:
             self.is_done = True
 
             # Fire OPAQUE_END event
-            for callback in self.listener_opaque_ends:
+            for callback in self.event_listeners[self.OPAQUE_END]:
                 callback()
 
             # Make sure it is max
             self.alpha = self.max_alpha
+            self.surf.set_alpha(self.alpha)

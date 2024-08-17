@@ -5,22 +5,21 @@ from os import makedirs
 from os.path import exists
 from os.path import expanduser
 from os.path import isfile
-from os.path import join  # for OS agnostic paths
+from os.path import join
 from platform import system
 from typing import Any
 
 import pygame as pg
 import pygame.freetype as font
 
-# Everything here never changes ever
-
+# Setting to center window
 environ["SDL_VIDEO_CENTERED"] = "1"
 
-# Initialize pygame.
+# Initialize pygame
 pg.init()
 
-# Default settings to be written
-DEFAULT_SETTINGS_DICT: dict[str, int] = {
+# Default game settings
+DEFAULT_SETTINGS_DICT: dict[str, Any] = {
     "resolution_index": 2,
     "resolution_scale": 3,
     "up": 1073741906,
@@ -37,9 +36,18 @@ DEFAULT_SETTINGS_DICT: dict[str, int] = {
     "rmb": 3,
 }
 
+SETTINGS_FILE_NAME: str = "settings.json"
 
-# Function to create a dictionary of file paths
+
 def create_paths_dict(directory: str) -> dict[str, str]:
+    """
+    Reads a dir.
+    Loop over its content, get files only.
+    Create a dict.
+    Key is file name.
+    Value is file path.
+    """
+
     paths_dict = {}
     for filename in listdir(directory):
         if isfile(join(directory, filename)):
@@ -47,11 +55,16 @@ def create_paths_dict(directory: str) -> dict[str, str]:
     return paths_dict
 
 
-# Get the OS-specific directory for storing application data
 def get_os_specific_directory(app_name: Any) -> str:
+    """
+    Pass a dir name.
+    Returns the dir full path to APPDATA or config and so on
+    """
+
     user_home = expanduser("~")
     sys = system()
 
+    # Set dir
     if sys == "Windows":
         appdata_path = getenv("APPDATA", user_home)
         directory = join(appdata_path, app_name)
@@ -60,24 +73,27 @@ def get_os_specific_directory(app_name: Any) -> str:
     else:  # Assume Linux or other Unix-like OS
         directory = join(user_home, ".config", app_name)
 
-    # Ensure the directory exists
+    # Dir does not exists?
     if not exists(directory):
+        # Make dir
         makedirs(directory)
 
+    # Return dir
     return directory
 
 
+# This repo name, saved in user machine
 APP_NAME = "python_2d_game_engine"
 
-# Directory paths
-JSONS_DIR_PATH: str = get_os_specific_directory(APP_NAME)
-JSONS_PROJ_DIR_PATH: str = "jsons"
-JSONS_ROOMS_PROJ_SUB_DIR_PATH: str = "rooms"
-JSONS_ROOMS_DIR_PATH = join(JSONS_PROJ_DIR_PATH, JSONS_ROOMS_PROJ_SUB_DIR_PATH)
+# Dir paths
+JSONS_USER_DIR_PATH: str = get_os_specific_directory(APP_NAME)
+JSONS_REPO_DIR_PATH: str = "jsons"
+JSONS_ROOMS_REPO_SUB_DIR_PATH: str = "rooms"
+JSONS_ROOMS_DIR_PATH = join(JSONS_REPO_DIR_PATH, JSONS_ROOMS_REPO_SUB_DIR_PATH)
 PNGS_DIR_PATH: str = "pngs"
 OGGS_DIR_PATH: str = "oggs"
 
-# Creating the dictionaries
+# Creating the constant path dicts, the dynamic ones are made in game as its prop
 PNGS_PATHS_DICT: dict[str, str] = create_paths_dict(PNGS_DIR_PATH)
 OGGS_PATHS_DICT: dict[str, str] = create_paths_dict(OGGS_DIR_PATH)
 
@@ -109,14 +125,16 @@ ROOM_HEIGHT_TU: int = 11
 ROOM_WIDTH: int = ROOM_WIDTH_TU * TILE_SIZE
 ROOM_HEIGHT: int = ROOM_HEIGHT_TU * TILE_SIZE
 
-# Native surf and rect will never be mutated
+MAX_RESOLUTION_INDEX: int = 6
+
+# Native surf and rect are never changes
 NATIVE_SURF: pg.Surface = pg.Surface((NATIVE_WIDTH, NATIVE_HEIGHT))
 NATIVE_RECT: pg.Rect = NATIVE_SURF.get_rect()
 
 # Clock never changes
 CLOCK: pg.time.Clock = pg.time.Clock()
 
-# Event ints list (used by event for loop)
+# List of events to listen to (used by game event for loop)
 EVENTS: list[int] = [
     pg.KEYDOWN,
     pg.KEYUP,
@@ -127,7 +145,7 @@ EVENTS: list[int] = [
     pg.MOUSEBUTTONDOWN,
 ]
 
-# Font dimensions and instance
+# Font dimensions and instance, this game uses 1 font
 FONT_HEIGHT: int = 5
 FONT_WIDTH: int = 3
 FONT: font.Font = font.Font(
@@ -139,7 +157,7 @@ FONT: font.Font = font.Font(
 MAX_QUADTREE_DEPTH: int = 8
 
 # REMOVE IN BUILD
-# This is for room editor autotile mapping
+# This is binary mapped to offset, for normal blob autotiles
 SPRITE_TILE_TYPE_NORMAL_BINARY_VALUE_TO_OFFSET_DICT: dict[int, dict[str, int]] = {
     208: {
         "x": TILE_SIZE * 0,
@@ -331,6 +349,7 @@ SPRITE_TILE_TYPE_NORMAL_BINARY_VALUE_TO_OFFSET_DICT: dict[int, dict[str, int]] =
     },
 }
 
+# This is binary mapped to offset, for square blob autotiles
 SPRITE_TILE_TYPE_SQUARE_BINARY_VALUE_TO_OFFSET_DICT: dict[int, dict[str, int]] = {
     208: {
         "x": TILE_SIZE * 0,
@@ -370,6 +389,7 @@ SPRITE_TILE_TYPE_SQUARE_BINARY_VALUE_TO_OFFSET_DICT: dict[int, dict[str, int]] =
     },
 }
 
+# This is binary mapped to offset, for vertical autotiles
 SPRITE_TILE_TYPE_VERTICAL_BINARY_VALUE_TO_OFFSET_DICT: dict[int, dict[str, int]] = {
     64: {
         "x": TILE_SIZE * 0,
@@ -385,6 +405,7 @@ SPRITE_TILE_TYPE_VERTICAL_BINARY_VALUE_TO_OFFSET_DICT: dict[int, dict[str, int]]
     },
 }
 
+# This is binary mapped to offset, for horizontal blob autotiles
 SPRITE_TILE_TYPE_HORIZONTAL_BINARY_VALUE_TO_OFFSET_DICT: dict[int, dict[str, int]] = {
     16: {
         "x": TILE_SIZE * 0,
@@ -400,6 +421,7 @@ SPRITE_TILE_TYPE_HORIZONTAL_BINARY_VALUE_TO_OFFSET_DICT: dict[int, dict[str, int
     },
 }
 
+# For easy access, name mapped to binary offset dict above
 SPRITE_TILE_TYPE_BINARY_TO_OFFSET_DICT: dict[str, dict[int, dict[str, int]]] = {
     "normal": SPRITE_TILE_TYPE_NORMAL_BINARY_VALUE_TO_OFFSET_DICT,
     "square": SPRITE_TILE_TYPE_SQUARE_BINARY_VALUE_TO_OFFSET_DICT,
@@ -407,6 +429,7 @@ SPRITE_TILE_TYPE_BINARY_TO_OFFSET_DICT: dict[str, dict[int, dict[str, int]]] = {
     "horizontal": SPRITE_TILE_TYPE_HORIZONTAL_BINARY_VALUE_TO_OFFSET_DICT,
 }
 
+# To check neighbor in all direction
 SPRITE_ALL_ADJACENT_NEIGHBOR_DIRECTIONS: list[tuple[tuple[int, int], int]] = [
     ((-1, -1), 1),  # North West
     ((0, -1), 2),  # North
@@ -418,16 +441,19 @@ SPRITE_ALL_ADJACENT_NEIGHBOR_DIRECTIONS: list[tuple[tuple[int, int], int]] = [
     ((1, 1), 128),  # South East
 ]
 
+# To check neighbor in top and bottom
 SPRITE_TOP_BOTTOM_ADJACENT_NEIGHBOR_DIRECTIONS: list[tuple[tuple[int, int], int]] = [
     ((0, -1), 2),  # North
     ((0, 1), 64),  # South
 ]
 
+# To check neighbor in left and right
 SPRITE_LEFT_RIGHT_ADJACENT_NEIGHBOR_DIRECTIONS: list[tuple[tuple[int, int], int]] = [
     ((-1, 0), 8),  # West
     ((1, 0), 16),  # East
 ]
 
+# For easy access, name mapped to neighbor direction checks above
 SPRITE_TILE_TYPE_SPRITE_ADJACENT_NEIGHBOR_DIRECTIONS_LIST: dict[str, list[tuple[tuple[int, int], int]]] = {
     "normal": SPRITE_ALL_ADJACENT_NEIGHBOR_DIRECTIONS,
     "square": SPRITE_ALL_ADJACENT_NEIGHBOR_DIRECTIONS,
@@ -436,5 +462,5 @@ SPRITE_TILE_TYPE_SPRITE_ADJACENT_NEIGHBOR_DIRECTIONS_LIST: dict[str, list[tuple[
 }
 
 # REMOVE IN BUILD
-# This is for frame by frame debug tool
+# This is for frame by frame debug tool next frame key trigger
 NEXT_FRAME: int = pg.K_8

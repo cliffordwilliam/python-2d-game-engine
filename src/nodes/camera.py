@@ -28,22 +28,28 @@ class Camera:
         # REMOVE IN BUILD
         self.game = game
 
-        self.target_vector = target_vector
+        # Follows this and also limits its position
+        self.target_vector: Vector2 = target_vector
 
+        # My rect
         self.rect: pg.FRect = pg.FRect(0, 0, NATIVE_WIDTH, NATIVE_HEIGHT)
 
         # Set this in terms of camera rect to define
-        self.limit_top_rect = -999999.9
-        self.limit_bottom_rect = 999999.9
-        self.limit_left_rect = -999999.9
-        self.limit_right_rect = 999999.9
-        # Generated from rect limit to limit the target vector internally
-        self.left_limit_target_vector = self.limit_left_rect + NATIVE_HALF_WIDTH
-        self.right_limit_target_vector = self.limit_right_rect - NATIVE_HALF_WIDTH
-        self.top_limit_target_vector = self.limit_top_rect + NATIVE_HALF_HEIGHT
-        self.bottom_limit_target_vector = self.limit_bottom_rect - NATIVE_HALF_HEIGHT
+        self.limit_top_rect: float = -10000000.0
+        self.limit_bottom_rect: float = 10000000.0
+        self.limit_left_rect: float = -10000000.0
+        self.limit_right_rect: float = 10000000.0
 
+        # Limit target vector position so it never cause my rect to be outside limit
+        self.left_limit_target_vector: float = self.limit_left_rect + NATIVE_HALF_WIDTH
+        self.right_limit_target_vector: float = self.limit_right_rect - NATIVE_HALF_WIDTH
+        self.top_limit_target_vector: float = self.limit_top_rect + NATIVE_HALF_HEIGHT
+        self.bottom_limit_target_vector: float = self.limit_bottom_rect - NATIVE_HALF_HEIGHT
+
+        # Exponential decay
         self.decay: float = 0.01
+
+        # Tolerance to snap to target if close enough
         self.distance_tolerance: float = 1.0
 
     def set_target_vector(self, value: Vector2) -> None:
@@ -61,7 +67,8 @@ class Camera:
         self.limit_bottom_rect = limit_bottom_rect
         self.limit_left_rect = limit_left_rect
         self.limit_right_rect = limit_right_rect
-        # Generated from rect limit to limit the target vector internally
+
+        # Limit target vector position so it never cause my rect to be outside limit
         self.left_limit_target_vector = self.limit_left_rect + NATIVE_HALF_WIDTH
         self.right_limit_target_vector = self.limit_right_rect - NATIVE_HALF_WIDTH
         self.top_limit_target_vector = self.limit_top_rect + NATIVE_HALF_HEIGHT
@@ -72,8 +79,7 @@ class Camera:
         if self.target_vector is None:
             return
 
-        # Prevent target to be in a pos where cam is outside room
-        # Camera is the same size as native surf
+        # Limit target vector position so it never cause my rect to be outside limit
         self.target_vector.x = clamp(
             self.target_vector.x,
             self.left_limit_target_vector,
@@ -85,27 +91,28 @@ class Camera:
             self.bottom_limit_target_vector,
         )
 
-        # Already arrived on target? Return
-        if (abs(self.rect.centerx - self.target_vector.x) < self.distance_tolerance) and (
-            abs(self.rect.centery - self.target_vector.y) < self.distance_tolerance
-        ):
-            self.rect.centerx = self.target_vector.x
-            self.rect.centery = self.target_vector.y
+        # Check within tolerance
+        is_within_distance_tolerance_x: bool = abs(self.rect.centerx - self.target_vector.x) < self.distance_tolerance
+        is_within_distance_tolerance_y: bool = abs(self.rect.centery - self.target_vector.y) < self.distance_tolerance
+
+        # Already arrived on target?
+        if is_within_distance_tolerance_x and is_within_distance_tolerance_y:
+            # Return
             return
 
         # Camera rect center x not on target vector x?
-        if abs(self.rect.centerx - self.target_vector.x) > self.distance_tolerance:
+        if not is_within_distance_tolerance_x:
             # Lerp it to target horizontally
-            self.rect.centerx = self.exp_decay(self.rect.centerx, self.target_vector.x, self.decay, dt)
-        # Snap to target if close enough
+            self.rect.centerx = self._exp_decay(self.rect.centerx, self.target_vector.x, self.decay, dt)
+        # Snap to target horizontally
         else:
             self.rect.centerx = self.target_vector.x
 
         # Camera rect center y not on target vector y?
-        if abs(self.rect.centery - self.target_vector.y) > self.distance_tolerance:
+        if not is_within_distance_tolerance_y:
             # Lerp it to target vertically
-            self.rect.centery = self.exp_decay(self.rect.centery, self.target_vector.y, self.decay, dt)
-        # Snap to target if close enough
+            self.rect.centery = self._exp_decay(self.rect.centery, self.target_vector.y, self.decay, dt)
+        # Snap to target vertically
         else:
             self.rect.centery = self.target_vector.y
 
@@ -113,9 +120,8 @@ class Camera:
         # Debug draw
         if self.game.is_debug:
             # Draw my center.
-            x = NATIVE_RECT.centerx
-            y = NATIVE_RECT.centery
-
+            x: int = NATIVE_RECT.centerx
+            y: int = NATIVE_RECT.centery
             self.game.debug_draw.add(
                 {
                     "type": "circle",
@@ -127,9 +133,8 @@ class Camera:
             )
 
             # Draw target
-            float_x = self.target_vector.x - self.rect.x
-            float_y = self.target_vector.y - self.rect.y
-
+            float_x: float = self.target_vector.x - self.rect.x
+            float_y: float = self.target_vector.y - self.rect.y
             self.game.debug_draw.add(
                 {
                     "type": "circle",
@@ -140,5 +145,5 @@ class Camera:
                 }
             )
 
-    def exp_decay(self, a: float, b: float, decay: float, dt: int) -> float:
+    def _exp_decay(self, a: float, b: float, decay: float, dt: int) -> float:
         return b + (a - b) * exp(-decay * dt)

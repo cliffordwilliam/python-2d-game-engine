@@ -36,16 +36,15 @@ class Button:
         text_topleft: tuple[int, int],
         description_text: str,
     ):
-        # Create surf
+        # Create surf and fill it
         self.surf: pg.Surface = pg.Surface(surf_size_tuple)
         self.surf.fill(self.BUTTON_INACTIVE_BODY_COLOR)
 
-        # Get surf rect
+        # Get surf rect and position it with given topleft
         self.rect: pg.Rect = self.surf.get_rect()
-        # Position rect with topleft
         self.rect.topleft = topleft
 
-        # Draw decor on surf
+        # Draw decor on surf, need rect dimension for this
         pg.draw.line(
             self.surf,
             self.BUTTON_INACTIVE_LINE_COLOR,
@@ -53,10 +52,11 @@ class Button:
             (0, self.rect.height),
         )
 
-        # Get text and position it relative to rect
+        # Get text
         self.text: str = text
+        # Position text topleft relative to my rect
         self.text_top_left: tuple[int, int] = text_topleft
-        # Draw text to surf
+        # Draw text on surf
         FONT.render_to(
             self.surf,
             self.text_top_left,
@@ -64,7 +64,7 @@ class Button:
             self.BUTTON_INACTIVE_TEXT_COLOR,
         )
 
-        # Create active curtain surf
+        # Create active curtain
         self.active_curtain: Curtain = Curtain(
             duration=300.0,
             start_state=Curtain.INVISIBLE,
@@ -73,6 +73,7 @@ class Button:
             is_invisible=False,
             color=self.BUTTON_ACTIVE_BODY_COLOR,
         )
+        # Position active curtain rect to my rect
         self.active_curtain.rect.topright = self.rect.topright
         # Draw decor on active curtain surf
         pg.draw.line(
@@ -95,7 +96,7 @@ class Button:
             self.BUTTON_ACTIVE_TEXT_COLOR,
         )
 
-        # Create hover curtain surf
+        # Create hover curtain
         self.hover_curtain: Curtain = Curtain(
             duration=1500.0,
             start_state=Curtain.INVISIBLE,
@@ -104,8 +105,9 @@ class Button:
             is_invisible=False,
             color=self.BUTTON_HOVER_BODY_COLOR,
         )
-        self.hover_curtain.add_event_listener(self.on_hover_curtain_invisible, Curtain.INVISIBLE_END)
-        self.hover_curtain.add_event_listener(self.on_hover_curtain_opaque, Curtain.OPAQUE_END)
+        self.hover_curtain.add_event_listener(self._on_hover_curtain_invisible, Curtain.INVISIBLE_END)
+        self.hover_curtain.add_event_listener(self._on_hover_curtain_opaque, Curtain.OPAQUE_END)
+        # Set hover curtain rect to my rect
         self.hover_curtain.rect.topright = self.rect.topright
         # Draw decor on hover curtain surf
         pg.draw.line(
@@ -138,15 +140,16 @@ class Button:
         self.description_text_rect.y -= self.DESCRIPTION_TEXT_BOTTOM_PADDING
 
         # Set initial state to INACTIVE
-        self.initial_state: int = self.INACTIVE
-        self.state: int = self.initial_state
+        self.state: int = self.INACTIVE
 
     # Callbacks
-    def on_hover_curtain_invisible(self) -> None:
+    def _on_hover_curtain_invisible(self) -> None:
+        # Only hover bounce curtain fade in ACTIVE STATE
         if self.state == self.ACTIVE:
             self.hover_curtain.go_to_opaque()
 
-    def on_hover_curtain_opaque(self) -> None:
+    def _on_hover_curtain_opaque(self) -> None:
+        # Only hover bounce curtain fade in ACTIVE STATE
         if self.state == self.ACTIVE:
             self.hover_curtain.go_to_invisible()
 
@@ -154,12 +157,12 @@ class Button:
     def draw(self, surf: pg.Surface, y_offset: int) -> None:
         """
         Draw:
-        - description.
+        - description text.
         - surf.
         - active curtain.
         """
 
-        # Draw my description if I am active
+        # Draw my description text if I am active
         if self.state == self.ACTIVE:
             FONT.render_to(
                 surf,
@@ -173,6 +176,8 @@ class Button:
 
         # Draw my active surf
         self.active_curtain.draw(surf, y_offset)
+
+        # Draw my hover surf
         self.hover_curtain.draw(surf, y_offset)
 
     # Update
@@ -180,9 +185,13 @@ class Button:
         """
         Update:
         - active_curtain
+        - hover_curtain
         """
 
+        # Update my active surf
         self.active_curtain.update(dt)
+
+        # Update my hover surf
         self.hover_curtain.update(dt)
 
     def set_state(self, value: int) -> None:
@@ -199,6 +208,7 @@ class Button:
             if self.state == self.ACTIVE:
                 # Active surf go to opaque
                 self.active_curtain.go_to_opaque()
+                # Hover surf go to opaque
                 self.hover_curtain.go_to_opaque()
 
         # From ACTIVE?
@@ -207,6 +217,7 @@ class Button:
             if self.state == self.INACTIVE:
                 # Active surf go to invisible
                 self.active_curtain.go_to_invisible()
+                # Hover surf go to invisible
                 self.hover_curtain.jump_to_invisible()
 
     # Helpers
@@ -216,12 +227,13 @@ class Button:
         position_tuple_relative_to_button_surf_topleft: tuple[int, int],
     ) -> None:
         """
+        Use this to draw extra text on the button.
         Clear both active and inactive surf.
         Draw old texts on them.
         Draw given texts on them.
         """
 
-        # Clear surfs
+        # Clear all surfs
         self.surf.fill(self.BUTTON_INACTIVE_BODY_COLOR)
         self.active_curtain.surf.fill(self.BUTTON_ACTIVE_BODY_COLOR)
         self.hover_curtain.surf.fill(self.BUTTON_HOVER_BODY_COLOR)
@@ -234,7 +246,7 @@ class Button:
             (0, self.rect.height),
         )
 
-        # Draw original text to surf
+        # Draw original text on surf
         FONT.render_to(
             self.surf,
             self.text_top_left,
@@ -242,7 +254,7 @@ class Button:
             self.BUTTON_INACTIVE_TEXT_COLOR,
         )
 
-        # Draw given text to surf
+        # Draw given text on surf
         FONT.render_to(
             self.surf,
             position_tuple_relative_to_button_surf_topleft,
@@ -312,12 +324,13 @@ class Button:
         position_tuple_relative_to_button_surf_topleft: tuple[int, int],
     ) -> None:
         """
+        Use this to draw extra surf on the button.
         Clear both active and inactive surf.
         Draw old texts on them.
         Draw given surf on them.
         """
 
-        # Clear surfs
+        # Clear all surfs
         self.surf.fill(self.BUTTON_INACTIVE_BODY_COLOR)
         self.active_curtain.surf.fill(self.BUTTON_ACTIVE_BODY_COLOR)
         self.hover_curtain.surf.fill(self.BUTTON_HOVER_BODY_COLOR)
@@ -330,7 +343,7 @@ class Button:
             (0, self.rect.height),
         )
 
-        # Draw original text to surf
+        # Draw original text on surf
         FONT.render_to(
             self.surf,
             self.text_top_left,
@@ -338,7 +351,7 @@ class Button:
             self.BUTTON_INACTIVE_TEXT_COLOR,
         )
 
-        # Draw given surf to surf
+        # Draw given surf on surf
         self.surf.blit(
             surf,
             position_tuple_relative_to_button_surf_topleft,
@@ -364,7 +377,7 @@ class Button:
             self.text,
             self.BUTTON_ACTIVE_TEXT_COLOR,
         )
-        # Draw given surf to surf
+        # Draw given surf on active curtain surf
         self.active_curtain.surf.blit(
             surf,
             position_tuple_relative_to_button_surf_topleft,
@@ -389,7 +402,7 @@ class Button:
             self.text,
             self.BUTTON_HOVER_TEXT_COLOR,
         )
-        # Draw given surf to surf
+        # Draw given surf on hover curtain surf
         self.hover_curtain.surf.blit(
             surf,
             position_tuple_relative_to_button_surf_topleft,

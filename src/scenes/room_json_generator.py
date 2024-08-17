@@ -1,6 +1,5 @@
 from enum import auto
 from enum import Enum
-from json import load
 from os import listdir
 from os.path import exists
 from os.path import join
@@ -152,7 +151,7 @@ class RoomJsonGenerator:
 
         # Sprite sheet binded actors and surfs
         self.sprite_sheet_actors_dict: dict = {}
-        self.sprite_sheet_animation_jsons: list = []
+        self.sprite_sheet_animation_jsons: dict[str, str] = {}
         self.sprite_sheet_parallax_background_memory: dict[str, Any] = {}
 
         # Sprite sheet layers
@@ -356,8 +355,12 @@ class RoomJsonGenerator:
         mouse_position_x_tuple: int = mouse_position_tuple[0]
         mouse_position_y_tuple: int = mouse_position_tuple[1]
         # Scale mouse position
-        mouse_position_x_tuple_scaled: int | float = mouse_position_x_tuple // self.game.local_settings_dict["resolution_scale"]
-        mouse_position_y_tuple_scaled: int | float = mouse_position_y_tuple // self.game.local_settings_dict["resolution_scale"]
+        mouse_position_x_tuple_scaled: int | float = mouse_position_x_tuple // self.game.get_one_local_settings_dict_value(
+            "resolution_scale"
+        )
+        mouse_position_y_tuple_scaled: int | float = mouse_position_y_tuple // self.game.get_one_local_settings_dict_value(
+            "resolution_scale"
+        )
         # Keep mouse inside scaled NATIVE_RECT
         mouse_position_x_tuple_scaled = clamp(
             mouse_position_x_tuple_scaled,
@@ -442,8 +445,12 @@ class RoomJsonGenerator:
         mouse_position_x_tuple: int = mouse_position_tuple[0]
         mouse_position_y_tuple: int = mouse_position_tuple[1]
         # Scale mouse position
-        mouse_position_x_tuple_scaled: int | float = mouse_position_x_tuple // self.game.local_settings_dict["resolution_scale"]
-        mouse_position_y_tuple_scaled: int | float = mouse_position_y_tuple // self.game.local_settings_dict["resolution_scale"]
+        mouse_position_x_tuple_scaled: int | float = mouse_position_x_tuple // self.game.get_one_local_settings_dict_value(
+            "resolution_scale"
+        )
+        mouse_position_y_tuple_scaled: int | float = mouse_position_y_tuple // self.game.get_one_local_settings_dict_value(
+            "resolution_scale"
+        )
         # Keep mouse inside scaled NATIVE_RECT
         mouse_position_x_tuple_scaled = clamp(
             mouse_position_x_tuple_scaled,
@@ -521,11 +528,11 @@ class RoomJsonGenerator:
             mouse_position_x_tuple: int = mouse_position_tuple[0]
             mouse_position_y_tuple: int = mouse_position_tuple[1]
             # Scale mouse position
-            mouse_position_x_tuple_scaled: int | float = (
-                mouse_position_x_tuple // self.game.local_settings_dict["resolution_scale"]
+            mouse_position_x_tuple_scaled: int | float = mouse_position_x_tuple // self.game.get_one_local_settings_dict_value(
+                "resolution_scale"
             )
-            mouse_position_y_tuple_scaled: int | float = (
-                mouse_position_y_tuple // self.game.local_settings_dict["resolution_scale"]
+            mouse_position_y_tuple_scaled: int | float = mouse_position_y_tuple // self.game.get_one_local_settings_dict_value(
+                "resolution_scale"
             )
             # Clamp this in the max room size instead (hardcoded 2 x 2, no point in increasing, if not too slow)
             mouse_position_x_tuple_scaled = clamp(
@@ -706,135 +713,130 @@ class RoomJsonGenerator:
                     # Accept
                     if self.game_event_handler.this_frame_event.key == pg.K_RETURN:
                         if exists(self.input_text) and self.input_text.endswith(".json"):
-                            # Get the sprite sheet metadata
-                            with open(self.input_text, "r") as file:
-                                data = load(file)
+                            # GET from disk, Get the sprite sheet metadata
+                            data = self.game.GET_file_from_disk_dynamic_path(self.input_text)
 
-                                # Get sprite sheet name and surf
-                                self.sprite_sheet_png_name = data["sprite_sheet_png_name"]
-                                if self.sprite_sheet_png_name is not None:
-                                    self.sprite_sheet_surf = pg.image.load(
-                                        PNGS_PATHS_DICT[self.sprite_sheet_png_name]
-                                    ).convert_alpha()
+                            # Get sprite sheet name and surf
+                            self.sprite_sheet_png_name = data["sprite_sheet_png_name"]
+                            if self.sprite_sheet_png_name is not None:
+                                self.sprite_sheet_surf = pg.image.load(
+                                    PNGS_PATHS_DICT[self.sprite_sheet_png_name]
+                                ).convert_alpha()
 
-                                    # Get the background and actors with sprite_sheet_png_name key
-                                    # Animation jsons data and surfs for this sprite sheet
-                                    self.sprite_sheet_actors_dict = self.game.stage_actors[self.sprite_sheet_png_name]
-                                    self.sprite_sheet_surf_names = self.game.stage_surf_names[self.sprite_sheet_png_name]
-                                    self.sprite_sheet_animation_jsons = self.game.stage_animation_jsons[
-                                        self.sprite_sheet_png_name
-                                    ]
-                                    self.sprite_sheet_parallax_background_memory = (
-                                        self.game.stage_parallax_background_memory_dict[self.sprite_sheet_png_name]
+                                # Get the background and actors with sprite_sheet_png_name key
+                                # Animation jsons data and surfs for this sprite sheet
+                                self.sprite_sheet_actors_dict = self.game.stage_actors[self.sprite_sheet_png_name]
+                                self.sprite_sheet_surf_names = self.game.stage_surf_names[self.sprite_sheet_png_name]
+                                self.sprite_sheet_animation_jsons = self.game.stage_animation_jsons[self.sprite_sheet_png_name]
+                                self.sprite_sheet_parallax_background_memory = self.game.stage_parallax_background_memory_dict[
+                                    self.sprite_sheet_png_name
+                                ]
+
+                                # Prepare button list
+                                buttons: list[Button] = []
+
+                                # Iterate each sprite metadata
+                                for object in data["sprites_list"]:
+                                    # Reformat to key sprite names and its data as values
+                                    self.reformat_sprite_sheet_json_metadata[object["sprite_name"]] = object
+
+                                    # Populate the pallete button
+                                    button: Button = Button(
+                                        surf_size_tuple=(264, 19),
+                                        topleft=(29, 14),
+                                        text=object["sprite_name"],
+                                        text_topleft=(53, 2),
+                                        description_text=object["sprite_type"],
+                                    )
+                                    # Create subsurf
+                                    subsurf: pg.Surface = self.sprite_sheet_surf.subsurface(
+                                        (
+                                            object["x"],
+                                            object["y"],
+                                            object["width"],
+                                            object["height"],
+                                        )
+                                    )
+                                    # Create base subsurf
+                                    base_subsurf_width: int = 49
+                                    base_subsurf_height: int = 19
+                                    base_subsurf: pg.Surface = pg.Surface((base_subsurf_width, base_subsurf_height))
+                                    base_subsurf.fill(self.clear_color)
+                                    scaled_height: float = base_subsurf_width * object["height"] / object["width"]
+                                    # Scale so width is 49
+                                    subsurf = pg.transform.scale(subsurf, (base_subsurf_width, scaled_height))
+                                    y_diff: float = scaled_height - base_subsurf_height
+                                    base_subsurf.blit(subsurf, (0, -y_diff / 2))
+                                    button.draw_extra_surf_on_surf(base_subsurf, (1, 0))
+                                    buttons.append(button)
+
+                                    # Init parallax background
+                                    if object["sprite_type"] == "parallax_background":
+                                        # Init the instance container
+                                        self.parallax_background_instances_list.append(None)
+
+                                    # Init static background
+                                    if object["sprite_type"] == "static_background":
+                                        # Count static background total layers
+                                        if self.static_background_layers < object["sprite_layer"]:
+                                            self.static_background_layers = object["sprite_layer"]
+
+                                    # Init foreground
+                                    if object["sprite_type"] == "foreground":
+                                        # Count foreground total layers
+                                        if self.foreground_layers < object["sprite_layer"]:
+                                            self.foreground_layers = object["sprite_layer"]
+
+                                # Static background layers total is ready here, populate
+                                # Init collision map for each static background layers
+                                for _ in range(self.static_background_layers):
+                                    self.static_background_collision_map_list.append(
+                                        [0 for _ in range(self.room_width_tu * self.room_height_tu)],
                                     )
 
-                                    # Prepare button list
-                                    buttons: list[Button] = []
+                                # Init collision map for solid layer
+                                self.solid_collision_map_list = [0 for _ in range(self.room_width_tu * self.room_height_tu)]
 
-                                    # Iterate each sprite metadata
-                                    for object in data["sprites_list"]:
-                                        # Reformat to key sprite names and its data as values
-                                        self.reformat_sprite_sheet_json_metadata[object["sprite_name"]] = object
-
-                                        # Populate the pallete button
-                                        button: Button = Button(
-                                            surf_size_tuple=(264, 19),
-                                            topleft=(29, 14),
-                                            text=object["sprite_name"],
-                                            text_topleft=(53, 2),
-                                            description_text=object["sprite_type"],
-                                        )
-                                        # Create subsurf
-                                        subsurf: pg.Surface = self.sprite_sheet_surf.subsurface(
-                                            (
-                                                object["x"],
-                                                object["y"],
-                                                object["width"],
-                                                object["height"],
-                                            )
-                                        )
-                                        # Create base subsurf
-                                        base_subsurf_width: int = 49
-                                        base_subsurf_height: int = 19
-                                        base_subsurf: pg.Surface = pg.Surface((base_subsurf_width, base_subsurf_height))
-                                        base_subsurf.fill(self.clear_color)
-                                        scaled_height: float = base_subsurf_width * object["height"] / object["width"]
-                                        # Scale so width is 49
-                                        subsurf = pg.transform.scale(subsurf, (base_subsurf_width, scaled_height))
-                                        y_diff: float = scaled_height - base_subsurf_height
-                                        base_subsurf.blit(subsurf, (0, -y_diff / 2))
-                                        button.draw_extra_surf_on_surf(base_subsurf, (1, 0))
-                                        buttons.append(button)
-
-                                        # Init parallax background
-                                        if object["sprite_type"] == "parallax_background":
-                                            # Init the instance container
-                                            self.parallax_background_instances_list.append(None)
-
-                                        # Init static background
-                                        if object["sprite_type"] == "static_background":
-                                            # Count static background total layers
-                                            if self.static_background_layers < object["sprite_layer"]:
-                                                self.static_background_layers = object["sprite_layer"]
-
-                                        # Init foreground
-                                        if object["sprite_type"] == "foreground":
-                                            # Count foreground total layers
-                                            if self.foreground_layers < object["sprite_layer"]:
-                                                self.foreground_layers = object["sprite_layer"]
-
-                                    # Static background layers total is ready here, populate
-                                    # Init collision map for each static background layers
-                                    for _ in range(self.static_background_layers):
-                                        self.static_background_collision_map_list.append(
-                                            [0 for _ in range(self.room_width_tu * self.room_height_tu)],
-                                        )
-
-                                    # Init collision map for solid layer
-                                    self.solid_collision_map_list = [0 for _ in range(self.room_width_tu * self.room_height_tu)]
-
-                                    # Foreground layers total is ready here, populate
-                                    # Init collision map for each foreground layers
-                                    for _ in range(self.foreground_layers):
-                                        self.foreground_collision_map_list.append(
-                                            [0 for _ in range(self.room_width_tu * self.room_height_tu)],
-                                        )
-
-                                    # Init pre render static background
-                                    self.pre_render_static_background = pg.Surface((self.room_width, self.room_height))
-                                    self.pre_render_static_background.set_colorkey("red")
-                                    self.pre_render_static_background.fill("red")
-                                    # Init pre render solid and foreground
-                                    self.pre_render_solid_foreground = pg.Surface((self.room_width, self.room_height))
-                                    self.pre_render_solid_foreground.set_colorkey("red")
-                                    self.pre_render_solid_foreground.fill("red")
-
-                                    # Init button container
-                                    self.button_container = ButtonContainer(
-                                        buttons=buttons,
-                                        offset=0,
-                                        limit=7,
-                                        is_pagination=True,
-                                        game_event_handler=self.game_event_handler,
-                                        game_sound_manager=self.game.sound_manager,
+                                # Foreground layers total is ready here, populate
+                                # Init collision map for each foreground layers
+                                for _ in range(self.foreground_layers):
+                                    self.foreground_collision_map_list.append(
+                                        [0 for _ in range(self.room_width_tu * self.room_height_tu)],
                                     )
-                                    self.button_container.add_event_listener(
-                                        self.on_button_selected, ButtonContainer.BUTTON_SELECTED
-                                    )
-                                    # Init the selected name
-                                    self.selected_sprite_name = buttons[0].text
-                                    # Init the cursor size
-                                    sprite_sheet_obj = self.reformat_sprite_sheet_json_metadata[self.selected_sprite_name]
-                                    if sprite_sheet_obj["sprite_tile_type"] == "none":
-                                        self.cursor_width = sprite_sheet_obj["width"]
-                                        self.cursor_height = sprite_sheet_obj["height"]
-                                        self.cursor_width_tu = self.cursor_width // TILE_SIZE
-                                        self.cursor_height_tu = self.cursor_height // TILE_SIZE
-                                    else:
-                                        self.cursor_width = TILE_SIZE
-                                        self.cursor_height = TILE_SIZE
-                                        self.cursor_width_tu = 1
-                                        self.cursor_height_tu = 1
+
+                                # Init pre render static background
+                                self.pre_render_static_background = pg.Surface((self.room_width, self.room_height))
+                                self.pre_render_static_background.set_colorkey("red")
+                                self.pre_render_static_background.fill("red")
+                                # Init pre render solid and foreground
+                                self.pre_render_solid_foreground = pg.Surface((self.room_width, self.room_height))
+                                self.pre_render_solid_foreground.set_colorkey("red")
+                                self.pre_render_solid_foreground.fill("red")
+
+                                # Init button container
+                                self.button_container = ButtonContainer(
+                                    buttons=buttons,
+                                    offset=0,
+                                    limit=7,
+                                    is_pagination=True,
+                                    game_event_handler=self.game_event_handler,
+                                    game_sound_manager=self.game.sound_manager,
+                                )
+                                self.button_container.add_event_listener(self.on_button_selected, ButtonContainer.BUTTON_SELECTED)
+                                # Init the selected name
+                                self.selected_sprite_name = buttons[0].text
+                                # Init the cursor size
+                                sprite_sheet_obj = self.reformat_sprite_sheet_json_metadata[self.selected_sprite_name]
+                                if sprite_sheet_obj["sprite_tile_type"] == "none":
+                                    self.cursor_width = sprite_sheet_obj["width"]
+                                    self.cursor_height = sprite_sheet_obj["height"]
+                                    self.cursor_width_tu = self.cursor_width // TILE_SIZE
+                                    self.cursor_height_tu = self.cursor_height // TILE_SIZE
+                                else:
+                                    self.cursor_width = TILE_SIZE
+                                    self.cursor_height = TILE_SIZE
+                                    self.cursor_width_tu = 1
+                                    self.cursor_height_tu = 1
 
                             self.curtain.go_to_opaque()
                         else:
@@ -1181,69 +1183,70 @@ class RoomJsonGenerator:
                 file_path = join(JSONS_ROOMS_DIR_PATH, filename)
 
                 # Open and read the JSON file
-                with open(file_path, "r") as file:
-                    data = load(file)
 
-                    # Draw marks on the world surf
-                    file_name = data["file_name"]
-                    room_x_ru = data["room_x_ru"]
-                    room_y_ru = data["room_y_ru"]
-                    room_scale_x = data["room_scale_x"]
-                    room_scale_y = data["room_scale_y"]
-                    room_x = room_x_ru * WORLD_CELL_SIZE
-                    room_y = room_y_ru * WORLD_CELL_SIZE
-                    room_cell_width = room_scale_x * WORLD_CELL_SIZE
-                    room_cell_height = room_scale_y * WORLD_CELL_SIZE
-                    sprite_room_map_body_color = data["sprite_room_map_body_color"]
-                    sprite_room_map_sub_division_color = data["sprite_room_map_sub_division_color"]
-                    sprite_room_map_border_color = data["sprite_room_map_border_color"]
+                # GET from disk
+                data = self.game.GET_file_from_disk_dynamic_path(file_path)
 
-                    # TODO: Add collision and also render the doors
-                    pg.draw.rect(
-                        self.world_surf,
-                        sprite_room_map_body_color,
-                        (
-                            room_x,
-                            room_y,
-                            room_cell_width,
-                            room_cell_height,
-                        ),
-                    )
+                # Draw marks on the world surf
+                file_name = data["file_name"]
+                room_x_ru = data["room_x_ru"]
+                room_y_ru = data["room_y_ru"]
+                room_scale_x = data["room_scale_x"]
+                room_scale_y = data["room_scale_y"]
+                room_x = room_x_ru * WORLD_CELL_SIZE
+                room_y = room_y_ru * WORLD_CELL_SIZE
+                room_cell_width = room_scale_x * WORLD_CELL_SIZE
+                room_cell_height = room_scale_y * WORLD_CELL_SIZE
+                sprite_room_map_body_color = data["sprite_room_map_body_color"]
+                sprite_room_map_sub_division_color = data["sprite_room_map_sub_division_color"]
+                sprite_room_map_border_color = data["sprite_room_map_border_color"]
 
-                    for ru_xi in range(room_scale_x):
-                        for ru_yi in range(room_scale_y):
-                            ru_x: int = room_x_ru + ru_xi
-                            ru_y: int = room_y_ru + ru_yi
-                            pg.draw.rect(
-                                self.world_surf,
-                                sprite_room_map_sub_division_color,
-                                (
-                                    ru_x * WORLD_CELL_SIZE,
-                                    ru_y * WORLD_CELL_SIZE,
-                                    WORLD_CELL_SIZE,
-                                    WORLD_CELL_SIZE,
-                                ),
-                                1,
-                            )
+                # TODO: Add collision and also render the doors
+                pg.draw.rect(
+                    self.world_surf,
+                    sprite_room_map_body_color,
+                    (
+                        room_x,
+                        room_y,
+                        room_cell_width,
+                        room_cell_height,
+                    ),
+                )
 
-                            # Store each one in room_collision_map_list
-                            self.set_tile_from_world_collision_map_list(
-                                ru_x,
-                                ru_y,
-                                file_name,
-                            )
+                for ru_xi in range(room_scale_x):
+                    for ru_yi in range(room_scale_y):
+                        ru_x: int = room_x_ru + ru_xi
+                        ru_y: int = room_y_ru + ru_yi
+                        pg.draw.rect(
+                            self.world_surf,
+                            sprite_room_map_sub_division_color,
+                            (
+                                ru_x * WORLD_CELL_SIZE,
+                                ru_y * WORLD_CELL_SIZE,
+                                WORLD_CELL_SIZE,
+                                WORLD_CELL_SIZE,
+                            ),
+                            1,
+                        )
 
-                    pg.draw.rect(
-                        self.world_surf,
-                        sprite_room_map_border_color,
-                        (
-                            room_x,
-                            room_y,
-                            room_cell_width,
-                            room_cell_height,
-                        ),
-                        1,
-                    )
+                        # Store each one in room_collision_map_list
+                        self.set_tile_from_world_collision_map_list(
+                            ru_x,
+                            ru_y,
+                            file_name,
+                        )
+
+                pg.draw.rect(
+                    self.world_surf,
+                    sprite_room_map_border_color,
+                    (
+                        room_x,
+                        room_y,
+                        room_cell_width,
+                        room_cell_height,
+                    ),
+                    1,
+                )
 
     def _OPENED_SCENE_CURTAIN_to_ADD_OTHER_SPRITES(self) -> None:
         pass
@@ -1817,7 +1820,8 @@ class RoomJsonGenerator:
         self.input_rect.center = NATIVE_RECT.center
 
     def set_prompt_text(self, value: str) -> None:
-        self.prompt_text = f"{value} " f"hit {pg.key.name(self.game.local_settings_dict['enter'])} " "to proceed"
+        local_settings_dict_enter = pg.key.name(self.game.get_one_local_settings_dict_value("enter"))
+        self.prompt_text = f"{value} " f"hit {local_settings_dict_enter} " "to proceed"
         self.prompt_rect = FONT.get_rect(self.prompt_text)
         self.prompt_rect.center = NATIVE_RECT.center
         self.prompt_rect.y -= FONT_HEIGHT + 1

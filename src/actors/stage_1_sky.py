@@ -32,9 +32,11 @@ class Stage1Sky:
         sprite_sheet_surf: pg.Surface,
         camera: "Camera",
     ):
+        # Load and instance the sprite sheet and camera for me
         self.sprite_sheet_surf: pg.Surface = sprite_sheet_surf
         self.camera: "Camera" = camera
 
+        # My constants metadata
         self.sprite_name: str = "sky"
         self.sprite_width: int = 320
         self.sprite_height: int = 128
@@ -42,11 +44,16 @@ class Stage1Sky:
         self.sprite_y: int = 0
         self.draw_scale_x: float = 0.05
         self.draw_scale_y: float = 0.0
-        self.sprite_region: tuple[int, int, int, int] = (self.sprite_x, self.sprite_y, self.sprite_width, self.sprite_height)
+        self.sprite_region: tuple[int, int, int, int] = (
+            self.sprite_x,
+            self.sprite_y,
+            self.sprite_width,
+            self.sprite_height,
+        )
 
-        # Draw the surf
+        # Make my surf
         self.surf: pg.Surface = pg.Surface((NATIVE_WIDTH, NATIVE_HEIGHT))
-        # Draw on it
+        # Draw on it, construct the whole thing here by stamping the regions
         self.surf.fill("#1f2b47")
         self.surf.blit(
             self.sprite_sheet_surf,

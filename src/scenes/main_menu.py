@@ -51,12 +51,15 @@ class MainMenu:
         self._setup_buttons()
 
         # State machines for update and draw
-        self.state_machine_update = self._create_state_machine_update()
-        self.state_machine_draw = self._create_state_machine_draw()
+        self._setup_state_machine_update()
+        self._setup_state_machine_draw()
 
     # Setups
     def _setup_curtain(self) -> None:
-        """Setup curtain with event listeners."""
+        """
+        Setup curtain with event listeners.
+        """
+
         self.curtain: Curtain = Curtain(
             duration=1000.0,
             start_state=Curtain.OPAQUE,
@@ -65,40 +68,86 @@ class MainMenu:
             is_invisible=False,
             color=self.clear_color,
         )
-        self.curtain.add_event_listener(self.on_curtain_invisible, Curtain.INVISIBLE_END)
-        self.curtain.add_event_listener(self.on_curtain_opaque, Curtain.OPAQUE_END)
+        self.curtain.add_event_listener(self._on_curtain_invisible, Curtain.INVISIBLE_END)
+        self.curtain.add_event_listener(self._on_curtain_opaque, Curtain.OPAQUE_END)
 
     def _setup_timers(self) -> None:
-        """Setup timers with event listeners."""
+        """
+        Setup timers with event listeners.
+        """
+
         self.entry_delay_timer: Timer = Timer(duration=1000.0)
-        self.entry_delay_timer.add_event_listener(self.on_entry_delay_timer_end, Timer.END)
+        self.entry_delay_timer.add_event_listener(self._on_entry_delay_timer_end, Timer.END)
 
         self.exit_delay_timer: Timer = Timer(duration=1000.0)
-        self.exit_delay_timer.add_event_listener(self.on_exit_delay_timer_end, Timer.END)
+        self.exit_delay_timer.add_event_listener(self._on_exit_delay_timer_end, Timer.END)
 
     def _setup_surfs(self) -> None:
-        """Setup background surf."""
+        """
+        Setup background surf.
+        """
+
         self.background_surf: pg.Surface = pg.image.load(PNGS_PATHS_DICT["main_menu_background.png"]).convert()
 
     def _setup_buttons(self) -> None:
-        """Setup buttons."""
+        """
+        Setup buttons.
+        """
+
+        button_surf_size_tuple: tuple = (48, 9)
+        topleft: tuple = (30, 109)
+        text_topleft: tuple = (4, 2)
+
         self.new_game_button: Button = Button(
-            surf_size_tuple=(48, 9),
-            topleft=(30, 109),
+            surf_size_tuple=button_surf_size_tuple,
+            topleft=topleft,
             text="new game",
-            text_topleft=(4, 2),
+            text_topleft=text_topleft,
             description_text="start a new game",
         )
-        self.continue_button: Button = Button((48, 9), (30, 109), "continue", (4, 2), "continue from last save")
-        self.options_button: Button = Button((48, 9), (30, 109), "options", (4, 2), "adjust game settings")
-        self.exit_button: Button = Button((48, 9), (30, 109), "exit", (4, 2), "exit game")
+        self.continue_button: Button = Button(
+            surf_size_tuple=button_surf_size_tuple,
+            topleft=topleft,
+            text="continue",
+            text_topleft=text_topleft,
+            description_text="continue from last save",
+        )
+        self.options_button: Button = Button(
+            surf_size_tuple=button_surf_size_tuple,
+            topleft=topleft,
+            text="options",
+            text_topleft=text_topleft,
+            description_text="adjust game settings",
+        )
+        self.exit_button: Button = Button(
+            surf_size_tuple=button_surf_size_tuple,
+            topleft=topleft,
+            text="exit",
+            text_topleft=text_topleft,
+            description_text="exit game",
+        )
         self.animation_json_generator: Button = Button(
-            (48, 9), (30, 109), "animation", (4, 2), "animation json generator"
+            surf_size_tuple=button_surf_size_tuple,
+            topleft=topleft,
+            text="animation",
+            text_topleft=text_topleft,
+            description_text="animation json generator",
         )
         self.sprite_sheet_json_generator: Button = Button(
-            (48, 9), (30, 109), "sprite", (4, 2), "sprite sheet json generator"
+            surf_size_tuple=button_surf_size_tuple,
+            topleft=topleft,
+            text="sprite",
+            text_topleft=text_topleft,
+            description_text="sprite sheet json generator",
         )
-        self.room_json_generator: Button = Button((48, 9), (30, 109), "room", (4, 2), "room json generator")
+        self.room_json_generator: Button = Button(
+            surf_size_tuple=button_surf_size_tuple,
+            topleft=topleft,
+            text="room",
+            text_topleft=text_topleft,
+            description_text="room json generator",
+        )
+
         self.button_container: ButtonContainer = ButtonContainer(
             buttons=[
                 self.new_game_button,
@@ -115,12 +164,16 @@ class MainMenu:
             game_event_handler=self.game_event_handler,
             game_sound_manager=self.game.sound_manager,
         )
-        self.button_container.add_event_listener(self.on_button_selected, ButtonContainer.BUTTON_SELECTED)
+        self.button_container.add_event_listener(self._on_button_selected, ButtonContainer.BUTTON_SELECTED)
+
         self.selected_button: Button = self.new_game_button
 
-    def _create_state_machine_update(self) -> StateMachine:
-        """Create state machine for update."""
-        return StateMachine(
+    def _setup_state_machine_update(self) -> None:
+        """
+        Create state machine for update.
+        """
+
+        self.state_machine_update = StateMachine(
             initial_state=MainMenu.State.JUST_ENTERED_SCENE,
             state_handlers={
                 MainMenu.State.JUST_ENTERED_SCENE: self._JUST_ENTERED_SCENE,
@@ -149,40 +202,35 @@ class MainMenu:
             },
         )
 
-    def _create_state_machine_draw(self) -> StateMachine:
-        """Create state machine for draw."""
-        return StateMachine(
+    def _setup_state_machine_draw(self) -> None:
+        """
+        Create state machine for draw.
+        """
+
+        self.state_machine_draw = StateMachine(
             initial_state=MainMenu.State.JUST_ENTERED_SCENE,
             state_handlers={
-                MainMenu.State.JUST_ENTERED_SCENE: self._JUST_ENTERED_SCENE_DRAW,
-                MainMenu.State.OPENING_SCENE_CURTAIN: self._OPENING_SCENE_CURTAIN_DRAW,
-                MainMenu.State.OPENED_SCENE_CURTAIN: self._SCENE_CURTAIN_OPENED_DRAW,
-                MainMenu.State.CLOSING_SCENE_CURTAIN: self._CLOSING_SCENE_CURTAIN_DRAW,
-                MainMenu.State.CLOSED_SCENE_CURTAIN: self._SCENE_CURTAIN_CLOSED_DRAW,
+                MainMenu.State.JUST_ENTERED_SCENE: self._CURTAIN_CLOSED_DRAW,
+                MainMenu.State.OPENING_SCENE_CURTAIN: self._CURTAIN_FADING_DRAW,
+                MainMenu.State.OPENED_SCENE_CURTAIN: self._CURTAIN_OPENED_DRAW,
+                MainMenu.State.CLOSING_SCENE_CURTAIN: self._CURTAIN_FADING_DRAW,
+                MainMenu.State.CLOSED_SCENE_CURTAIN: self._CURTAIN_CLOSED_DRAW,
             },
             transition_actions={},
         )
 
     # State draw logics
-    def _JUST_ENTERED_SCENE_DRAW(self, _dt: int) -> None:
+    def _CURTAIN_CLOSED_DRAW(self, _dt: int) -> None:
         pass
 
-    def _OPENING_SCENE_CURTAIN_DRAW(self, _dt: int) -> None:
+    def _CURTAIN_FADING_DRAW(self, _dt: int) -> None:
         NATIVE_SURF.blit(self.background_surf, (0, 0))
         self.button_container.draw(NATIVE_SURF)
         self.curtain.draw(NATIVE_SURF, 0)
 
-    def _SCENE_CURTAIN_OPENED_DRAW(self, _dt: int) -> None:
+    def _CURTAIN_OPENED_DRAW(self, _dt: int) -> None:
         NATIVE_SURF.blit(self.background_surf, (0, 0))
         self.button_container.draw(NATIVE_SURF)
-
-    def _CLOSING_SCENE_CURTAIN_DRAW(self, _dt: int) -> None:
-        NATIVE_SURF.blit(self.background_surf, (0, 0))
-        self.button_container.draw(NATIVE_SURF)
-        self.curtain.draw(NATIVE_SURF, 0)
-
-    def _SCENE_CURTAIN_CLOSED_DRAW(self, _dt: int) -> None:
-        pass
 
     # State update logics
     def _JUST_ENTERED_SCENE(self, dt: int) -> None:
@@ -221,11 +269,12 @@ class MainMenu:
         NATIVE_SURF.fill(self.clear_color)
 
     # Callbacks
-    def on_entry_delay_timer_end(self) -> None:
+    def _on_entry_delay_timer_end(self) -> None:
         self.state_machine_update.change_state(MainMenu.State.OPENING_SCENE_CURTAIN)
         self.state_machine_draw.change_state(MainMenu.State.OPENING_SCENE_CURTAIN)
 
-    def on_exit_delay_timer_end(self) -> None:
+    def _on_exit_delay_timer_end(self) -> None:
+        # TODO: Use a dict to key the condition and value the func
         if self.selected_button == self.exit_button:
             self.game_event_handler.quit()
 
@@ -238,22 +287,24 @@ class MainMenu:
         elif self.selected_button == self.room_json_generator:
             self.game.set_scene("RoomJsonGenerator")
 
-    def on_curtain_invisible(self) -> None:
+    def _on_curtain_invisible(self) -> None:
         self.state_machine_update.change_state(MainMenu.State.OPENED_SCENE_CURTAIN)
         self.state_machine_draw.change_state(MainMenu.State.OPENED_SCENE_CURTAIN)
 
-    def on_curtain_opaque(self) -> None:
+    def _on_curtain_opaque(self) -> None:
         self.state_machine_update.change_state(MainMenu.State.CLOSED_SCENE_CURTAIN)
         self.state_machine_draw.change_state(MainMenu.State.CLOSED_SCENE_CURTAIN)
 
-    def on_button_selected(self, selected_button: Button) -> None:
+    def _on_button_selected(self, selected_button: Button) -> None:
         """
         Remember selected
         Need to wait for curtain to go to opaque
         Then use remembered button to switch statement to go somewhere
         """
+
         self.selected_button = selected_button
 
+        # TODO: Use a dict to key the condition and value the func
         if self.new_game_button == self.selected_button:
             pass
 

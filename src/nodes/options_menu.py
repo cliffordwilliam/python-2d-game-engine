@@ -8,6 +8,7 @@ from constants import NATIVE_RECT
 from constants import NATIVE_SURF
 from constants import NATIVE_WIDTH
 from constants import pg
+from constants import SETTINGS_FILE_NAME
 from nodes.button import Button
 from nodes.button_container import ButtonContainer
 from nodes.curtain import Curtain
@@ -46,13 +47,16 @@ class OptionsMenu:
         self._setup_buttons()
         self._setup_decoration_lines()
 
-        # State machines init
-        self.state_machine_update = self._create_state_machine_update()
-        self.state_machine_draw = self._create_state_machine_draw()
+        # State machines setup
+        self._setup_state_machine_update()
+        self._setup_state_machine_draw()
 
     # Setups
     def _setup_curtain(self) -> None:
-        """Setup curtain with event listeners. Curtain here is my surf."""
+        """
+        Setup curtain with event listeners. Curtain here is my surf.
+        """
+
         self.curtain: Curtain = Curtain(
             duration=1000.0,
             start_state=Curtain.INVISIBLE,
@@ -65,7 +69,10 @@ class OptionsMenu:
         self.curtain.add_event_listener(self.on_curtain_opaque, Curtain.OPAQUE_END)
 
     def _setup_timers(self) -> None:
-        """Setup timers with event listeners."""
+        """
+        Setup timers with event listeners.
+        """
+
         self.entry_delay_timer: Timer = Timer(0.0)
         self.entry_delay_timer.add_event_listener(self.on_entry_delay_timer_end, Timer.END)
 
@@ -73,14 +80,20 @@ class OptionsMenu:
         self.exit_delay_timer.add_event_listener(self.on_exit_delay_timer_end, Timer.END)
 
     def _setup_texts(self) -> None:
-        """Setup title text."""
+        """
+        Setup title text.
+        """
+
         self.title_text: str = "options"
         self.title_rect: pg.Rect = FONT.get_rect(self.title_text)
         self.title_rect.center = NATIVE_RECT.center
         self.title_rect.y = 14
 
     def _setup_buttons(self) -> None:
-        """Setup button container."""
+        """
+        Setup button container.
+        """
+
         self.button_height: int = 9
         self.wide_button_width: int = 146
         self.narrow_button_width: int = 73
@@ -198,7 +211,11 @@ class OptionsMenu:
         self.selected_button: Button = self.resolution_button
         self.focused_button: Button = self.resolution_button
 
-        # Resolution texts
+        # Extra texts offset
+        self.extra_text_x_offset = 3
+        self.extra_text_y_offset = 2
+
+        # Resolution text
         self.resolution_texts: list[str] = [
             "<  320 x 160 >",
             "<  640 x 320 >",
@@ -209,11 +226,12 @@ class OptionsMenu:
             "< fullscreen >",
         ]
         self.resolution_texts_len: int = len(self.resolution_texts)
-        self.resolution_text: str = self.resolution_texts[self.game.local_settings_dict["resolution_index"]]
+        local_settings_dict_resolution_index = self.game.get_one_local_settings_dict_value("resolution_index")
+        self.resolution_text: str = self.resolution_texts[local_settings_dict_resolution_index]
         self.resolution_text_rect: pg.Rect = FONT.get_rect(self.resolution_text)
         self.resolution_text_rect.topright = self.resolution_button.rect.topright
-        self.resolution_text_rect.x -= 3
-        self.resolution_text_rect.y += 2
+        self.resolution_text_rect.x -= self.extra_text_x_offset
+        self.resolution_text_rect.y += self.extra_text_y_offset
         # Compute to relative position to button topleft rect
         self.resolution_text_rect.x -= self.resolution_button.rect.x
         self.resolution_text_rect.y -= self.resolution_button.rect.y
@@ -224,11 +242,12 @@ class OptionsMenu:
         )
 
         # Up input text
-        self.up_input_text: str = pg.key.name(self.game.local_settings_dict["up"])
+        local_settings_dict_up = self.game.get_one_local_settings_dict_value("up")
+        self.up_input_text: str = pg.key.name(local_settings_dict_up)
         self.up_input_text_rect: pg.Rect = FONT.get_rect(self.up_input_text)
         self.up_input_text_rect.topright = self.up_input_button.rect.topright
-        self.up_input_text_rect.x -= 3
-        self.up_input_text_rect.y += 2
+        self.up_input_text_rect.x -= self.extra_text_x_offset
+        self.up_input_text_rect.y += self.extra_text_y_offset
         # Compute to relative position to button topleft rect
         self.up_input_text_rect.x -= self.up_input_button.rect.x
         self.up_input_text_rect.y -= self.up_input_button.rect.y
@@ -239,11 +258,12 @@ class OptionsMenu:
         )
 
         # Down input text
-        self.down_input_text: str = pg.key.name(self.game.local_settings_dict["down"])
+        local_settings_dict_down = self.game.get_one_local_settings_dict_value("down")
+        self.down_input_text: str = pg.key.name(local_settings_dict_down)
         self.down_input_text_rect: pg.Rect = FONT.get_rect(self.down_input_text)
         self.down_input_text_rect.topright = self.down_input_button.rect.topright
-        self.down_input_text_rect.x -= 3
-        self.down_input_text_rect.y += 2
+        self.down_input_text_rect.x -= self.extra_text_x_offset
+        self.down_input_text_rect.y += self.extra_text_y_offset
         # Compute to relative position to button topleft rect
         self.down_input_text_rect.x -= self.down_input_button.rect.x
         self.down_input_text_rect.y -= self.down_input_button.rect.y
@@ -254,11 +274,12 @@ class OptionsMenu:
         )
 
         # Left input text
-        self.left_input_text: str = pg.key.name(self.game.local_settings_dict["left"])
+        local_settings_dict_left = self.game.get_one_local_settings_dict_value("left")
+        self.left_input_text: str = pg.key.name(local_settings_dict_left)
         self.left_input_text_rect: pg.Rect = FONT.get_rect(self.left_input_text)
         self.left_input_text_rect.topright = self.left_input_button.rect.topright
-        self.left_input_text_rect.x -= 3
-        self.left_input_text_rect.y += 2
+        self.left_input_text_rect.x -= self.extra_text_x_offset
+        self.left_input_text_rect.y += self.extra_text_y_offset
         # Compute to relative position to button topleft rect
         self.left_input_text_rect.x -= self.left_input_button.rect.x
         self.left_input_text_rect.y -= self.left_input_button.rect.y
@@ -269,11 +290,12 @@ class OptionsMenu:
         )
 
         # Right input text
-        self.right_input_text: str = pg.key.name(self.game.local_settings_dict["right"])
+        local_settings_dict_right = self.game.get_one_local_settings_dict_value("right")
+        self.right_input_text: str = pg.key.name(local_settings_dict_right)
         self.right_input_text_rect: pg.Rect = FONT.get_rect(self.right_input_text)
         self.right_input_text_rect.topright = self.right_input_button.rect.topright
-        self.right_input_text_rect.x -= 3
-        self.right_input_text_rect.y += 2
+        self.right_input_text_rect.x -= self.extra_text_x_offset
+        self.right_input_text_rect.y += self.extra_text_y_offset
         # Compute to relative position to button topleft rect
         self.right_input_text_rect.x -= self.right_input_button.rect.x
         self.right_input_text_rect.y -= self.right_input_button.rect.y
@@ -284,11 +306,12 @@ class OptionsMenu:
         )
 
         # Enter input text
-        self.enter_input_text: str = pg.key.name(self.game.local_settings_dict["enter"])
+        local_settings_dict_enter = self.game.get_one_local_settings_dict_value("enter")
+        self.enter_input_text: str = pg.key.name(local_settings_dict_enter)
         self.enter_input_text_rect: pg.Rect = FONT.get_rect(self.enter_input_text)
         self.enter_input_text_rect.topright = self.enter_input_button.rect.topright
-        self.enter_input_text_rect.x -= 3
-        self.enter_input_text_rect.y += 2
+        self.enter_input_text_rect.x -= self.extra_text_x_offset
+        self.enter_input_text_rect.y += self.extra_text_y_offset
         # Compute to relative position to button topleft rect
         self.enter_input_text_rect.x -= self.enter_input_button.rect.x
         self.enter_input_text_rect.y -= self.enter_input_button.rect.y
@@ -299,11 +322,12 @@ class OptionsMenu:
         )
 
         # Pause input text
-        self.pause_input_text: str = pg.key.name(self.game.local_settings_dict["pause"])
+        local_settings_dict_pause = self.game.get_one_local_settings_dict_value("pause")
+        self.pause_input_text: str = pg.key.name(local_settings_dict_pause)
         self.pause_input_text_rect: pg.Rect = FONT.get_rect(self.pause_input_text)
         self.pause_input_text_rect.topright = self.pause_input_button.rect.topright
-        self.pause_input_text_rect.x -= 3
-        self.pause_input_text_rect.y += 2
+        self.pause_input_text_rect.x -= self.extra_text_x_offset
+        self.pause_input_text_rect.y += self.extra_text_y_offset
         # Compute to relative position to button topleft rect
         self.pause_input_text_rect.x -= self.pause_input_button.rect.x
         self.pause_input_text_rect.y -= self.pause_input_button.rect.y
@@ -314,11 +338,12 @@ class OptionsMenu:
         )
 
         # Jump input text
-        self.jump_input_text: str = pg.key.name(self.game.local_settings_dict["jump"])
+        local_settings_dict_jump = self.game.get_one_local_settings_dict_value("jump")
+        self.jump_input_text: str = pg.key.name(local_settings_dict_jump)
         self.jump_input_text_rect: pg.Rect = FONT.get_rect(self.jump_input_text)
         self.jump_input_text_rect.topright = self.jump_input_button.rect.topright
-        self.jump_input_text_rect.x -= 3
-        self.jump_input_text_rect.y += 2
+        self.jump_input_text_rect.x -= self.extra_text_x_offset
+        self.jump_input_text_rect.y += self.extra_text_y_offset
         # Compute to relative position to button topleft rect
         self.jump_input_text_rect.x -= self.jump_input_button.rect.x
         self.jump_input_text_rect.y -= self.jump_input_button.rect.y
@@ -329,11 +354,12 @@ class OptionsMenu:
         )
 
         # Attack input text
-        self.attack_input_text: str = pg.key.name(self.game.local_settings_dict["attack"])
+        local_settings_dict_attack = self.game.get_one_local_settings_dict_value("attack")
+        self.attack_input_text: str = pg.key.name(local_settings_dict_attack)
         self.attack_input_text_rect: pg.Rect = FONT.get_rect(self.attack_input_text)
         self.attack_input_text_rect.topright = self.attack_input_button.rect.topright
-        self.attack_input_text_rect.x -= 3
-        self.attack_input_text_rect.y += 2
+        self.attack_input_text_rect.x -= self.extra_text_x_offset
+        self.attack_input_text_rect.y += self.extra_text_y_offset
         # Compute to relative position to button topleft rect
         self.attack_input_text_rect.x -= self.attack_input_button.rect.x
         self.attack_input_text_rect.y -= self.attack_input_button.rect.y
@@ -344,7 +370,13 @@ class OptionsMenu:
         )
 
     def _setup_decoration_lines(self) -> None:
-        """Setup decoration lines."""
+        """
+        Setup decoration lines.
+        """
+
+        # Metadata constant
+        self.decoration_line_width: int = 1
+        self.decoration_line_color: str = "#0193bc"
         self.decoration_vertical_start = (NATIVE_RECT.center[0], self.button_flex_col_topleft[1])
         self.decoration_vertical_x: int = self.decoration_vertical_start[0]
         self.decoration_vertical_top: int = self.decoration_vertical_start[1]
@@ -353,20 +385,23 @@ class OptionsMenu:
         self.decoration_horizontal_y: int = self.decoration_vertical_bottom
         self.decoration_horizontal_left: int = self.button_flex_col_topleft[0]
         self.decoration_horizontal_right: int = self.button_flex_col_topleft[0] + self.wide_button_width
-
+        # Horizontal surf init
         self.decoration_line_surf_horizontal: pg.Surface = pg.Surface(
-            (self.decoration_horizontal_right - self.decoration_horizontal_left, 1)
+            (self.decoration_horizontal_right - self.decoration_horizontal_left, self.decoration_line_width)
         )
-        self.decoration_line_surf_horizontal.fill("#0193bc")
-
+        self.decoration_line_surf_horizontal.fill(self.decoration_line_color)
+        # Vertical surf init
         self.decoration_line_surf_vertical: pg.Surface = pg.Surface(
-            (1, self.decoration_vertical_bottom - self.decoration_vertical_top)
+            (self.decoration_line_width, self.decoration_vertical_bottom - self.decoration_vertical_top)
         )
-        self.decoration_line_surf_vertical.fill("#0193bc")
+        self.decoration_line_surf_vertical.fill(self.decoration_line_color)
 
-    def _create_state_machine_update(self) -> StateMachine:
-        """Create state machine for update."""
-        return StateMachine(
+    def _setup_state_machine_update(self) -> None:
+        """
+        Create state machine for update.
+        """
+
+        self.state_machine_update = StateMachine(
             initial_state=OptionsMenu.State.JUST_ENTERED_SCENE,
             state_handlers={
                 OptionsMenu.State.JUST_ENTERED_SCENE: self._JUST_ENTERED_SCENE,
@@ -404,26 +439,26 @@ class OptionsMenu:
             },
         )
 
-    def _create_state_machine_draw(self) -> StateMachine:
-        """Create state machine for draw."""
-        return StateMachine(
+    def _setup_state_machine_draw(self) -> None:
+        """
+        Create state machine for draw.
+        """
+
+        self.state_machine_draw = StateMachine(
             initial_state=OptionsMenu.State.JUST_ENTERED_SCENE,
             state_handlers={
-                OptionsMenu.State.JUST_ENTERED_SCENE: self._JUST_ENTERED_SCENE_DRAW,
-                OptionsMenu.State.CLOSING_SCENE_CURTAIN: self._CLOSING_SCENE_CURTAIN_DRAW,
+                OptionsMenu.State.JUST_ENTERED_SCENE: self._OPENED_CURTAIN_DRAW,
+                OptionsMenu.State.CLOSING_SCENE_CURTAIN: self._FADING_CURTAIN_DRAW,
                 OptionsMenu.State.CLOSED_SCENE_CURTAIN: self._CLOSED_SCENE_CURTAIN_DRAW,
-                OptionsMenu.State.OPENING_SCENE_CURTAIN: self._OPENING_SCENE_CURTAIN_DRAW,
-                OptionsMenu.State.OPENED_SCENE_CURTAIN: self._OPENED_SCENE_CURTAIN_DRAW,
-                OptionsMenu.State.REBIND: self._REBIND_DRAW,
+                OptionsMenu.State.OPENING_SCENE_CURTAIN: self._FADING_CURTAIN_DRAW,
+                OptionsMenu.State.OPENED_SCENE_CURTAIN: self._OPENED_CURTAIN_DRAW,
+                OptionsMenu.State.REBIND: self._CLOSED_SCENE_CURTAIN_DRAW,
             },
             transition_actions={},
         )
 
     # State draw logics
-    def _JUST_ENTERED_SCENE_DRAW(self, _dt: int) -> None:
-        pass
-
-    def _CLOSING_SCENE_CURTAIN_DRAW(self, _dt: int) -> None:
+    def _FADING_CURTAIN_DRAW(self, _dt: int) -> None:
         # Clear curtain
         self.curtain.surf.fill(self.curtain_clear_color)
 
@@ -471,56 +506,8 @@ class OptionsMenu:
         # Draw curtain on native
         self.curtain.draw(NATIVE_SURF, 0)
 
-    def _OPENING_SCENE_CURTAIN_DRAW(self, _dt: int) -> None:
-        # Clear curtain
-        self.curtain.surf.fill(self.curtain_clear_color)
-
-        # Draw title.
-        FONT.render_to(
-            self.curtain.surf,
-            self.title_rect,
-            self.title_text,
-            self.font_color,
-        )
-
-        # Button container
-        self.button_container.draw(self.curtain.surf)
-
-        # Decorations
-        self.curtain.surf.blit(
-            self.decoration_line_surf_horizontal, (self.decoration_horizontal_left, self.decoration_horizontal_y)
-        )
-        self.curtain.surf.blit(self.decoration_line_surf_vertical, (self.decoration_vertical_x, self.decoration_vertical_top))
-
-        # Draw curtain on native
-        self.curtain.draw(NATIVE_SURF, 0)
-
-    def _OPENED_SCENE_CURTAIN_DRAW(self, _dt: int) -> None:
+    def _OPENED_CURTAIN_DRAW(self, _dt: int) -> None:
         pass
-
-    def _REBIND_DRAW(self, _dt: int) -> None:
-        # Clear curtain
-        self.curtain.surf.fill(self.curtain_clear_color)
-
-        # Draw title
-        FONT.render_to(
-            self.curtain.surf,
-            self.title_rect,
-            self.title_text,
-            self.font_color,
-        )
-
-        # Button container
-        self.button_container.draw(self.curtain.surf)
-
-        # Decorations
-        self.curtain.surf.blit(
-            self.decoration_line_surf_horizontal, (self.decoration_horizontal_left, self.decoration_horizontal_y)
-        )
-        self.curtain.surf.blit(self.decoration_line_surf_vertical, (self.decoration_vertical_x, self.decoration_vertical_top))
-
-        # Draw curtain on native
-        self.curtain.draw(NATIVE_SURF, 0)
 
     # State update logics
     def _JUST_ENTERED_SCENE(self, dt: int) -> None:
@@ -530,29 +517,28 @@ class OptionsMenu:
         self.curtain.update(dt)
 
     def _CLOSED_SCENE_CURTAIN(self, dt: int) -> None:
-        # Update button index
-        # Update button active alpha
         self.button_container.update(dt)
 
         # Focusing on resolution button?
         if self.resolution_button == self.focused_button:
-            # Get left right direction
-            new_value = self.game.local_settings_dict["resolution_index"]
-            is_pressed_left_or_right: bool = False
-            # Left?
-            if self.game_event_handler.is_left_just_pressed:
-                new_value -= 1
-                is_pressed_left_or_right = True
-            # Right?
-            if self.game_event_handler.is_right_just_pressed:
-                new_value += 1
-                is_pressed_left_or_right = True
-            # Update resolution index
-            if is_pressed_left_or_right:
-                if self.game.local_settings_dict["resolution_index"] != new_value:
-                    self.set_resolution_index(new_value)
-                    # Update game.local_settings_dict resolution
-                    self.game.set_resolution_index(self.game.local_settings_dict["resolution_index"])
+            # Get left right dir
+            dir: int = self.game_event_handler.is_right_just_pressed - self.game_event_handler.is_left_just_pressed
+            # Return if dir is zero
+            if dir == 0:
+                return
+            # Get new resolution index value with dir
+            local_settings_dict_resolution_index = self.game.get_one_local_settings_dict_value("resolution_index")
+            new_resolution_index_value = local_settings_dict_resolution_index + dir
+            # Module wrap it
+            new_resolution_index_value = new_resolution_index_value % self.resolution_texts_len
+            # Update game real window, window prop and local settings with new resolution value
+            self.game.set_resolution_index(new_resolution_index_value)
+            # Update my front end ui with new game resolution
+            local_settings_dict_resolution_index = self.game.get_one_local_settings_dict_value("resolution_index")
+            self.update_input_text_front_end_ui(
+                self.resolution_button,
+                self.resolution_texts[local_settings_dict_resolution_index],
+            )
 
     def _OPENING_SCENE_CURTAIN(self, dt: int) -> None:
         self.curtain.update(dt)
@@ -564,42 +550,29 @@ class OptionsMenu:
     def _REBIND(self, dt: int) -> None:
         # Pressed any key?
         if self.game_event_handler.is_any_key_just_pressed:
-            # Find if pressed key is used already?
-            for key_name, key_int in self.game.local_settings_dict.items():
-                # Update text to alert message, return
-                if self.game_event_handler.this_frame_event is not None:
+            # The key pressed this frame is not none?
+            if self.game_event_handler.this_frame_event is not None:
+                # Loop over each key val in game local settings dict
+                game_local_settings_dict = self.game.get_local_settings_dict()
+                for key_name, key_int in game_local_settings_dict.items():
+                    # This frame key pressed code exists in game local dict?
                     if self.game_event_handler.this_frame_event.key == key_int:
-                        self.update_input_text(self.focused_button, f"used by '{key_name}'")
+                        # Update alert and return
+                        self.update_input_text_front_end_ui(self.focused_button, f"used by '{key_name}'")
                         return
 
-            # Rebind, update game.local_settings_dict input
-            # TODO: Create key val for this
-            if self.game_event_handler.this_frame_event is not None:
-                if self.focused_button == self.up_input_button:
-                    self.game.local_settings_dict["up"] = self.game_event_handler.this_frame_event.key
-                elif self.focused_button == self.down_input_button:
-                    self.game.local_settings_dict["down"] = self.game_event_handler.this_frame_event.key
-                elif self.focused_button == self.left_input_button:
-                    self.game.local_settings_dict["left"] = self.game_event_handler.this_frame_event.key
-                elif self.focused_button == self.right_input_button:
-                    self.game.local_settings_dict["right"] = self.game_event_handler.this_frame_event.key
-                elif self.focused_button == self.enter_input_button:
-                    self.game.local_settings_dict["enter"] = self.game_event_handler.this_frame_event.key
-                elif self.focused_button == self.pause_input_button:
-                    self.game.local_settings_dict["pause"] = self.game_event_handler.this_frame_event.key
-                elif self.focused_button == self.jump_input_button:
-                    self.game.local_settings_dict["jump"] = self.game_event_handler.this_frame_event.key
-                elif self.focused_button == self.attack_input_button:
-                    self.game.local_settings_dict["attack"] = self.game_event_handler.this_frame_event.key
+                # Rebind
+                # The only way to get here is to press Button are named like "${key_name} input"
+                key_name = self.focused_button.text.split()[0]
 
-                # Update input text
-                self.update_input_text(
+                # Update game local settings input
+                self.game.set_one_local_settings_dict_value(key_name, self.game_event_handler.this_frame_event.key)
+
+                # Update input text front-end ui
+                self.update_input_text_front_end_ui(
                     self.focused_button,
                     pg.key.name(self.game_event_handler.this_frame_event.key),
                 )
-
-                # Update event handler function binds
-                self.game_event_handler.init_keybind()
 
                 # Exit to normal state after rebind ok
                 self.state_machine_draw.change_state(OptionsMenu.State.CLOSED_SCENE_CURTAIN)
@@ -617,8 +590,9 @@ class OptionsMenu:
         self.curtain.go_to_invisible()
 
     def _CLOSED_SCENE_CURTAIN_to_REBIND(self) -> None:
+        # This can only happen when you press button input
         # Update input text to "press any key"
-        self.update_input_text(self.focused_button, "press any key")
+        self.update_input_text_front_end_ui(self.focused_button, "press any key")
 
     def _REBIND_to_CLOSED_SCENE_CURTAIN(self) -> None:
         pass
@@ -631,6 +605,7 @@ class OptionsMenu:
         """
         Delay ends, starts going to opaque.
         """
+
         self.state_machine_update.change_state(OptionsMenu.State.CLOSING_SCENE_CURTAIN)
         self.state_machine_draw.change_state(OptionsMenu.State.CLOSING_SCENE_CURTAIN)
 
@@ -680,15 +655,20 @@ class OptionsMenu:
 
         # Apply button selected?
         if self.apply_button == self.selected_button:
-            self.game.save_settings()
+            # Overwrite disk with game local settings
+            self.game.PATCH_file_to_disk_dynamic_path(
+                self.game.jsons_user_pahts_dict[SETTINGS_FILE_NAME],
+                self.game.local_settings_dict,
+            )
 
         # Reset button selected?
         elif self.reset_button == self.selected_button:
+            # Overwrite game local settings with disk
             self.load_settings_and_update_ui()
 
         # Exit button selected?
         elif self.exit_button == self.selected_button:
-            # Exit state to OPENING_SCENE_CURTAIN
+            # Overwrite game local settings with disk
             self.load_settings_and_update_ui()
             self.state_machine_update.change_state(OptionsMenu.State.OPENING_SCENE_CURTAIN)
             self.state_machine_draw.change_state(OptionsMenu.State.OPENING_SCENE_CURTAIN)
@@ -730,64 +710,43 @@ class OptionsMenu:
     # Helpers
     def load_settings_and_update_ui(self) -> None:
         """
-        Left and right input while resolution button is focused.
+        Overwrite local with disk.
+        Update front-end ui.
         """
 
-        old_local_settings_dict_resolution_index = self.game.local_settings_dict["resolution_index"]
+        # Remember the old, no need to update window and local settings if the same
+        old_local_settings_dict_resolution_index = self.game.get_one_local_settings_dict_value("resolution_index")
 
-        # Try loading to local, if not dump local to disk
-        self.game.load_or_create_settings()
+        # Read disk and update game local settings
+        self.game.GET_or_POST_settings_json_from_disk()
 
-        # Update input texts with local
+        # Get resolution index
+        local_settings_dict_resolution_index = self.game.get_one_local_settings_dict_value("resolution_index")
 
-        # Resolution input text
-        self.set_resolution_index(self.game.local_settings_dict["resolution_index"])
-        if old_local_settings_dict_resolution_index != (self.game.local_settings_dict["resolution_index"]):
-            # Update game.local_settings_dict resolution
-            self.game.set_resolution_index(self.game.local_settings_dict["resolution_index"])
+        # Old and new was different? Then resolution was updated by player in settings
+        if old_local_settings_dict_resolution_index != local_settings_dict_resolution_index:
+            # Update the window and local settings dict
+            self.game.set_resolution_index(local_settings_dict_resolution_index)
 
-        # Up input text
-        self.update_input_text(
-            self.up_input_button,
-            pg.key.name(self.game.local_settings_dict["up"]),
-        )
-        # Down input text
-        self.update_input_text(
-            self.down_input_button,
-            pg.key.name(self.game.local_settings_dict["down"]),
-        )
-        # Left input text
-        self.update_input_text(
-            self.left_input_button,
-            pg.key.name(self.game.local_settings_dict["left"]),
-        )
-        # Right input text
-        self.update_input_text(
-            self.right_input_button,
-            pg.key.name(self.game.local_settings_dict["right"]),
-        )
-        # Enter input text
-        self.update_input_text(
-            self.enter_input_button,
-            pg.key.name(self.game.local_settings_dict["enter"]),
-        )
-        # Pause input text
-        self.update_input_text(
-            self.pause_input_button,
-            pg.key.name(self.game.local_settings_dict["pause"]),
-        )
-        # Jump input text
-        self.update_input_text(
-            self.jump_input_button,
-            pg.key.name(self.game.local_settings_dict["jump"]),
-        )
-        # Attack input text
-        self.update_input_text(
-            self.attack_input_button,
-            pg.key.name(self.game.local_settings_dict["attack"]),
-        )
+        # Update ui text
+        button_settings = {
+            self.resolution_button: self.resolution_texts[local_settings_dict_resolution_index],
+            self.up_input_button: pg.key.name(self.game.get_one_local_settings_dict_value("up")),
+            self.down_input_button: pg.key.name(self.game.get_one_local_settings_dict_value("down")),
+            self.left_input_button: pg.key.name(self.game.get_one_local_settings_dict_value("left")),
+            self.right_input_button: pg.key.name(self.game.get_one_local_settings_dict_value("right")),
+            self.enter_input_button: pg.key.name(self.game.get_one_local_settings_dict_value("enter")),
+            self.pause_input_button: pg.key.name(self.game.get_one_local_settings_dict_value("pause")),
+            self.jump_input_button: pg.key.name(self.game.get_one_local_settings_dict_value("jump")),
+            self.attack_input_button: pg.key.name(self.game.get_one_local_settings_dict_value("attack")),
+        }
+        for button_instance, button_text in button_settings.items():
+            self.update_input_text_front_end_ui(
+                button_instance,
+                button_text,
+            )
 
-    def update_input_text(self, button: Button, text: str) -> None:
+    def update_input_text_front_end_ui(self, button: Button, text: str) -> None:
         """
         This combines all input button text setter.
         Handle each button input text.
@@ -795,150 +754,37 @@ class OptionsMenu:
         - input_text_rect
         """
 
-        # TODO: Move this to key val pair
+        # Map buttons to their props
+        button_map = {
+            self.up_input_button: ("up_input_text", "up_input_text_rect"),
+            self.down_input_button: ("down_input_text", "down_input_text_rect"),
+            self.left_input_button: ("left_input_text", "left_input_text_rect"),
+            self.right_input_button: ("right_input_text", "right_input_text_rect"),
+            self.enter_input_button: ("enter_input_text", "enter_input_text_rect"),
+            self.pause_input_button: ("pause_input_text", "pause_input_text_rect"),
+            self.jump_input_button: ("jump_input_text", "jump_input_text_rect"),
+            self.attack_input_button: ("attack_input_text", "attack_input_text_rect"),
+            self.resolution_button: ("resolution_text", "resolution_text_rect"),
+        }
 
-        if button == self.up_input_button:
-            self.up_input_text = text
-            self.up_input_text_rect = FONT.get_rect(self.up_input_text)
-            self.up_input_text_rect.topright = self.up_input_button.rect.topright
-            self.up_input_text_rect.x -= 3
-            self.up_input_text_rect.y += 2
-            # Compute to relative position to button topleft rect
-            self.up_input_text_rect.x -= self.up_input_button.rect.x
-            self.up_input_text_rect.y -= self.up_input_button.rect.y
-            # Draw it on button
-            self.up_input_button.draw_extra_text_on_surf(
-                self.up_input_text,
-                self.up_input_text_rect.topleft,
-            )
+        # Return if given button is not in map
+        if button not in button_map:
+            return
 
-        elif button == self.down_input_button:
-            self.down_input_text = text
-            self.down_input_text_rect = FONT.get_rect(self.down_input_text)
-            self.down_input_text_rect.topright = self.down_input_button.rect.topright
-            self.down_input_text_rect.x -= 3
-            self.down_input_text_rect.y += 2
-            # Compute to relative position to button topleft rect
-            self.down_input_text_rect.x -= self.down_input_button.rect.x
-            self.down_input_text_rect.y -= self.down_input_button.rect.y
-            # Draw it on button
-            self.down_input_button.draw_extra_text_on_surf(
-                self.down_input_text,
-                self.down_input_text_rect.topleft,
-            )
+        # Get the associated attributes dynamically
+        text_attr, rect_attr = button_map[button]
 
-        elif button == self.left_input_button:
-            self.left_input_text = text
-            self.left_input_text_rect = FONT.get_rect(self.left_input_text)
-            self.left_input_text_rect.topright = self.left_input_button.rect.topright
-            self.left_input_text_rect.x -= 3
-            self.left_input_text_rect.y += 2
-            # Compute to relative position to button topleft rect
-            self.left_input_text_rect.x -= self.left_input_button.rect.x
-            self.left_input_text_rect.y -= self.left_input_button.rect.y
-            # Draw it on button
-            self.left_input_button.draw_extra_text_on_surf(
-                self.left_input_text,
-                self.left_input_text_rect.topleft,
-            )
+        # Set the text
+        setattr(self, text_attr, text)
 
-        elif button == self.right_input_button:
-            self.right_input_text = text
-            self.right_input_text_rect = FONT.get_rect(self.right_input_text)
-            self.right_input_text_rect.topright = self.right_input_button.rect.topright
-            self.right_input_text_rect.x -= 3
-            self.right_input_text_rect.y += 2
-            # Compute to relative position to button topleft rect
-            self.right_input_text_rect.x -= self.right_input_button.rect.x
-            self.right_input_text_rect.y -= self.right_input_button.rect.y
-            # Draw it on button
-            self.right_input_button.draw_extra_text_on_surf(
-                self.right_input_text,
-                self.right_input_text_rect.topleft,
-            )
+        # Update the rect
+        rect = FONT.get_rect(text)
+        rect.topright = button.rect.topright
+        rect.x -= self.extra_text_x_offset
+        rect.y += self.extra_text_y_offset
+        rect.x -= button.rect.x  # Relative to button
+        rect.y -= button.rect.y  # Relative to button
+        setattr(self, rect_attr, rect)
 
-        elif button == self.enter_input_button:
-            self.enter_input_text = text
-            self.enter_input_text_rect = FONT.get_rect(self.enter_input_text)
-            self.enter_input_text_rect.topright = self.enter_input_button.rect.topright
-            self.enter_input_text_rect.x -= 3
-            self.enter_input_text_rect.y += 2
-            # Compute to relative position to button topleft rect
-            self.enter_input_text_rect.x -= self.enter_input_button.rect.x
-            self.enter_input_text_rect.y -= self.enter_input_button.rect.y
-            # Draw it on button
-            self.enter_input_button.draw_extra_text_on_surf(
-                self.enter_input_text,
-                self.enter_input_text_rect.topleft,
-            )
-
-        elif button == self.pause_input_button:
-            self.pause_input_text = text
-            self.pause_input_text_rect = FONT.get_rect(self.pause_input_text)
-            self.pause_input_text_rect.topright = self.pause_input_button.rect.topright
-            self.pause_input_text_rect.x -= 3
-            self.pause_input_text_rect.y += 2
-            # Compute to relative position to button topleft rect
-            self.pause_input_text_rect.x -= self.pause_input_button.rect.x
-            self.pause_input_text_rect.y -= self.pause_input_button.rect.y
-            # Draw it on button
-            self.pause_input_button.draw_extra_text_on_surf(
-                self.pause_input_text,
-                self.pause_input_text_rect.topleft,
-            )
-
-        elif button == self.jump_input_button:
-            self.jump_input_text = text
-            self.jump_input_text_rect = FONT.get_rect(self.jump_input_text)
-            self.jump_input_text_rect.topright = self.jump_input_button.rect.topright
-            self.jump_input_text_rect.x -= 3
-            self.jump_input_text_rect.y += 2
-            # Compute to relative position to button topleft rect
-            self.jump_input_text_rect.x -= self.jump_input_button.rect.x
-            self.jump_input_text_rect.y -= self.jump_input_button.rect.y
-            # Draw it on button
-            self.jump_input_button.draw_extra_text_on_surf(
-                self.jump_input_text,
-                self.jump_input_text_rect.topleft,
-            )
-
-        elif button == self.attack_input_button:
-            self.attack_input_text = text
-            self.attack_input_text_rect = FONT.get_rect(self.attack_input_text)
-            self.attack_input_text_rect.topright = self.attack_input_button.rect.topright
-            self.attack_input_text_rect.x -= 3
-            self.attack_input_text_rect.y += 2
-            # Compute to relative position to button topleft rect
-            self.attack_input_text_rect.x -= self.attack_input_button.rect.x
-            self.attack_input_text_rect.y -= self.attack_input_button.rect.y
-            # Draw it on button
-            self.attack_input_button.draw_extra_text_on_surf(
-                self.attack_input_text,
-                self.attack_input_text_rect.topleft,
-            )
-
-    def set_resolution_index(self, value: int) -> None:
-        """
-        Left and right input while resolution button is focused:
-        - resolution_index (modulo wrap)
-        - resolution_text
-        - resolution_text_rect
-        """
-
-        self.game.local_settings_dict["resolution_index"] = value
-        self.game.local_settings_dict["resolution_index"] = (
-            self.game.local_settings_dict["resolution_index"] % self.resolution_texts_len
-        )
-        self.resolution_text = self.resolution_texts[self.game.local_settings_dict["resolution_index"]]
-        self.resolution_text_rect = FONT.get_rect(self.resolution_text)
-        self.resolution_text_rect.topright = self.resolution_button.rect.topright
-        self.resolution_text_rect.x -= 3
-        self.resolution_text_rect.y += 2
-        # Compute to relative position to button topleft rect
-        self.resolution_text_rect.x -= self.resolution_button.rect.x
-        self.resolution_text_rect.y -= self.resolution_button.rect.y
-        # Draw it on button
-        self.resolution_button.draw_extra_text_on_surf(
-            self.resolution_text,
-            self.resolution_text_rect.topleft,
-        )
+        # Draw the text on the button
+        button.draw_extra_text_on_surf(getattr(self, text_attr), getattr(self, rect_attr).topleft)

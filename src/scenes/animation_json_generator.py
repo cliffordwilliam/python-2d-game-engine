@@ -1,6 +1,5 @@
 from enum import auto
 from enum import Enum
-from json import dump
 from os.path import exists
 from os.path import join
 from pathlib import Path
@@ -8,7 +7,7 @@ from typing import TYPE_CHECKING
 
 from constants import FONT
 from constants import FONT_HEIGHT
-from constants import JSONS_PROJ_DIR_PATH
+from constants import JSONS_REPO_DIR_PATH
 from constants import NATIVE_HEIGHT
 from constants import NATIVE_RECT
 from constants import NATIVE_SURF
@@ -330,8 +329,12 @@ class AnimationJsonGenerator:
         mouse_position_x_tuple: int = mouse_position_tuple[0]
         mouse_position_y_tuple: int = mouse_position_tuple[1]
         # Scale mouse position
-        mouse_position_x_tuple_scaled: int | float = mouse_position_x_tuple // self.game.local_settings_dict["resolution_scale"]
-        mouse_position_y_tuple_scaled: int | float = mouse_position_y_tuple // self.game.local_settings_dict["resolution_scale"]
+        mouse_position_x_tuple_scaled: int | float = mouse_position_x_tuple // self.game.get_one_local_settings_dict_value(
+            "resolution_scale"
+        )
+        mouse_position_y_tuple_scaled: int | float = mouse_position_y_tuple // self.game.get_one_local_settings_dict_value(
+            "resolution_scale"
+        )
         # Keep mouse inside scaled NATIVE_RECT
         mouse_position_x_tuple_scaled = clamp(
             mouse_position_x_tuple_scaled,
@@ -823,14 +826,10 @@ class AnimationJsonGenerator:
                                         "sprite_sheet_png_name": sprite_sheet_png_name,
                                         "animation_sprites_list": self.animation_sprites_list,
                                     }
-                                    # Write to json
-                                    with open(
-                                        # Create new file
-                                        join(JSONS_PROJ_DIR_PATH, f"{self.file_name}.json"),
-                                        "w",
-                                    ) as animation_json:
-                                        dump(self.animation_json, animation_json, separators=(",", ":"))
-                                    self.game.update_jsons_proj_paths_dict()
+                                    # POST to json
+                                    self.game.POST_file_to_disk_dynamic_path(
+                                        join(JSONS_REPO_DIR_PATH, f"{self.file_name}.json"), self.animation_json
+                                    )
                                     # Close curtain
                                     # Exit to main menu
                                     self.game_music_manager.fade_out_music(int(self.curtain.fade_duration))
@@ -1157,7 +1156,8 @@ class AnimationJsonGenerator:
         self.input_rect.center = NATIVE_RECT.center
 
     def set_prompt_text(self, value: str) -> None:
-        self.prompt_text = f"{value} " f"hit {pg.key.name(self.game.local_settings_dict['enter'])} " "to proceed"
+        local_settings_dict_enter = pg.key.name(self.game.get_one_local_settings_dict_value("enter"))
+        self.prompt_text = f"{value} " f"hit {local_settings_dict_enter} " "to proceed"
         self.prompt_rect = FONT.get_rect(self.prompt_text)
         self.prompt_rect.center = NATIVE_RECT.center
         self.prompt_rect.y -= FONT_HEIGHT + 1
