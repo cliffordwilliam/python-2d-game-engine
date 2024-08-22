@@ -38,10 +38,10 @@ from typeguard import typechecked
 @typechecked
 class Game:
     def __init__(self, initial_scene: str):
-        # Prepare local settings data
+        # Prepare local settings with default settings
         self.local_settings_dict: dict[str, int] = DEFAULT_SETTINGS_DICT
 
-        # Dynamic dict paths (save data, room editor, so on)
+        # Dynamic paths dict (for player save data slot, room json metadata, animation json metadata, ...)
         self.jsons_user_pahts_dict: dict[str, str] = create_paths_dict(JSONS_USER_DIR_PATH)
         self.jsons_repo_pahts_dict: dict[str, str] = create_paths_dict(JSONS_REPO_DIR_PATH)
         self.jsons_repo_rooms_pahts_dict: dict[str, str] = create_paths_dict(JSONS_ROOMS_DIR_PATH)
@@ -49,27 +49,22 @@ class Game:
         # Event handler
         self.event_handler: EventHandler = EventHandler(self)
 
-        # Update local settings dict
+        # Update local settings dict with disk settings
         self.GET_or_POST_settings_json_from_disk()
 
-        # Window resolution scale and size
+        # Window size, surf and resolution scale
         self.window_width: int = WINDOW_WIDTH * self.get_one_local_settings_dict_value("resolution_scale")
         self.window_height: int = WINDOW_HEIGHT * self.get_one_local_settings_dict_value("resolution_scale")
         self.window_surf: (None | pg.Surface) = None
         self.set_resolution_index(self.get_one_local_settings_dict_value("resolution_index"))
 
         # Flags
-        # Options menu flag, toggle options menu mode
         self.is_options_menu_active: bool = False
         # REMOVE IN BUILD
-        # Toggle drawing debug data
-        self.is_debug: bool = False
+        self.is_per_frame_debug: bool = False
+
         # REMOVE IN BUILD
-        # The thing that does the actual debug data drawing
         self.debug_draw: DebugDraw = DebugDraw()
-        # REMOVE IN BUILD
-        # Toggle frame per frame debug mode
-        self.is_per_frame: bool = False
 
         # Sound and music managers
         self.sound_manager: SoundManager = SoundManager()
@@ -80,20 +75,20 @@ class Game:
         for ogg_name, ogg_path in OGGS_PATHS_DICT.items():
             self.sound_manager.load_sound(ogg_name, ogg_path)
 
-        # Bind each actor mems to the stage sprite sheet name
+        # Map actor memory to stage sprite sheet name
         self.stage_actors: dict[str, dict[str, Any]] = {
             "stage_1_sprite_sheet.png": {
                 "Fire": CreatedBySplashScreen,
             }
         }
 
-        # Bind each sprite sheet names to the stage sprite sheet name
+        # Map sprite sheet names to stage sprite sheet name
         self.stage_surf_names: dict[str, dict[str, str]] = {"stage_1_sprite_sheet.png": {"Fire": "thin_fire_sprite_sheet.png"}}
 
-        # Bind each sprite animation json names to the stage sprite sheet name
+        # Map sprite animation json names to stage sprite sheet name
         self.stage_animation_jsons: dict[str, dict[str, str]] = {"stage_1_sprite_sheet.png": {"Fire": "thin_fire_animation.json"}}
 
-        # Bind each parallax mems to the stage sprite sheet name
+        # Map parallax memory to stage sprite sheet name
         self.stage_parallax_background_memory_dict: dict[str, dict[str, Any]] = {
             "stage_1_sprite_sheet.png": {
                 "clouds": Stage1Clouds,
@@ -104,7 +99,7 @@ class Game:
             }
         }
 
-        # All screen scenes dict, its name to its memory
+        # All scenes dict, name key to memory
         self.scenes: dict[str, Any] = {
             "CreatedBySplashScreen": CreatedBySplashScreen,
             "MadeWithSplashScreen": MadeWithSplashScreen,
@@ -116,35 +111,34 @@ class Game:
             "RoomJsonGenerator": RoomJsonGenerator,
         }
 
-        # Keeps track of current scene instance
+        # Current scene instance
         self.current_scene: Any = self.scenes[initial_scene](self)
 
+    # Helper
     def _update_dynamic_paths_dict(self) -> None:
         """
-        Called by POST and DELETE to disk.
-        Reread current dynamic dir, adds new state to dict path.
-        Content may have been added or deleted.
+        Called by POST or DELETE to disk dir.
+        Reread edited disk dir content, repopulate dynamic paths dict.
         """
 
         self.jsons_user_pahts_dict = create_paths_dict(JSONS_USER_DIR_PATH)
         self.jsons_repo_pahts_dict = create_paths_dict(JSONS_REPO_DIR_PATH)
         self.jsons_repo_rooms_pahts_dict = create_paths_dict(JSONS_ROOMS_DIR_PATH)
 
+    # Abilities
     def GET_or_POST_settings_json_from_disk(self) -> None:
         """
-        GET prev saved disk.
+        GET prev saved disk settings, then overwrites local settings with disk.
         Or.
-        Post default to disk.
-        Overwrites game local settings with defaut.
+        POST default settings to disk. local settings is already default at start.
         """
 
-        # If that file is not in dynamic dict, it has not been POST yet
-        # Because only POST updates dynamic dict
+        # If that file is not in dynamic paths dict, it has not been POST yet, only POST updates dynamic paths dict
         if SETTINGS_FILE_NAME in self.jsons_user_pahts_dict:
             value = self.GET_file_from_disk_dynamic_path(self.jsons_user_pahts_dict[SETTINGS_FILE_NAME])
             self.overwriting_local_settings_dict(value)
         else:
-            # POST new settings with game local settings (game local starts off defaullt always)
+            # POST new first disk settings with local settings (local starts off with defaullt settings)
             self.POST_file_to_disk_dynamic_path(
                 join(JSONS_USER_DIR_PATH, SETTINGS_FILE_NAME),
                 self.get_local_settings_dict(),
@@ -152,15 +146,20 @@ class Game:
 
     def GET_file_from_disk_dynamic_path(self, existing_dynamic_path: str) -> Any:
         """
-        GET file to user disk.
+        GET file from user disk.
+        Use the dynamic paths dict path.
         """
-        is_in_jsons_user_pahts_dict = existing_dynamic_path in self.jsons_user_pahts_dict.values()
-        is_in_jsons_repo_pahts_dict = existing_dynamic_path in self.jsons_repo_pahts_dict.values()
-        is_in_jsons_repo_rooms_pahts_dict = existing_dynamic_path in self.jsons_repo_rooms_pahts_dict.values()
 
-        if not is_in_jsons_user_pahts_dict and not is_in_jsons_repo_pahts_dict and not is_in_jsons_repo_rooms_pahts_dict:
-            raise KeyError("Path does not exists")
+        # Handle not found path 404
+        all_paths = {
+            **self.jsons_user_pahts_dict,
+            **self.jsons_repo_pahts_dict,
+            **self.jsons_repo_rooms_pahts_dict,
+        }
+        if existing_dynamic_path not in all_paths.values():
+            raise KeyError("Path does not exist")
 
+        # GET 200
         with open(existing_dynamic_path, "r") as file:
             data = load(file)
             return data
@@ -168,36 +167,39 @@ class Game:
     def PATCH_file_to_disk_dynamic_path(self, existing_dynamic_path: str, file_content: Any) -> None:
         """
         POST file to user disk.
+        Use the dynamic paths dict path.
         """
 
-        is_in_jsons_user_pahts_dict = existing_dynamic_path in self.jsons_user_pahts_dict.values()
-        is_in_jsons_repo_pahts_dict = existing_dynamic_path in self.jsons_repo_pahts_dict.values()
-        is_in_jsons_repo_rooms_pahts_dict = existing_dynamic_path in self.jsons_repo_rooms_pahts_dict.values()
+        # Handle not found path 404
+        all_paths = {
+            **self.jsons_user_pahts_dict,
+            **self.jsons_repo_pahts_dict,
+            **self.jsons_repo_rooms_pahts_dict,
+        }
+        if existing_dynamic_path not in all_paths.values():
+            raise KeyError("Path does not exist")
 
-        if not is_in_jsons_user_pahts_dict and not is_in_jsons_repo_pahts_dict and not is_in_jsons_repo_rooms_pahts_dict:
-            raise KeyError("Path does not exists")
-
+        # PATCH 200
         with open(
             existing_dynamic_path,
             "w",
         ) as file:
-            # POST to user disk
             dump(file_content, file, separators=(",", ":"))
-        # After POST / DELETE in user disk, call this
-        self._update_dynamic_paths_dict()
 
     def POST_file_to_disk_dynamic_path(self, new_dynamic_path: str, file_content: Any) -> None:
         """
         POST file to user disk.
+        Use new path with join to be added to dynamic paths dict.
         """
 
+        # POST 201
         with open(
             new_dynamic_path,
             "w",
         ) as file:
-            # POST to user disk
             dump(file_content, file, separators=(",", ":"))
-        # After POST / DELETE in user disk, call this
+
+        # After POST / DELETE, update dynamic path dict
         self._update_dynamic_paths_dict()
 
     def overwriting_local_settings_dict(self, new_settings: dict) -> None:

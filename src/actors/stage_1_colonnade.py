@@ -33,9 +33,11 @@ class Stage1Colonnade:
         sprite_sheet_surf: pg.Surface,
         camera: "Camera",
     ):
+        # Load and instanced the sprite sheet and camera for me to use here
         self.sprite_sheet_surf: pg.Surface = sprite_sheet_surf
         self.camera: "Camera" = camera
 
+        # My constants metadata
         self.sprite_name: str = "colonnade"
         self.sprite_width: int = 96
         self.sprite_height: int = 160
@@ -45,12 +47,12 @@ class Stage1Colonnade:
         self.draw_scale_y: float = 0.25
         self.sprite_region: tuple[int, int, int, int] = (self.sprite_x, self.sprite_y, self.sprite_width, self.sprite_height)
 
-        # Draw the surf
+        # Make my surf
         self.surf: pg.Surface = pg.Surface((NATIVE_WIDTH, NATIVE_HEIGHT))
         # Fill invisible
         self.surf.set_colorkey("red")
         self.surf.fill("red")
-        # Draw on it
+        # Draw on it, construct the whole thing here by stamping the regions
         self.surf.blit(
             self.sprite_sheet_surf,
             (

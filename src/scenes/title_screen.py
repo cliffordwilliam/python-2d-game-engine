@@ -46,15 +46,18 @@ class TitleScreen:
         self._setup_timers()
         self._setup_surfs()
         self._setup_texts()
-        self.game_music_manager.set_current_music_path(OGGS_PATHS_DICT["xdeviruchi_title_theme.ogg"])
+        self._setup_state_machine_update()
+        self._setup_state_machine_draw()
 
-        # State machines init
-        self.state_machine_update = self._create_state_machine_update()
-        self.state_machine_draw = self._create_state_machine_draw()
+        # Set music
+        self.game_music_manager.set_current_music_path(OGGS_PATHS_DICT["xdeviruchi_title_theme.ogg"])
 
     # Setups
     def _setup_curtain(self) -> None:
-        """Setup curtain with event listeners."""
+        """
+        Setup curtain with event listeners.
+        """
+
         self.curtain: Curtain = Curtain(
             duration=1000.0,
             start_state=Curtain.OPAQUE,
@@ -63,26 +66,33 @@ class TitleScreen:
             is_invisible=False,
             color=self.clear_color,
         )
-        self.curtain.add_event_listener(self.on_curtain_invisible, Curtain.INVISIBLE_END)
-        self.curtain.add_event_listener(self.on_curtain_opaque, Curtain.OPAQUE_END)
+        self.curtain.add_event_listener(self._on_curtain_invisible, Curtain.INVISIBLE_END)
+        self.curtain.add_event_listener(self._on_curtain_opaque, Curtain.OPAQUE_END)
 
     def _setup_timers(self) -> None:
-        """Setup timers with event listeners."""
+        """
+        Setup timers with event listeners.
+        """
+
         self.entry_delay_timer: Timer = Timer(1000.0)
-        self.entry_delay_timer.add_event_listener(self.on_entry_delay_timer_end, Timer.END)
+        self.entry_delay_timer.add_event_listener(self._on_entry_delay_timer_end, Timer.END)
 
         self.exit_delay_timer: Timer = Timer(1000.0)
-        self.exit_delay_timer.add_event_listener(self.on_exit_delay_timer_end, Timer.END)
+        self.exit_delay_timer.add_event_listener(self._on_exit_delay_timer_end, Timer.END)
 
     def _setup_surfs(self) -> None:
-        """Setup Gestalt Illusion logo."""
-        self.gestalt_illusion_logo_surf: pg.Surface = pg.image.load(
-            PNGS_PATHS_DICT["gestalt_illusion_logo.png"]
-        ).convert_alpha()
+        """
+        Setup Gestalt Illusion logo.
+        """
+
+        self.gestalt_illusion_logo_surf: pg.Surface = pg.image.load(PNGS_PATHS_DICT["gestalt_illusion_logo.png"]).convert_alpha()
         self.gestalt_illusion_logo_surf_topleft = (84, 76)
 
     def _setup_texts(self) -> None:
-        """Setup text for prompt and version."""
+        """
+        Setup text for prompt and version.
+        """
+
         self.version_text: str = "0.x.x"
         self.version_rect: pg.Rect = FONT.get_rect(self.version_text)
         self.version_rect.bottomright = NATIVE_RECT.bottomright
@@ -103,9 +113,10 @@ class TitleScreen:
             is_invisible=True,
             color="black",
         )
-        self.prompt_curtain.add_event_listener(self.on_prompt_curtain_invisible, Curtain.INVISIBLE_END)
-        self.prompt_curtain.add_event_listener(self.on_prompt_curtain_opaque, Curtain.OPAQUE_END)
+        self.prompt_curtain.add_event_listener(self._on_prompt_curtain_invisible, Curtain.INVISIBLE_END)
+        self.prompt_curtain.add_event_listener(self._on_prompt_curtain_opaque, Curtain.OPAQUE_END)
         self.prompt_curtain.rect.center = self.prompt_rect.center
+        # Draw prompt text on prompt curtain
         FONT.render_to(
             self.prompt_curtain.surf,
             (0, 0),
@@ -113,10 +124,12 @@ class TitleScreen:
             self.font_color,
         )
 
-    # State machines init
-    def _create_state_machine_update(self) -> StateMachine:
-        """Create state machine for update."""
-        return StateMachine(
+    def _setup_state_machine_update(self) -> None:
+        """
+        Create state machine for update.
+        """
+
+        self.state_machine_update = StateMachine(
             initial_state=TitleScreen.State.JUST_ENTERED_SCENE,
             state_handlers={
                 TitleScreen.State.JUST_ENTERED_SCENE: self._JUST_ENTERED_SCENE,
@@ -150,26 +163,26 @@ class TitleScreen:
             },
         )
 
-    def _create_state_machine_draw(self) -> StateMachine:
-        """Create state machine for draw."""
-        return StateMachine(
+    def _setup_state_machine_draw(self) -> None:
+        """
+        Create state machine for draw.
+        """
+
+        self.state_machine_draw = StateMachine(
             initial_state=TitleScreen.State.JUST_ENTERED_SCENE,
             state_handlers={
-                TitleScreen.State.JUST_ENTERED_SCENE: self._JUST_ENTERED_SCENE_DRAW,
-                TitleScreen.State.OPENING_SCENE_CURTAIN: self._OPENING_SCENE_CURTAIN_DRAW,
+                TitleScreen.State.JUST_ENTERED_SCENE: self._CLOSED_SCENE_CURTAIN_DRAW,
+                TitleScreen.State.OPENING_SCENE_CURTAIN: self._CURTAIN_FADING_DRAW,
                 TitleScreen.State.OPENED_SCENE_CURTAIN: self._OPENED_SCENE_CURTAIN_DRAW,
                 TitleScreen.State.LEAVE_FADE_PROMPT: self._LEAVE_FADE_PROMPT_DRAW,
-                TitleScreen.State.CLOSING_SCENE_CURTAIN: self._CLOSING_SCENE_CURTAIN_DRAW,
+                TitleScreen.State.CLOSING_SCENE_CURTAIN: self._CURTAIN_FADING_DRAW,
                 TitleScreen.State.CLOSED_SCENE_CURTAIN: self._CLOSED_SCENE_CURTAIN_DRAW,
             },
             transition_actions={},
         )
 
     # State draw logics
-    def _JUST_ENTERED_SCENE_DRAW(self, _dt: int) -> None:
-        pass
-
-    def _OPENING_SCENE_CURTAIN_DRAW(self, _dt: int) -> None:
+    def _CURTAIN_FADING_DRAW(self, _dt: int) -> None:
         NATIVE_SURF.fill(self.clear_color)
         NATIVE_SURF.blit(
             self.gestalt_illusion_logo_surf,
@@ -211,20 +224,6 @@ class TitleScreen:
         )
         self.prompt_curtain.draw(NATIVE_SURF, 0)
 
-    def _CLOSING_SCENE_CURTAIN_DRAW(self, _dt: int) -> None:
-        NATIVE_SURF.fill(self.clear_color)
-        NATIVE_SURF.blit(
-            self.gestalt_illusion_logo_surf,
-            self.gestalt_illusion_logo_surf_topleft,
-        )
-        FONT.render_to(
-            NATIVE_SURF,
-            self.version_rect,
-            self.version_text,
-            self.font_color,
-        )
-        self.curtain.draw(NATIVE_SURF, 0)
-
     def _CLOSED_SCENE_CURTAIN_DRAW(self, _dt: int) -> None:
         pass
 
@@ -236,6 +235,7 @@ class TitleScreen:
         self.curtain.update(dt)
 
     def _OPENED_SCENE_CURTAIN(self, dt: int) -> None:
+        # When opened listen for any key press
         if self.game_event_handler.is_any_key_just_pressed:
             self.game_sound_manager.play_sound("confirm.ogg", 0, 0, 0)
             self.state_machine_update.change_state(TitleScreen.State.LEAVE_FADE_PROMPT)
@@ -273,30 +273,34 @@ class TitleScreen:
         pass
 
     # Callbacks
-    def on_entry_delay_timer_end(self) -> None:
+    def _on_entry_delay_timer_end(self) -> None:
         self.state_machine_update.change_state(TitleScreen.State.OPENING_SCENE_CURTAIN)
         self.state_machine_draw.change_state(TitleScreen.State.OPENING_SCENE_CURTAIN)
 
-    def on_exit_delay_timer_end(self) -> None:
+    def _on_exit_delay_timer_end(self) -> None:
         self.game.set_scene("MainMenu")
 
-    def on_curtain_invisible(self) -> None:
+    def _on_curtain_invisible(self) -> None:
         self.state_machine_update.change_state(TitleScreen.State.OPENED_SCENE_CURTAIN)
         self.state_machine_draw.change_state(TitleScreen.State.OPENED_SCENE_CURTAIN)
 
-    def on_curtain_opaque(self) -> None:
+    def _on_curtain_opaque(self) -> None:
         self.state_machine_update.change_state(TitleScreen.State.CLOSED_SCENE_CURTAIN)
         self.state_machine_draw.change_state(TitleScreen.State.CLOSED_SCENE_CURTAIN)
 
-    def on_prompt_curtain_invisible(self) -> None:
+    def _on_prompt_curtain_invisible(self) -> None:
+        # Invisible from leaving fade state?
         if self.state_machine_update.state == TitleScreen.State.LEAVE_FADE_PROMPT:
+            # Go to close curtain state
             self.state_machine_update.change_state(TitleScreen.State.CLOSING_SCENE_CURTAIN)
             self.state_machine_draw.change_state(TitleScreen.State.CLOSING_SCENE_CURTAIN)
             return
 
+        # Bounce
         self.prompt_curtain.go_to_opaque()
 
-    def on_prompt_curtain_opaque(self) -> None:
+    def _on_prompt_curtain_opaque(self) -> None:
+        # Bounce
         self.prompt_curtain.go_to_invisible()
 
     # Draw
@@ -311,7 +315,7 @@ class TitleScreen:
                 "type": "text",
                 "layer": 6,
                 "x": 0,
-                "y": 6,
+                "y": 0,
                 "text": (f"title screen " f"state: {self.state_machine_update.state.name}"),
             }
         )

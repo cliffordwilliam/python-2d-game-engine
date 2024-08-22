@@ -9,6 +9,7 @@ from typeguard import typechecked
 @typechecked
 class DebugDraw:
     def __init__(self) -> None:
+        self.is_active = False
         self.layers: list[list[Any]] = [
             [],
             [],

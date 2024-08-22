@@ -9,17 +9,18 @@ from nodes.options_menu import OptionsMenu
 
 game: Game = Game("CreatedBySplashScreen")
 options_menu: OptionsMenu = OptionsMenu(game)
+game.debug_draw.is_active = not game.debug_draw.is_active
 
 while 1:
     # REMOVE IN BUILD
-    if game.is_per_frame:
+    if game.is_per_frame_debug:
         for event in pg.event.get(EVENTS):
             game.event_handler.event(event)
 
             if game.event_handler.is_0_just_pressed:
-                game.is_debug = not game.is_debug
+                game.debug_draw.is_active = not game.debug_draw.is_active
             if game.event_handler.is_9_just_pressed:
-                game.is_per_frame = not game.is_per_frame
+                game.is_per_frame_debug = not game.is_per_frame_debug
 
         if pg.key.get_just_pressed()[NEXT_FRAME]:
             game.current_scene.draw()
@@ -30,7 +31,7 @@ while 1:
             else:
                 game.current_scene.update(16)  # Hardcoded 16 dt
 
-            if game.is_debug:
+            if game.debug_draw.is_active:
                 game.debug_draw.draw()
 
             pg.display.set_caption("FPS: NAN")
@@ -42,7 +43,7 @@ while 1:
             game.event_handler.reset_just_events()
 
     else:
-        # Limit to fps, gets dt
+        # Limit fps, gets dt
         dt: int = CLOCK.tick(FPS)
 
         # REMOVE IN BUILD
@@ -55,14 +56,14 @@ while 1:
 
             # REMOVE IN BUILD
             if game.event_handler.is_0_just_pressed:
-                game.is_debug = not game.is_debug
+                game.debug_draw.is_active = not game.debug_draw.is_active
             if game.event_handler.is_9_just_pressed:
-                game.is_per_frame = not game.is_per_frame
+                game.is_per_frame_debug = not game.is_per_frame_debug
 
         # Current scene draw
         game.current_scene.draw()
 
-        # Current scene or option menu draw?
+        # Current scene or option menu update?
         if game.is_options_menu_active:
             options_menu.draw()
             options_menu.update(dt)
@@ -70,7 +71,7 @@ while 1:
             game.current_scene.update(dt)
 
         # REMOVE IN BUILD
-        if game.is_debug:
+        if game.debug_draw.is_active:
             game.debug_draw.draw()
 
         # REMOVE IN BUILD

@@ -45,6 +45,10 @@ class Timer:
         self.is_done = False
 
     def update(self, dt: int) -> None:
+        """
+        Count.
+        """
+
         # Prev frame counted past duration?
         if self.is_done:
             # Return

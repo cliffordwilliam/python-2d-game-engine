@@ -40,8 +40,8 @@ class CreatedBySplashScreen:
         self._setup_curtain()
         self._setup_timers()
         self._setup_texts()
-        self.state_machine_update = self._create_state_machine_update()
-        self.state_machine_draw = self._create_state_machine_draw()
+        self._setup_state_machine_update()
+        self._setup_state_machine_draw()
 
     # Setups
     def _setup_curtain(self) -> None:
@@ -54,19 +54,19 @@ class CreatedBySplashScreen:
             is_invisible=False,
             color=self.clear_color,
         )
-        self.curtain.add_event_listener(self.on_curtain_invisible, Curtain.INVISIBLE_END)
-        self.curtain.add_event_listener(self.on_curtain_opaque, Curtain.OPAQUE_END)
+        self.curtain.add_event_listener(self._on_curtain_invisible, Curtain.INVISIBLE_END)
+        self.curtain.add_event_listener(self._on_curtain_opaque, Curtain.OPAQUE_END)
 
     def _setup_timers(self) -> None:
         """Setup timers with event listeners."""
         self.entry_delay_timer: Timer = Timer(duration=1000.0)
-        self.entry_delay_timer.add_event_listener(self.on_entry_delay_timer_end, Timer.END)
+        self.entry_delay_timer.add_event_listener(self._on_entry_delay_timer_end, Timer.END)
 
         self.exit_delay_timer: Timer = Timer(duration=1000.0)
-        self.exit_delay_timer.add_event_listener(self.on_exit_delay_timer_end, Timer.END)
+        self.exit_delay_timer.add_event_listener(self._on_exit_delay_timer_end, Timer.END)
 
         self.screen_time_timer: Timer = Timer(duration=1000.0)
-        self.screen_time_timer.add_event_listener(self.on_screen_time_timer_end, Timer.END)
+        self.screen_time_timer.add_event_listener(self._on_screen_time_timer_end, Timer.END)
 
     def _setup_texts(self) -> None:
         """Setup text for title and tips."""
@@ -80,9 +80,12 @@ class CreatedBySplashScreen:
         self.tips_rect.x -= 1
         self.tips_rect.y -= 1
 
-    def _create_state_machine_update(self) -> StateMachine:
-        """Create state machine for update."""
-        return StateMachine(
+    def _setup_state_machine_update(self) -> None:
+        """
+        Create state machine for update.
+        """
+
+        self.state_machine_update = StateMachine(
             initial_state=CreatedBySplashScreen.State.JUST_ENTERED_SCENE,
             state_handlers={
                 CreatedBySplashScreen.State.JUST_ENTERED_SCENE: self._JUST_ENTERED_SCENE,
@@ -115,25 +118,25 @@ class CreatedBySplashScreen:
             },
         )
 
-    def _create_state_machine_draw(self) -> StateMachine:
-        """Create state machine for draw."""
-        return StateMachine(
+    def _setup_state_machine_draw(self) -> None:
+        """
+        Create state machine for draw.
+        """
+
+        self.state_machine_draw = StateMachine(
             initial_state=CreatedBySplashScreen.State.JUST_ENTERED_SCENE,
             state_handlers={
-                CreatedBySplashScreen.State.JUST_ENTERED_SCENE: self._JUST_ENTERED_SCENE_DRAW,
-                CreatedBySplashScreen.State.OPENING_SCENE_CURTAIN: self._OPENING_SCENE_CURTAIN_DRAW,
+                CreatedBySplashScreen.State.JUST_ENTERED_SCENE: self._SCENE_CURTAIN_CLOSED_DRAW,
+                CreatedBySplashScreen.State.OPENING_SCENE_CURTAIN: self._CURTAIN_FADING_DRAW,
                 CreatedBySplashScreen.State.OPENED_SCENE_CURTAIN: self._SCENE_CURTAIN_OPENED_DRAW,
-                CreatedBySplashScreen.State.CLOSING_SCENE_CURTAIN: self._CLOSING_SCENE_CURTAIN_DRAW,
+                CreatedBySplashScreen.State.CLOSING_SCENE_CURTAIN: self._CURTAIN_FADING_DRAW,
                 CreatedBySplashScreen.State.CLOSED_SCENE_CURTAIN: self._SCENE_CURTAIN_CLOSED_DRAW,
             },
             transition_actions={},
         )
 
     # State draw logics
-    def _JUST_ENTERED_SCENE_DRAW(self, _dt: int) -> None:
-        pass
-
-    def _OPENING_SCENE_CURTAIN_DRAW(self, _dt: int) -> None:
+    def _CURTAIN_FADING_DRAW(self, _dt: int) -> None:
         NATIVE_SURF.fill(self.clear_color)
         FONT.render_to(NATIVE_SURF, self.title_rect, self.title_text, self.font_color)
         FONT.render_to(NATIVE_SURF, self.tips_rect, self.tips_text, self.font_color)
@@ -141,12 +144,6 @@ class CreatedBySplashScreen:
 
     def _SCENE_CURTAIN_OPENED_DRAW(self, _dt: int) -> None:
         pass
-
-    def _CLOSING_SCENE_CURTAIN_DRAW(self, _dt: int) -> None:
-        NATIVE_SURF.fill(self.clear_color)
-        FONT.render_to(NATIVE_SURF, self.title_rect, self.title_text, self.font_color)
-        FONT.render_to(NATIVE_SURF, self.tips_rect, self.tips_text, self.font_color)
-        self.curtain.draw(NATIVE_SURF, 0)
 
     def _SCENE_CURTAIN_CLOSED_DRAW(self, _dt: int) -> None:
         pass
@@ -189,22 +186,22 @@ class CreatedBySplashScreen:
         NATIVE_SURF.fill(self.clear_color)
 
     # Callbacks
-    def on_entry_delay_timer_end(self) -> None:
+    def _on_entry_delay_timer_end(self) -> None:
         self.state_machine_update.change_state(CreatedBySplashScreen.State.OPENING_SCENE_CURTAIN)
         self.state_machine_draw.change_state(CreatedBySplashScreen.State.OPENING_SCENE_CURTAIN)
 
-    def on_exit_delay_timer_end(self) -> None:
+    def _on_exit_delay_timer_end(self) -> None:
         self.game.set_scene("MadeWithSplashScreen")
 
-    def on_screen_time_timer_end(self) -> None:
+    def _on_screen_time_timer_end(self) -> None:
         self.state_machine_update.change_state(CreatedBySplashScreen.State.CLOSING_SCENE_CURTAIN)
         self.state_machine_draw.change_state(CreatedBySplashScreen.State.CLOSING_SCENE_CURTAIN)
 
-    def on_curtain_invisible(self) -> None:
+    def _on_curtain_invisible(self) -> None:
         self.state_machine_update.change_state(CreatedBySplashScreen.State.OPENED_SCENE_CURTAIN)
         self.state_machine_draw.change_state(CreatedBySplashScreen.State.OPENED_SCENE_CURTAIN)
 
-    def on_curtain_opaque(self) -> None:
+    def _on_curtain_opaque(self) -> None:
         self.state_machine_update.change_state(CreatedBySplashScreen.State.CLOSED_SCENE_CURTAIN)
         self.state_machine_draw.change_state(CreatedBySplashScreen.State.CLOSED_SCENE_CURTAIN)
 
@@ -220,7 +217,7 @@ class CreatedBySplashScreen:
                 "type": "text",
                 "layer": 6,
                 "x": 0,
-                "y": 6,
+                "y": 0,
                 "text": (f"created by splash screen " f"state: {self.state_machine_update.state.name}"),
             }
         )

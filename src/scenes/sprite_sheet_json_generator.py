@@ -30,6 +30,9 @@ if TYPE_CHECKING:
 
 @typechecked
 class SpriteSheetJsonGenerator:
+    SLOW_FADE_DURATION = 1000.0
+    FAST_FADE_DURATION = 250.0
+
     class State(Enum):
         JUST_ENTERED_SCENE = auto()
         OPENING_SCENE_CURTAIN = auto()
@@ -71,8 +74,8 @@ class SpriteSheetJsonGenerator:
         self._setup_surfs()
         self._setup_loop_options()
         self._setup_music()
-        self.state_machine_update = self._create_state_machine_update()
-        self.state_machine_draw = self._create_state_machine_draw()
+        self._setup_state_machine_update()
+        self._setup_state_machine_draw()
 
         # First selected tile rect
         self.first_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
@@ -92,23 +95,23 @@ class SpriteSheetJsonGenerator:
     def _setup_curtain(self) -> None:
         """Setup curtain with event listeners."""
         self.curtain: Curtain = Curtain(
-            duration=1000.0,
+            duration=self.SLOW_FADE_DURATION,
             start_state=Curtain.OPAQUE,
             max_alpha=255,
             surf_size_tuple=(NATIVE_WIDTH, NATIVE_HEIGHT),
             is_invisible=False,
             color="#000000",
         )
-        self.curtain.add_event_listener(self.on_curtain_invisible, Curtain.INVISIBLE_END)
-        self.curtain.add_event_listener(self.on_curtain_opaque, Curtain.OPAQUE_END)
+        self.curtain.add_event_listener(self._on_curtain_invisible, Curtain.INVISIBLE_END)
+        self.curtain.add_event_listener(self._on_curtain_opaque, Curtain.OPAQUE_END)
 
     def _setup_timers(self) -> None:
         """Setup timers with event listeners."""
-        self.entry_delay_timer: Timer = Timer(duration=1000.0)
-        self.entry_delay_timer.add_event_listener(self.on_entry_delay_timer_end, Timer.END)
+        self.entry_delay_timer: Timer = Timer(duration=self.SLOW_FADE_DURATION)
+        self.entry_delay_timer.add_event_listener(self._on_entry_delay_timer_end, Timer.END)
 
-        self.exit_delay_timer: Timer = Timer(duration=1000.0)
-        self.exit_delay_timer.add_event_listener(self.on_exit_delay_timer_end, Timer.END)
+        self.exit_delay_timer: Timer = Timer(duration=self.SLOW_FADE_DURATION)
+        self.exit_delay_timer.add_event_listener(self._on_exit_delay_timer_end, Timer.END)
 
     def _setup_texts(self) -> None:
         """Setup text for title and tips."""
@@ -146,7 +149,7 @@ class SpriteSheetJsonGenerator:
         self.camera: Camera = Camera(
             self.camera_anchor_vector,
             # REMOVE IN BUILD
-            self.game,
+            self.game.debug_draw,
         )
         self.camera_speed: float = 0.09  # Px / ms
 
@@ -180,9 +183,12 @@ class SpriteSheetJsonGenerator:
         self.game_music_manager.set_current_music_path(OGGS_PATHS_DICT["xdeviruchi_take_some_rest_and_eat_some_food.ogg"])
         self.game_music_manager.play_music(-1, 0.0, 0)
 
-    def _create_state_machine_update(self) -> StateMachine:
-        """Create state machine for update."""
-        return StateMachine(
+    def _setup_state_machine_update(self) -> None:
+        """
+        Create state machine for update.
+        """
+
+        self.state_machine_update = StateMachine(
             initial_state=SpriteSheetJsonGenerator.State.JUST_ENTERED_SCENE,
             state_handlers={
                 SpriteSheetJsonGenerator.State.JUST_ENTERED_SCENE: self._JUST_ENTERED_SCENE,
@@ -275,9 +281,12 @@ class SpriteSheetJsonGenerator:
             },
         )
 
-    def _create_state_machine_draw(self) -> StateMachine:
-        """Create state machine for draw."""
-        return StateMachine(
+    def _setup_state_machine_draw(self) -> None:
+        """
+        Create state machine for draw.
+        """
+
+        self.state_machine_draw = StateMachine(
             initial_state=SpriteSheetJsonGenerator.State.JUST_ENTERED_SCENE,
             state_handlers={
                 SpriteSheetJsonGenerator.State.JUST_ENTERED_SCENE: self._NOTHING,
@@ -309,7 +318,7 @@ class SpriteSheetJsonGenerator:
         # Clear
         NATIVE_SURF.fill(self.clear_color)
         # Draw grid with camera offset
-        self.draw_grid()
+        self._draw_grid()
         # Draw promt and input
         FONT.render_to(
             NATIVE_SURF,
@@ -341,7 +350,7 @@ class SpriteSheetJsonGenerator:
             )
 
         # Draw grid
-        self.draw_grid()
+        self._draw_grid()
 
         # Draw cursor
         # Get mouse position
@@ -419,7 +428,7 @@ class SpriteSheetJsonGenerator:
             )
 
         # Draw grid
-        self.draw_grid()
+        self._draw_grid()
 
         # Draw and update cursor position
         # When it is done only, so that it does not mess with saving
@@ -515,13 +524,13 @@ class SpriteSheetJsonGenerator:
                     # Delete
                     elif self.game_event_handler.this_frame_event.key == pg.K_BACKSPACE:
                         new_value = self.input_text[:-1]
-                        self.set_input_text(new_value)
+                        self._set_input_text(new_value)
                         # Play text
                         self.game_sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
                     # Add
                     else:
                         new_value = self.input_text + self.game_event_handler.this_frame_event.unicode
-                        self.set_input_text(new_value)
+                        self._set_input_text(new_value)
                         # Play text
                         self.game_sound_manager.play_sound("text_1.ogg", 0, 0, 0)
 
@@ -556,7 +565,7 @@ class SpriteSheetJsonGenerator:
                             # Init room collision map list
                             sprite_sheet_width_tu: int = self.sprite_sheet_rect.width // TILE_SIZE
                             sprite_sheet_height_tu: int = self.sprite_sheet_rect.height // TILE_SIZE
-                            self.init_room_collision_map_list(
+                            self._init_room_collision_map_list(
                                 sprite_sheet_width_tu,
                                 sprite_sheet_height_tu,
                             )
@@ -564,17 +573,17 @@ class SpriteSheetJsonGenerator:
                             # Close curtain to exit to SPRITE_SIZE_QUERY
                             self.curtain.go_to_opaque()
                         else:
-                            self.set_input_text("png path does not exist!")
+                            self._set_input_text("png path does not exist!")
                     # Delete
                     elif self.game_event_handler.this_frame_event.key == pg.K_BACKSPACE:
                         new_value = self.input_text[:-1]
-                        self.set_input_text(new_value)
+                        self._set_input_text(new_value)
                         # Play text
                         self.game_sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
                     # Add
                     else:
                         new_value = self.input_text + self.game_event_handler.this_frame_event.unicode
-                        self.set_input_text(new_value)
+                        self._set_input_text(new_value)
                         # Play text
                         self.game_sound_manager.play_sound("text_1.ogg", 0, 0, 0)
 
@@ -596,13 +605,13 @@ class SpriteSheetJsonGenerator:
                     # Delete
                     elif self.game_event_handler.this_frame_event.key == pg.K_BACKSPACE:
                         new_value = self.input_text[:-1]
-                        self.set_input_text(new_value)
+                        self._set_input_text(new_value)
                         # Play text
                         self.game_sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
                     # Add
                     else:
                         new_value = self.input_text + self.game_event_handler.this_frame_event.unicode
-                        self.set_input_text(new_value)
+                        self._set_input_text(new_value)
                         # Play text
                         self.game_sound_manager.play_sound("text_1.ogg", 0, 0, 0)
 
@@ -624,13 +633,13 @@ class SpriteSheetJsonGenerator:
                     # Delete
                     elif self.game_event_handler.this_frame_event.key == pg.K_BACKSPACE:
                         new_value = self.input_text[:-1]
-                        self.set_input_text(new_value)
+                        self._set_input_text(new_value)
                         # Play text
                         self.game_sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
                     # Add
                     else:
                         new_value = self.input_text + self.game_event_handler.this_frame_event.unicode
-                        self.set_input_text(new_value)
+                        self._set_input_text(new_value)
                         # Play text
                         self.game_sound_manager.play_sound("text_1.ogg", 0, 0, 0)
 
@@ -652,13 +661,13 @@ class SpriteSheetJsonGenerator:
                     # Delete
                     elif self.game_event_handler.this_frame_event.key == pg.K_BACKSPACE:
                         new_value = self.input_text[:-1]
-                        self.set_input_text(new_value)
+                        self._set_input_text(new_value)
                         # Play text
                         self.game_sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
                     # Add
                     else:
                         new_value = self.input_text + self.game_event_handler.this_frame_event.unicode
-                        self.set_input_text(new_value)
+                        self._set_input_text(new_value)
                         # Play text
                         self.game_sound_manager.play_sound("text_1.ogg", 0, 0, 0)
 
@@ -681,13 +690,13 @@ class SpriteSheetJsonGenerator:
                     # Delete
                     elif self.game_event_handler.this_frame_event.key == pg.K_BACKSPACE:
                         new_value = self.input_text[:-1]
-                        self.set_input_text(new_value)
+                        self._set_input_text(new_value)
                         # Play text
                         self.game_sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
                     # Add
                     else:
                         new_value = self.input_text + self.game_event_handler.this_frame_event.unicode
-                        self.set_input_text(new_value)
+                        self._set_input_text(new_value)
                         # Play text
                         self.game_sound_manager.play_sound("text_1.ogg", 0, 0, 0)
 
@@ -709,17 +718,17 @@ class SpriteSheetJsonGenerator:
                             # Close curtain to exit to ADD_SPRITES
                             self.curtain.go_to_opaque()
                         else:
-                            self.set_input_text("type int only please!")
+                            self._set_input_text("type int only please!")
                     # Delete
                     elif self.game_event_handler.this_frame_event.key == pg.K_BACKSPACE:
                         new_value = self.input_text[:-1]
-                        self.set_input_text(new_value)
+                        self._set_input_text(new_value)
                         # Play text
                         self.game_sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
                     # Add
                     else:
                         new_value = self.input_text + self.game_event_handler.this_frame_event.unicode
-                        self.set_input_text(new_value)
+                        self._set_input_text(new_value)
                         # Play text
                         self.game_sound_manager.play_sound("text_1.ogg", 0, 0, 0)
 
@@ -742,13 +751,13 @@ class SpriteSheetJsonGenerator:
                     # Delete
                     elif self.game_event_handler.this_frame_event.key == pg.K_BACKSPACE:
                         new_value = self.input_text[:-1]
-                        self.set_input_text(new_value)
+                        self._set_input_text(new_value)
                         # Play text
                         self.game_sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
                     # Add
                     else:
                         new_value = self.input_text + self.game_event_handler.this_frame_event.unicode
-                        self.set_input_text(new_value)
+                        self._set_input_text(new_value)
                         # Play text
                         self.game_sound_manager.play_sound("text_1.ogg", 0, 0, 0)
 
@@ -771,13 +780,13 @@ class SpriteSheetJsonGenerator:
                     # Delete
                     elif self.game_event_handler.this_frame_event.key == pg.K_BACKSPACE:
                         new_value = self.input_text[:-1]
-                        self.set_input_text(new_value)
+                        self._set_input_text(new_value)
                         # Play text
                         self.game_sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
                     # Add
                     else:
                         new_value = self.input_text + self.game_event_handler.this_frame_event.unicode
-                        self.set_input_text(new_value)
+                        self._set_input_text(new_value)
                         # Play text
                         self.game_sound_manager.play_sound("text_1.ogg", 0, 0, 0)
 
@@ -801,17 +810,17 @@ class SpriteSheetJsonGenerator:
                             # Exit to SPRITE_SHEET_PNG_PATH_QUERY
                             self.curtain.go_to_opaque()
                         else:
-                            self.set_input_text("type y or n only please!")
+                            self._set_input_text("type y or n only please!")
                     # Delete
                     elif self.game_event_handler.this_frame_event.key == pg.K_BACKSPACE:
                         new_value = self.input_text[:-1]
-                        self.set_input_text(new_value)
+                        self._set_input_text(new_value)
                         # Play text
                         self.game_sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
                     # Add
                     else:
                         new_value = self.input_text + self.game_event_handler.this_frame_event.unicode
-                        self.set_input_text(new_value)
+                        self._set_input_text(new_value)
                         # Play text
                         self.game_sound_manager.play_sound("text_1.ogg", 0, 0, 0)
 
@@ -844,7 +853,7 @@ class SpriteSheetJsonGenerator:
             is_lmb_just_pressed_occupied: bool = False
             if self.game_event_handler.is_lmb_just_pressed:
                 # Get what is clicked
-                found_tile_lmb_pressed: int = self.get_tile_from_room_collision_map_list(
+                found_tile_lmb_pressed: int = self._get_tile_from_room_collision_map_list(
                     self.world_mouse_tu_x,
                     self.world_mouse_tu_y,
                 )
@@ -900,7 +909,7 @@ class SpriteSheetJsonGenerator:
                         world_mouse_tu_x: int = self.combined_world_selected_tile_rect_x_tu + world_mouse_tu_xi
                         world_mouse_tu_y: int = self.combined_world_selected_tile_rect_y_tu + world_mouse_tu_yi
                         # Get each one in room_collision_map_list
-                        found_tile_lmb_pressed: int = self.get_tile_from_room_collision_map_list(
+                        found_tile_lmb_pressed: int = self._get_tile_from_room_collision_map_list(
                             world_mouse_tu_x,
                             world_mouse_tu_y,
                         )
@@ -944,7 +953,7 @@ class SpriteSheetJsonGenerator:
                                         world_mouse_tu_x2 = self.combined_world_selected_tile_rect_x_tu + world_mouse_tu_xi2
                                         world_mouse_tu_y2 = self.combined_world_selected_tile_rect_y_tu + world_mouse_tu_yi2
                                         # Store each one in room_collision_map_list
-                                        self.set_tile_from_room_collision_map_list(
+                                        self._set_tile_from_room_collision_map_list(
                                             world_mouse_tu_x2,
                                             world_mouse_tu_y2,
                                             1,
@@ -1005,7 +1014,7 @@ class SpriteSheetJsonGenerator:
                                         world_mouse_tu_x2 = self.combined_world_selected_tile_rect_x_tu + world_mouse_tu_xi2
                                         world_mouse_tu_y2 = self.combined_world_selected_tile_rect_y_tu + world_mouse_tu_yi2
                                         # Store each one in room_collision_map_list
-                                        self.set_tile_from_room_collision_map_list(
+                                        self._set_tile_from_room_collision_map_list(
                                             world_mouse_tu_x2,
                                             world_mouse_tu_y2,
                                             1,
@@ -1063,17 +1072,17 @@ class SpriteSheetJsonGenerator:
                                 self.game_music_manager.fade_out_music(int(self.curtain.fade_duration))
                                 self.curtain.go_to_opaque()
                         else:
-                            self.set_input_text("type 1, 2, 3 or 4 only please!")
+                            self._set_input_text("type 1, 2, 3 or 4 only please!")
                     # Delete
                     elif self.game_event_handler.this_frame_event.key == pg.K_BACKSPACE:
                         new_value = self.input_text[:-1]
-                        self.set_input_text(new_value)
+                        self._set_input_text(new_value)
                         # Play text
                         self.game_sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
                     # Add
                     else:
                         new_value = self.input_text + self.game_event_handler.this_frame_event.unicode
-                        self.set_input_text(new_value)
+                        self._set_input_text(new_value)
                         # Play text
                         self.game_sound_manager.play_sound("text_1.ogg", 0, 0, 0)
 
@@ -1099,64 +1108,66 @@ class SpriteSheetJsonGenerator:
         self.curtain.go_to_invisible()
 
     def _OPENING_SCENE_CURTAIN_to_OPENED_SCENE_CURTAIN(self) -> None:
+        # Make curtain faster for in state blink
+        self.curtain.set_duration(self.FAST_FADE_DURATION)
         # Reset the input text
-        self.set_input_text("")
+        self._set_input_text("")
         # Set my prompt text
-        self.set_prompt_text("type the file name to be saved,")
+        self._set_prompt_text("type the file name to be saved,")
 
     def _OPENED_SCENE_CURTAIN_to_SPRITE_SHEET_PNG_PATH_QUERY(self) -> None:
         # Reset the input text
-        self.set_input_text("")
+        self._set_input_text("")
         # Set my prompt text
-        self.set_prompt_text("type the png path to be loaded,")
+        self._set_prompt_text("type the png path to be loaded,")
 
     def _SPRITE_SHEET_PNG_PATH_QUERY_to_SPRITE_SHEET_ROOM_MAP_BODY_COLOR_QUERY(self) -> None:
         # Reset the input text
-        self.set_input_text("")
+        self._set_input_text("")
         # Set my prompt text
-        self.set_prompt_text("type the sprite room map body hex color,")
+        self._set_prompt_text("type the sprite room map body hex color,")
 
     def _SPRITE_SHEET_ROOM_MAP_BODY_COLOR_QUERY_to_SPRITE_SHEET_ROOM_MAP_SUB_DIVISION_COLOR_QUERY(self) -> None:
         # Reset the input text
-        self.set_input_text("")
+        self._set_input_text("")
         # Set my prompt text
-        self.set_prompt_text("type the sprite room map sub division hex color,")
+        self._set_prompt_text("type the sprite room map sub division hex color,")
 
     def _SPRITE_SHEET_ROOM_MAP_SUB_DIVISION_COLOR_QUERY_to_SPRITE_SHEET_ROOM_MAP_BORDER_COLOR_QUERY(self) -> None:
         # Reset the input text
-        self.set_input_text("")
+        self._set_input_text("")
         # Set my prompt text
-        self.set_prompt_text("type the sprite room map border hex color,")
+        self._set_prompt_text("type the sprite room map border hex color,")
 
     def _SPRITE_SHEET_ROOM_MAP_BORDER_COLOR_QUERY_to_SPRITE_NAME_QUERY(self) -> None:
         # Reset the input text
-        self.set_input_text("")
+        self._set_input_text("")
         # Set my prompt text
-        self.set_prompt_text("type the sprite name,")
+        self._set_prompt_text("type the sprite name,")
 
     def _SPRITE_NAME_QUERY_to_SPRITE_LAYER_QUERY(self) -> None:
         # Reset the input text
-        self.set_input_text("")
+        self._set_input_text("")
         # Set my prompt text
-        self.set_prompt_text("type the sprite layer,")
+        self._set_prompt_text("type the sprite layer,")
 
     def _SPRITE_LAYER_QUERY_to_SPRITE_TYPE_QUERY(self) -> None:
         # Reset the input text
-        self.set_input_text("")
+        self._set_input_text("")
         # Set my prompt text
-        self.set_prompt_text("type the sprite type,")
+        self._set_prompt_text("type the sprite type,")
 
     def _SPRITE_TYPE_QUERY_to_SPRITE_TILE_TYPE_QUERY(self) -> None:
         # Reset the input text
-        self.set_input_text("")
+        self._set_input_text("")
         # Set my prompt text
-        self.set_prompt_text("type the sprite tile type,")
+        self._set_prompt_text("type the sprite tile type,")
 
     def _SPRITE_TILE_TYPE_QUERY_to_SPRITE_TILE_MIX_QUERY(self) -> None:
         # Reset the input text
-        self.set_input_text("")
+        self._set_input_text("")
         # Set my prompt text
-        self.set_prompt_text("does the tile mix (y/n)?")
+        self._set_prompt_text("does the tile mix (y/n)?")
 
     def _SPRITE_TILE_MIX_QUERY_to_ADD_SPRITES(self) -> None:
         # Empty the selected tile
@@ -1175,15 +1186,15 @@ class SpriteSheetJsonGenerator:
 
     def _ADD_OTHER_SPRITES_to_SAVE_QUIT_REDO_QUERY(self) -> None:
         # Reset the input text
-        self.set_input_text("")
+        self._set_input_text("")
         # Set my prompt text
-        self.set_prompt_text("save and quit, save and redo, redo, quit (1/2/3/4)?")
+        self._set_prompt_text("save and quit, save and redo, redo, quit (1/2/3/4)?")
 
     def _SAVE_QUIT_REDO_QUERY_to_SPRITE_NAME_QUERY(self) -> None:
         # Reset the input text
-        self.set_input_text("")
+        self._set_input_text("")
         # Set my prompt text
-        self.set_prompt_text("type the sprite name,")
+        self._set_prompt_text("type the sprite name,")
 
     def _SAVE_QUIT_REDO_QUERY_to_ADD_SPRITES(self) -> None:
         # Empty the selected tile
@@ -1201,22 +1212,22 @@ class SpriteSheetJsonGenerator:
         NATIVE_SURF.fill("black")
 
     # Callbacks
-    def on_entry_delay_timer_end(self) -> None:
+    def _on_entry_delay_timer_end(self) -> None:
         self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.OPENING_SCENE_CURTAIN)
         self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.OPENING_SCENE_CURTAIN)
 
-    def on_exit_delay_timer_end(self) -> None:
+    def _on_exit_delay_timer_end(self) -> None:
         # Load title screen music. Played in my set state
         self.game_music_manager.set_current_music_path(OGGS_PATHS_DICT["xdeviruchi_title_theme.ogg"])
         self.game_music_manager.play_music(-1, 0.0, 0)
         self.game.set_scene("MainMenu")
 
-    def on_curtain_invisible(self) -> None:
+    def _on_curtain_invisible(self) -> None:
         if self.state_machine_update.state == SpriteSheetJsonGenerator.State.OPENING_SCENE_CURTAIN:
             self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.OPENED_SCENE_CURTAIN)
             self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.OPENED_SCENE_CURTAIN)
 
-    def on_curtain_opaque(self) -> None:
+    def _on_curtain_opaque(self) -> None:
         if self.state_machine_update.state == SpriteSheetJsonGenerator.State.OPENED_SCENE_CURTAIN:
             self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.SPRITE_SHEET_PNG_PATH_QUERY)
             self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.SPRITE_SHEET_PNG_PATH_QUERY)
@@ -1292,7 +1303,7 @@ class SpriteSheetJsonGenerator:
                 "type": "text",
                 "layer": 6,
                 "x": 0,
-                "y": 6,
+                "y": 0,
                 "text": (f"sprite sheet json generator " f"state: {self.state_machine_update.state.name}"),
             }
         )
@@ -1305,7 +1316,7 @@ class SpriteSheetJsonGenerator:
         self.state_machine_update.handle(dt)
 
     # Helpers
-    def draw_grid(self) -> None:
+    def _draw_grid(self) -> None:
         blit_sequence = []
         for i in range(NATIVE_WIDTH_TU):
             vertical_line_x_position: float = (TILE_SIZE * i - self.camera.rect.x) % NATIVE_WIDTH
@@ -1325,7 +1336,7 @@ class SpriteSheetJsonGenerator:
 
         NATIVE_SURF.fblits(blit_sequence)
 
-    def init_room_collision_map_list(
+    def _init_room_collision_map_list(
         self,
         room_width_tu: int,
         room_height_tu: int,
@@ -1334,19 +1345,19 @@ class SpriteSheetJsonGenerator:
         self.room_collision_map_height_tu = room_height_tu
         self.room_collision_map_list = [0 for _ in range(self.room_collision_map_width_tu * self.room_collision_map_height_tu)]
 
-    def set_input_text(self, value: str) -> None:
+    def _set_input_text(self, value: str) -> None:
         self.input_text = value
         self.input_rect = FONT.get_rect(self.input_text)
         self.input_rect.center = NATIVE_RECT.center
 
-    def set_prompt_text(self, value: str) -> None:
+    def _set_prompt_text(self, value: str) -> None:
         local_settings_dict_enter = pg.key.name(self.game.get_one_local_settings_dict_value("enter"))
         self.prompt_text = f"{value} " f"hit {local_settings_dict_enter} " "to proceed"
         self.prompt_rect = FONT.get_rect(self.prompt_text)
         self.prompt_rect.center = NATIVE_RECT.center
         self.prompt_rect.y -= FONT_HEIGHT + 1
 
-    def get_tile_from_room_collision_map_list(
+    def _get_tile_from_room_collision_map_list(
         self,
         world_tu_x: int,
         world_tu_y: int,
@@ -1360,7 +1371,7 @@ class SpriteSheetJsonGenerator:
         else:
             return -1
 
-    def set_tile_from_room_collision_map_list(
+    def _set_tile_from_room_collision_map_list(
         self,
         world_tu_x: int,
         world_tu_y: int,

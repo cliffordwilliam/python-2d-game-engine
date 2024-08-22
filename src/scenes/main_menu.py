@@ -38,19 +38,11 @@ class MainMenu:
         self.clear_color: str = "#000000"
         self.font_color: str = "#ffffff"
 
-        # Curtain setup
+        # Setups
         self._setup_curtain()
-
-        # Timers setup
         self._setup_timers()
-
-        # Surfs setup
         self._setup_surfs()
-
-        # Buttons setup
         self._setup_buttons()
-
-        # State machines for update and draw
         self._setup_state_machine_update()
         self._setup_state_machine_draw()
 
@@ -341,7 +333,7 @@ class MainMenu:
                 "type": "text",
                 "layer": 6,
                 "x": 0,
-                "y": 6,
+                "y": 0,
                 "text": (f"main menu " f"state: {self.state_machine_update.state.name}"),
             }
         )

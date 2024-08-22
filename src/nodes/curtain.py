@@ -79,6 +79,7 @@ class Curtain:
         # True when reached INVISIBLE_END / OPAQUE_END
         self.is_done: bool = True
 
+    # Abilities
     def go_to_opaque(self) -> None:
         """
         Set dir to opaque.
@@ -144,6 +145,13 @@ class Curtain:
         for callback in self.event_listeners[self.INVISIBLE_END]:
             callback()
 
+    def set_duration(self, value: float) -> None:
+        """
+        Sets the max_alpha of the surf.
+        """
+
+        self.fade_duration = value
+
     def set_max_alpha(self, value: int) -> None:
         """
         Sets the max_alpha of the surf.
@@ -194,37 +202,19 @@ class Curtain:
         # Add lost truncated alpha from prev frame
         lerp_alpha += self.remainder
 
-        # Truncate alpha
+        # Clamp and truncate alpha
         self.alpha = int(clamp(lerp_alpha, 0.0, float(self.max_alpha)))
 
-        # Store truncated floats for next frame
+        # Store lost truncated floats for next frame
         self.remainder = lerp_alpha - float(self.alpha)
 
         # Set surf alpha
         self.surf.set_alpha(self.alpha)
 
-        # Counter is 0?
-        if self.fade_counter == 0:
-            # Set is done true
-            self.is_done = True
+        # Counter <= 0? It is float so use > <
+        if self.fade_counter <= 0:
+            self.jump_to_invisible()
 
-            # Fire INVISIBLE_END event
-            for callback in self.event_listeners[self.INVISIBLE_END]:
-                callback()
-
-            # Make sure it is zero
-            self.alpha = 0
-            self.surf.set_alpha(self.alpha)
-
-        # Counter reached duration?
-        elif self.fade_counter == self.fade_duration:
-            # Set is done true
-            self.is_done = True
-
-            # Fire OPAQUE_END event
-            for callback in self.event_listeners[self.OPAQUE_END]:
-                callback()
-
-            # Make sure it is max
-            self.alpha = self.max_alpha
-            self.surf.set_alpha(self.alpha)
+        # Counter reached duration? It is float so use > <
+        elif self.fade_counter >= self.fade_duration:
+            self.jump_to_opaque()

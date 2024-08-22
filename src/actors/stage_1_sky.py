@@ -32,7 +32,7 @@ class Stage1Sky:
         sprite_sheet_surf: pg.Surface,
         camera: "Camera",
     ):
-        # Load and instance the sprite sheet and camera for me
+        # Load and instanced the sprite sheet and camera for me to use here
         self.sprite_sheet_surf: pg.Surface = sprite_sheet_surf
         self.camera: "Camera" = camera
 

@@ -12,7 +12,8 @@ from typeguard import typechecked
 
 
 if TYPE_CHECKING:
-    from nodes.game import Game
+    # REMOVE IN BUILD
+    from nodes.debug_draw import DebugDraw
 
 from pygame.math import Vector2
 
@@ -23,10 +24,11 @@ class Camera:
         self,
         target_vector: Vector2,
         # REMOVE IN BUILD
-        game: "Game",
+        # For debug draw
+        game_debug_draw: "DebugDraw",
     ):
         # REMOVE IN BUILD
-        self.game = game
+        self.game_debug_draw = game_debug_draw
 
         # Follows this and also limits its position
         self.target_vector: Vector2 = target_vector
@@ -34,7 +36,7 @@ class Camera:
         # My rect
         self.rect: pg.FRect = pg.FRect(0, 0, NATIVE_WIDTH, NATIVE_HEIGHT)
 
-        # Set this in terms of camera rect to define
+        # Set this in terms of camera rect
         self.limit_top_rect: float = -10000000.0
         self.limit_bottom_rect: float = 10000000.0
         self.limit_left_rect: float = -10000000.0
@@ -53,6 +55,10 @@ class Camera:
         self.distance_tolerance: float = 1.0
 
     def set_target_vector(self, value: Vector2) -> None:
+        """
+        Set my target to follow and limit.
+        """
+
         self.target_vector = value
 
     def set_rect_limit(
@@ -62,7 +68,11 @@ class Camera:
         limit_left_rect: float,
         limit_right_rect: float,
     ) -> None:
-        # Set this in terms of camera rect to define
+        """
+        Set my rect limit.
+        """
+
+        # Set this in terms of camera rect
         self.limit_top_rect = limit_top_rect
         self.limit_bottom_rect = limit_bottom_rect
         self.limit_left_rect = limit_left_rect
@@ -100,7 +110,7 @@ class Camera:
             # Return
             return
 
-        # Camera rect center x not on target vector x?
+        # Camera rect center x not on target vector x tolerance?
         if not is_within_distance_tolerance_x:
             # Lerp it to target horizontally
             self.rect.centerx = self._exp_decay(self.rect.centerx, self.target_vector.x, self.decay, dt)
@@ -108,7 +118,7 @@ class Camera:
         else:
             self.rect.centerx = self.target_vector.x
 
-        # Camera rect center y not on target vector y?
+        # Camera rect center y not on target vector y tolerance?
         if not is_within_distance_tolerance_y:
             # Lerp it to target vertically
             self.rect.centery = self._exp_decay(self.rect.centery, self.target_vector.y, self.decay, dt)
@@ -118,11 +128,11 @@ class Camera:
 
         # REMOVE IN BUILD
         # Debug draw
-        if self.game.is_debug:
-            # Draw my center.
+        if self.game_debug_draw.is_active:
+            # Draw my rect center
             x: int = NATIVE_RECT.centerx
             y: int = NATIVE_RECT.centery
-            self.game.debug_draw.add(
+            self.game_debug_draw.add(
                 {
                     "type": "circle",
                     "layer": 5,
@@ -132,10 +142,10 @@ class Camera:
                 }
             )
 
-            # Draw target
+            # Draw the target that I am following
             float_x: float = self.target_vector.x - self.rect.x
             float_y: float = self.target_vector.y - self.rect.y
-            self.game.debug_draw.add(
+            self.game_debug_draw.add(
                 {
                     "type": "circle",
                     "layer": 5,
@@ -145,5 +155,6 @@ class Camera:
                 }
             )
 
+    # Helper
     def _exp_decay(self, a: float, b: float, decay: float, dt: int) -> float:
         return b + (a - b) * exp(-decay * dt)

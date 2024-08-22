@@ -34,6 +34,7 @@ class OptionsMenu:
     def __init__(self, game: "Game"):
         # Initialize game
         self.game = game
+        self.game_debug_draw = self.game.debug_draw
         self.game_event_handler = self.game.event_handler
 
         # Colors
@@ -65,8 +66,8 @@ class OptionsMenu:
             is_invisible=False,
             color=self.curtain_clear_color,
         )
-        self.curtain.add_event_listener(self.on_curtain_invisible, Curtain.INVISIBLE_END)
-        self.curtain.add_event_listener(self.on_curtain_opaque, Curtain.OPAQUE_END)
+        self.curtain.add_event_listener(self._on_curtain_invisible, Curtain.INVISIBLE_END)
+        self.curtain.add_event_listener(self._on_curtain_opaque, Curtain.OPAQUE_END)
 
     def _setup_timers(self) -> None:
         """
@@ -74,10 +75,10 @@ class OptionsMenu:
         """
 
         self.entry_delay_timer: Timer = Timer(0.0)
-        self.entry_delay_timer.add_event_listener(self.on_entry_delay_timer_end, Timer.END)
+        self.entry_delay_timer.add_event_listener(self._on_entry_delay_timer_end, Timer.END)
 
         self.exit_delay_timer: Timer = Timer(0.0)
-        self.exit_delay_timer.add_event_listener(self.on_exit_delay_timer_end, Timer.END)
+        self.exit_delay_timer.add_event_listener(self._on_exit_delay_timer_end, Timer.END)
 
     def _setup_texts(self) -> None:
         """
@@ -204,8 +205,8 @@ class OptionsMenu:
             game_event_handler=self.game.event_handler,
             game_sound_manager=self.game.sound_manager,
         )
-        self.button_container.add_event_listener(self.on_button_selected, ButtonContainer.BUTTON_SELECTED)
-        self.button_container.add_event_listener(self.on_button_index_changed, ButtonContainer.INDEX_CHANGED)
+        self.button_container.add_event_listener(self._on_button_selected, ButtonContainer.BUTTON_SELECTED)
+        self.button_container.add_event_listener(self._on_button_index_changed, ButtonContainer.INDEX_CHANGED)
 
         # Keep track of who is selected and focused
         self.selected_button: Button = self.resolution_button
@@ -535,7 +536,7 @@ class OptionsMenu:
             self.game.set_resolution_index(new_resolution_index_value)
             # Update my front end ui with new game resolution
             local_settings_dict_resolution_index = self.game.get_one_local_settings_dict_value("resolution_index")
-            self.update_input_text_front_end_ui(
+            self._update_input_text_front_end_ui(
                 self.resolution_button,
                 self.resolution_texts[local_settings_dict_resolution_index],
             )
@@ -558,7 +559,7 @@ class OptionsMenu:
                     # This frame key pressed code exists in game local dict?
                     if self.game_event_handler.this_frame_event.key == key_int:
                         # Update alert and return
-                        self.update_input_text_front_end_ui(self.focused_button, f"used by '{key_name}'")
+                        self._update_input_text_front_end_ui(self.focused_button, f"used by '{key_name}'")
                         return
 
                 # Rebind
@@ -569,7 +570,7 @@ class OptionsMenu:
                 self.game.set_one_local_settings_dict_value(key_name, self.game_event_handler.this_frame_event.key)
 
                 # Update input text front-end ui
-                self.update_input_text_front_end_ui(
+                self._update_input_text_front_end_ui(
                     self.focused_button,
                     pg.key.name(self.game_event_handler.this_frame_event.key),
                 )
@@ -592,7 +593,7 @@ class OptionsMenu:
     def _CLOSED_SCENE_CURTAIN_to_REBIND(self) -> None:
         # This can only happen when you press button input
         # Update input text to "press any key"
-        self.update_input_text_front_end_ui(self.focused_button, "press any key")
+        self._update_input_text_front_end_ui(self.focused_button, "press any key")
 
     def _REBIND_to_CLOSED_SCENE_CURTAIN(self) -> None:
         pass
@@ -601,7 +602,7 @@ class OptionsMenu:
         pass
 
     # Callbacks
-    def on_entry_delay_timer_end(self) -> None:
+    def _on_entry_delay_timer_end(self) -> None:
         """
         Delay ends, starts going to opaque.
         """
@@ -609,7 +610,7 @@ class OptionsMenu:
         self.state_machine_update.change_state(OptionsMenu.State.CLOSING_SCENE_CURTAIN)
         self.state_machine_draw.change_state(OptionsMenu.State.CLOSING_SCENE_CURTAIN)
 
-    def on_exit_delay_timer_end(self) -> None:
+    def _on_exit_delay_timer_end(self) -> None:
         """
         Exit options here.
         Set my state back to JUST_ENTERED_SCENE for next entry here.
@@ -622,7 +623,7 @@ class OptionsMenu:
         self.state_machine_draw.change_state(OptionsMenu.State.JUST_ENTERED_SCENE)
         self.game.set_is_options_menu_active(False)
 
-    def on_curtain_invisible(self) -> None:
+    def _on_curtain_invisible(self) -> None:
         """
         Set OPENED_SCENE_CURTAIN state.
         """
@@ -630,7 +631,7 @@ class OptionsMenu:
         self.state_machine_update.change_state(OptionsMenu.State.OPENED_SCENE_CURTAIN)
         self.state_machine_draw.change_state(OptionsMenu.State.OPENED_SCENE_CURTAIN)
 
-    def on_curtain_opaque(self) -> None:
+    def _on_curtain_opaque(self) -> None:
         """
         Set CLOSED_SCENE_CURTAIN state.
         """
@@ -638,13 +639,13 @@ class OptionsMenu:
         self.state_machine_update.change_state(OptionsMenu.State.CLOSED_SCENE_CURTAIN)
         self.state_machine_draw.change_state(OptionsMenu.State.CLOSED_SCENE_CURTAIN)
 
-    def on_button_index_changed(self, focused_button: Button) -> None:
+    def _on_button_index_changed(self, focused_button: Button) -> None:
         """
         When index changes, update focused_button.
         """
         self.focused_button = focused_button
 
-    def on_button_selected(self, selected_button: Button) -> None:
+    def _on_button_selected(self, selected_button: Button) -> None:
         """
         Remember selected.
         Need to wait for curtain to go to opaque.
@@ -664,12 +665,12 @@ class OptionsMenu:
         # Reset button selected?
         elif self.reset_button == self.selected_button:
             # Overwrite game local settings with disk
-            self.load_settings_and_update_ui()
+            self._load_settings_and_update_ui()
 
         # Exit button selected?
         elif self.exit_button == self.selected_button:
             # Overwrite game local settings with disk
-            self.load_settings_and_update_ui()
+            self._load_settings_and_update_ui()
             self.state_machine_update.change_state(OptionsMenu.State.OPENING_SCENE_CURTAIN)
             self.state_machine_draw.change_state(OptionsMenu.State.OPENING_SCENE_CURTAIN)
 
@@ -695,12 +696,12 @@ class OptionsMenu:
     # Update
     def update(self, dt: int) -> None:
         # REMOVE IN BUILD
-        self.game.debug_draw.add(
+        self.game_debug_draw.add(
             {
                 "type": "text",
                 "layer": 6,
                 "x": 0,
-                "y": 6,
+                "y": 0,
                 "text": (f"options menu state " f"state: {self.state_machine_update.state.name}"),
             }
         )
@@ -708,7 +709,7 @@ class OptionsMenu:
         self.state_machine_update.handle(dt)
 
     # Helpers
-    def load_settings_and_update_ui(self) -> None:
+    def _load_settings_and_update_ui(self) -> None:
         """
         Overwrite local with disk.
         Update front-end ui.
@@ -741,12 +742,12 @@ class OptionsMenu:
             self.attack_input_button: pg.key.name(self.game.get_one_local_settings_dict_value("attack")),
         }
         for button_instance, button_text in button_settings.items():
-            self.update_input_text_front_end_ui(
+            self._update_input_text_front_end_ui(
                 button_instance,
                 button_text,
             )
 
-    def update_input_text_front_end_ui(self, button: Button, text: str) -> None:
+    def _update_input_text_front_end_ui(self, button: Button, text: str) -> None:
         """
         This combines all input button text setter.
         Handle each button input text.

@@ -43,6 +43,9 @@ if TYPE_CHECKING:
 
 @typechecked
 class RoomJsonGenerator:
+    SLOW_FADE_DURATION = 1000.0
+    FAST_FADE_DURATION = 250.0
+
     class State(Enum):
         JUST_ENTERED_SCENE = auto()
         OPENING_SCENE_CURTAIN = auto()
@@ -77,8 +80,8 @@ class RoomJsonGenerator:
         self._setup_surfs()
         self._draw_world_grid()
         self._setup_music()
-        self.state_machine_update = self._create_state_machine_update()
-        self.state_machine_draw = self._create_state_machine_draw()
+        self._setup_state_machine_update()
+        self._setup_state_machine_draw()
 
         # First selected world cell rect
         self.first_world_selected_tile_rect = pg.FRect(0.0, 0.0, WORLD_CELL_SIZE, WORLD_CELL_SIZE)
@@ -108,7 +111,7 @@ class RoomJsonGenerator:
     def _setup_curtain(self) -> None:
         """Setup curtain with event listeners."""
         self.curtain: Curtain = Curtain(
-            duration=1000.0,
+            duration=self.SLOW_FADE_DURATION,
             start_state=Curtain.OPAQUE,
             max_alpha=255,
             surf_size_tuple=(NATIVE_WIDTH, NATIVE_HEIGHT),
@@ -120,10 +123,10 @@ class RoomJsonGenerator:
 
     def _setup_timers(self) -> None:
         """Setup timers with event listeners."""
-        self.entry_delay_timer: Timer = Timer(duration=1000.0)
+        self.entry_delay_timer: Timer = Timer(duration=self.SLOW_FADE_DURATION)
         self.entry_delay_timer.add_event_listener(self.on_entry_delay_timer_end, Timer.END)
 
-        self.exit_delay_timer: Timer = Timer(duration=1000.0)
+        self.exit_delay_timer: Timer = Timer(duration=self.SLOW_FADE_DURATION)
         self.exit_delay_timer.add_event_listener(self.on_exit_delay_timer_end, Timer.END)
 
     def _setup_texts(self) -> None:
@@ -193,7 +196,7 @@ class RoomJsonGenerator:
         self.camera: Camera = Camera(
             self.camera_anchor_vector,
             # REMOVE IN BUILD
-            self.game,
+            self.game.debug_draw,
         )
         self.camera_speed: float = 0.09  # Px / ms
 
@@ -241,9 +244,12 @@ class RoomJsonGenerator:
         self.game_music_manager.set_current_music_path(OGGS_PATHS_DICT["xdeviruchi_take_some_rest_and_eat_some_food.ogg"])
         self.game_music_manager.play_music(-1, 0.0, 0)
 
-    def _create_state_machine_update(self) -> StateMachine:
-        """Create state machine for update."""
-        return StateMachine(
+    def _setup_state_machine_update(self) -> None:
+        """
+        Create state machine for update.
+        """
+
+        self.state_machine_update = StateMachine(
             initial_state=RoomJsonGenerator.State.JUST_ENTERED_SCENE,
             state_handlers={
                 RoomJsonGenerator.State.JUST_ENTERED_SCENE: self._JUST_ENTERED_SCENE,
@@ -297,9 +303,12 @@ class RoomJsonGenerator:
             },
         )
 
-    def _create_state_machine_draw(self) -> StateMachine:
-        """Create state machine for draw."""
-        return StateMachine(
+    def _setup_state_machine_draw(self) -> None:
+        """
+        Create state machine for draw.
+        """
+
+        self.state_machine_draw = StateMachine(
             initial_state=RoomJsonGenerator.State.JUST_ENTERED_SCENE,
             state_handlers={
                 RoomJsonGenerator.State.JUST_ENTERED_SCENE: self._NOTHING,
@@ -1176,6 +1185,8 @@ class RoomJsonGenerator:
         self.curtain.go_to_invisible()
 
     def _OPENING_SCENE_CURTAIN_to_OPENED_SCENE_CURTAIN(self) -> None:
+        # Make curtain faster for in state blink
+        self.curtain.set_duration(self.FAST_FADE_DURATION)
         # Read all json room and mark it on grid
         for filename in listdir(JSONS_ROOMS_DIR_PATH):
             if filename.endswith(".json"):
@@ -1350,7 +1361,7 @@ class RoomJsonGenerator:
                 "type": "text",
                 "layer": 6,
                 "x": 0,
-                "y": 6,
+                "y": 0,
                 "text": (f"sprite sheet json generator " f"state: {self.state_machine_update.state.name}"),
             }
         )

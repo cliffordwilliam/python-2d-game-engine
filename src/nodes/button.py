@@ -22,6 +22,7 @@ class Button:
     BUTTON_HOVER_LINE_COLOR: str = "#52b0ef"
     BUTTON_HOVER_TEXT_COLOR: str = "#feffff"
 
+    # Desc padding
     DESCRIPTION_TEXT_BOTTOM_PADDING: int = 2
 
     # States
@@ -220,7 +221,20 @@ class Button:
                 # Hover surf go to invisible
                 self.hover_curtain.jump_to_invisible()
 
-    # Helpers
+    # Abilities
+    def apply_y_offset_to_rect_and_curtain_rects(
+        self,
+        value: int,
+    ) -> None:
+        """
+        Used by button container.
+        Value is added.
+        """
+
+        self.rect.y += value
+        self.active_curtain.rect.y += value
+        self.hover_curtain.rect.y += value
+
     def draw_extra_text_on_surf(
         self,
         text: str,
