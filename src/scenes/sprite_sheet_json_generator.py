@@ -3,6 +3,7 @@ from enum import Enum
 from os.path import exists
 from os.path import join
 from pathlib import Path
+from typing import Callable
 from typing import TYPE_CHECKING
 
 from constants import FONT
@@ -72,26 +73,18 @@ class SpriteSheetJsonGenerator:
         self._setup_camera()
         self._setup_collision_map()
         self._setup_surfs()
+        self._setup_second_rect_region_feature()
         self._setup_loop_options()
         self._setup_music()
         self._setup_state_machine_update()
         self._setup_state_machine_draw()
 
-        # First selected tile rect
-        self.first_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
-        self.second_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
-        self.combined_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
-        self.screen_combined_world_selected_tile_rect_x = 0.0
-        self.screen_combined_world_selected_tile_rect_y = 0.0
-        self.combined_world_selected_tile_rect_width_tu = 0
-        self.combined_world_selected_tile_rect_height_tu = 0
-        self.combined_world_selected_tile_rect_x_tu = 0
-        self.combined_world_selected_tile_rect_y_tu = 0
-
         # If image is smaller than camera no need to move camera
         self.is_sprite_smaller_than_camera: bool = True
 
-    # Setups
+    ##########
+    # SETUPS #
+    ##########
     def _setup_curtain(self) -> None:
         """Setup curtain with event listeners."""
         self.curtain: Curtain = Curtain(
@@ -135,14 +128,13 @@ class SpriteSheetJsonGenerator:
         self.sprite_is_tile_mix: int = 0
 
         # Sprite sheet surf
-        # TODO: Save the sprite sheet name instead
         self.sprite_sheet_png_path: (None | str) = None
         self.sprite_sheet_surf: (None | pg.Surface) = None
         self.sprite_sheet_rect: (None | pg.Rect) = None
 
         # To be saved json
-        self.sprite_json: dict = {}
-        self.sprites_list: list = []
+        self.local_sprite_json: dict = {}
+        self.local_sprites_list: list = []
 
     def _setup_camera(self) -> None:
         self.camera_anchor_vector: Vector2 = Vector2(0.0, 0.0)
@@ -172,11 +164,28 @@ class SpriteSheetJsonGenerator:
         self.grid_vertical_line_surf.set_alpha(21)
 
     def _setup_loop_options(self) -> None:
+        """
+        Save, quit and redo option at final state.
+        """
+
+        # This one stores the selected option
         self.selected_choice_after_add_sprites_state: int = 0
+        # These are the options
         self.save_and_quit_choice_after_add_sprites_state: int = 1
         self.save_and_redo_choice_after_add_sprites_state: int = 2
         self.redo_choice_after_add_sprites_state: int = 3
         self.quit_choice_after_add_sprites_state: int = 4
+
+    def _setup_second_rect_region_feature(self) -> None:
+        self.first_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
+        self.second_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
+        self.combined_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
+        self.screen_combined_world_selected_tile_rect_x: float = 0.0
+        self.screen_combined_world_selected_tile_rect_y: float = 0.0
+        self.combined_world_selected_tile_rect_width_tu: int = 0
+        self.combined_world_selected_tile_rect_height_tu: int = 0
+        self.combined_world_selected_tile_rect_x_tu: int = 0
+        self.combined_world_selected_tile_rect_y_tu: int = 0
 
     def _setup_music(self) -> None:
         # Load editor screen music. Played in my set state
@@ -310,7 +319,9 @@ class SpriteSheetJsonGenerator:
             transition_actions={},
         )
 
-    # State draw logics
+    #####################
+    # STATE DRAW LOGICS #
+    #####################
     def _NOTHING(self, _dt: int) -> None:
         pass
 
@@ -501,328 +512,235 @@ class SpriteSheetJsonGenerator:
         # Curtain
         self.curtain.draw(NATIVE_SURF, 0)
 
-    # State logics
+    #######################
+    # STATE UPDATE LOGICS #
+    #######################
     def _JUST_ENTERED_SCENE(self, dt: int) -> None:
+        """
+        - Counts up entry delay time.
+        """
+
         self.entry_delay_timer.update(dt)
 
     def _OPENING_SCENE_CURTAIN(self, dt: int) -> None:
+        """
+        - Updates curtain alpha.
+        """
+
         self.curtain.update(dt)
 
     def _OPENED_SCENE_CURTAIN(self, dt: int) -> None:
-        # Wait for curtain to be fully invisible
-        if self.curtain.is_done:
-            # Caught 1 key event this frame?
-            if self.game_event_handler.this_frame_event:
-                if self.game_event_handler.this_frame_event.type == pg.KEYDOWN:
-                    # Accept
-                    if self.game_event_handler.this_frame_event.key == pg.K_RETURN:
-                        if self.input_text != "":
-                            self.file_name = self.input_text
-                            # Close curtain
-                            # Exit to SPRITE_SHEET_PNG_PATH_QUERY
-                            self.curtain.go_to_opaque()
-                    # Delete
-                    elif self.game_event_handler.this_frame_event.key == pg.K_BACKSPACE:
-                        new_value = self.input_text[:-1]
-                        self._set_input_text(new_value)
-                        # Play text
-                        self.game_sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
-                    # Add
-                    else:
-                        new_value = self.input_text + self.game_event_handler.this_frame_event.unicode
-                        self._set_input_text(new_value)
-                        # Play text
-                        self.game_sound_manager.play_sound("text_1.ogg", 0, 0, 0)
+        """
+        - Get user input.
+        - Updates curtain alpha.
+        """
+
+        # Accept logic
+        def _accept_callback() -> None:
+            if self.input_text != "":
+                self.file_name = self.input_text
+                self.curtain.go_to_opaque()
+
+        # Typing logic
+        self._handle_query_input(_accept_callback)
 
         # Update curtain
         self.curtain.update(dt)
 
     def _SPRITE_SHEET_PNG_PATH_QUERY(self, dt: int) -> None:
-        # Wait for curtain to be fully invisible
-        if self.curtain.is_done:
-            # Caught 1 key event this frame?
-            if self.game_event_handler.this_frame_event:
-                if self.game_event_handler.this_frame_event.type == pg.KEYDOWN:
-                    # Accept
-                    if self.game_event_handler.this_frame_event.key == pg.K_RETURN:
-                        if exists(self.input_text) and self.input_text.endswith(".png"):
-                            # Setup the sprite sheet data
-                            self.sprite_sheet_png_path = self.input_text
-                            self.sprite_sheet_surf = pg.image.load(self.sprite_sheet_png_path).convert_alpha()
-                            self.sprite_sheet_rect = self.sprite_sheet_surf.get_rect()
-                            is_narrower = self.sprite_sheet_rect.width < self.camera.rect.width
-                            is_shorter = self.sprite_sheet_rect.height < self.camera.rect.height
-                            if not (is_narrower or is_shorter):
-                                # If image is smaller than camera no need to move camera
-                                self.is_sprite_smaller_than_camera = False
-                                # Setup camera limits
-                                self.camera.set_rect_limit(
-                                    float(self.sprite_sheet_rect.top),
-                                    float(self.sprite_sheet_rect.bottom),
-                                    float(self.sprite_sheet_rect.left),
-                                    float(self.sprite_sheet_rect.right),
-                                )
-                            # Init room collision map list
-                            sprite_sheet_width_tu: int = self.sprite_sheet_rect.width // TILE_SIZE
-                            sprite_sheet_height_tu: int = self.sprite_sheet_rect.height // TILE_SIZE
-                            self._init_room_collision_map_list(
-                                sprite_sheet_width_tu,
-                                sprite_sheet_height_tu,
-                            )
-                            # Exit to SPRITE_SIZE_QUERY
-                            # Close curtain to exit to SPRITE_SIZE_QUERY
-                            self.curtain.go_to_opaque()
-                        else:
-                            self._set_input_text("png path does not exist!")
-                    # Delete
-                    elif self.game_event_handler.this_frame_event.key == pg.K_BACKSPACE:
-                        new_value = self.input_text[:-1]
-                        self._set_input_text(new_value)
-                        # Play text
-                        self.game_sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
-                    # Add
-                    else:
-                        new_value = self.input_text + self.game_event_handler.this_frame_event.unicode
-                        self._set_input_text(new_value)
-                        # Play text
-                        self.game_sound_manager.play_sound("text_1.ogg", 0, 0, 0)
+        """
+        - Get user input.
+        - Updates curtain alpha.
+        """
+
+        # Accept logic
+        def _accept_callback() -> None:
+            if exists(self.input_text) and self.input_text.endswith(".png"):
+                # Setup the sprite sheet data
+                self.sprite_sheet_png_path = self.input_text
+                self.sprite_sheet_surf = pg.image.load(self.sprite_sheet_png_path).convert_alpha()
+                self.sprite_sheet_rect = self.sprite_sheet_surf.get_rect()
+                is_narrower = self.sprite_sheet_rect.width < self.camera.rect.width
+                is_shorter = self.sprite_sheet_rect.height < self.camera.rect.height
+                if not (is_narrower or is_shorter):
+                    # Sprite sheet is not smaller than camera here
+                    self.is_sprite_smaller_than_camera = False
+                    # Setup camera limits
+                    self.camera.set_rect_limit(
+                        float(self.sprite_sheet_rect.top),
+                        float(self.sprite_sheet_rect.bottom),
+                        float(self.sprite_sheet_rect.left),
+                        float(self.sprite_sheet_rect.right),
+                    )
+                # Init room collision map list
+                sprite_sheet_width_tu: int = self.sprite_sheet_rect.width // TILE_SIZE
+                sprite_sheet_height_tu: int = self.sprite_sheet_rect.height // TILE_SIZE
+                self._init_room_collision_map_list(
+                    sprite_sheet_width_tu,
+                    sprite_sheet_height_tu,
+                )
+                self.curtain.go_to_opaque()
+            else:
+                self._set_input_text("png path does not exist!")
+
+        # Typing logic
+        self._handle_query_input(_accept_callback)
 
         # Update curtain
         self.curtain.update(dt)
 
     def _SPRITE_SHEET_ROOM_MAP_BODY_COLOR_QUERY(self, dt: int) -> None:
-        # Wait for curtain to be fully invisible
-        if self.curtain.is_done:
-            # Caught 1 key event this frame?
-            if self.game_event_handler.this_frame_event:
-                if self.game_event_handler.this_frame_event.type == pg.KEYDOWN:
-                    # Accept
-                    if self.game_event_handler.this_frame_event.key == pg.K_RETURN:
-                        if self.input_text != "":
-                            self.sprite_room_map_body_color = self.input_text
-                            # Close curtain
-                            self.curtain.go_to_opaque()
-                    # Delete
-                    elif self.game_event_handler.this_frame_event.key == pg.K_BACKSPACE:
-                        new_value = self.input_text[:-1]
-                        self._set_input_text(new_value)
-                        # Play text
-                        self.game_sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
-                    # Add
-                    else:
-                        new_value = self.input_text + self.game_event_handler.this_frame_event.unicode
-                        self._set_input_text(new_value)
-                        # Play text
-                        self.game_sound_manager.play_sound("text_1.ogg", 0, 0, 0)
+        """
+        - Get user input.
+        - Updates curtain alpha.
+        """
+
+        # Accept logic
+        def _accept_callback() -> None:
+            if self.input_text != "":
+                self.sprite_room_map_body_color = self.input_text
+                # Close curtain
+                self.curtain.go_to_opaque()
+
+        # Typing logic
+        self._handle_query_input(_accept_callback)
 
         # Update curtain
         self.curtain.update(dt)
 
     def _SPRITE_SHEET_ROOM_MAP_SUB_DIVISION_COLOR_QUERY(self, dt: int) -> None:
-        # Wait for curtain to be fully invisible
-        if self.curtain.is_done:
-            # Caught 1 key event this frame?
-            if self.game_event_handler.this_frame_event:
-                if self.game_event_handler.this_frame_event.type == pg.KEYDOWN:
-                    # Accept
-                    if self.game_event_handler.this_frame_event.key == pg.K_RETURN:
-                        if self.input_text != "":
-                            self.sprite_room_map_sub_division_color = self.input_text
-                            # Close curtain
-                            self.curtain.go_to_opaque()
-                    # Delete
-                    elif self.game_event_handler.this_frame_event.key == pg.K_BACKSPACE:
-                        new_value = self.input_text[:-1]
-                        self._set_input_text(new_value)
-                        # Play text
-                        self.game_sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
-                    # Add
-                    else:
-                        new_value = self.input_text + self.game_event_handler.this_frame_event.unicode
-                        self._set_input_text(new_value)
-                        # Play text
-                        self.game_sound_manager.play_sound("text_1.ogg", 0, 0, 0)
+        """
+        - Get user input.
+        - Updates curtain alpha.
+        """
+
+        # Accept logic
+        def _accept_callback() -> None:
+            if self.input_text != "":
+                self.sprite_room_map_sub_division_color = self.input_text
+                # Close curtain
+                self.curtain.go_to_opaque()
+
+        # Typing logic
+        self._handle_query_input(_accept_callback)
 
         # Update curtain
         self.curtain.update(dt)
 
     def _SPRITE_SHEET_ROOM_MAP_BORDER_COLOR_QUERY(self, dt: int) -> None:
-        # Wait for curtain to be fully invisible
-        if self.curtain.is_done:
-            # Caught 1 key event this frame?
-            if self.game_event_handler.this_frame_event:
-                if self.game_event_handler.this_frame_event.type == pg.KEYDOWN:
-                    # Accept
-                    if self.game_event_handler.this_frame_event.key == pg.K_RETURN:
-                        if self.input_text != "":
-                            self.sprite_room_map_border_color = self.input_text
-                            # Close curtain
-                            self.curtain.go_to_opaque()
-                    # Delete
-                    elif self.game_event_handler.this_frame_event.key == pg.K_BACKSPACE:
-                        new_value = self.input_text[:-1]
-                        self._set_input_text(new_value)
-                        # Play text
-                        self.game_sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
-                    # Add
-                    else:
-                        new_value = self.input_text + self.game_event_handler.this_frame_event.unicode
-                        self._set_input_text(new_value)
-                        # Play text
-                        self.game_sound_manager.play_sound("text_1.ogg", 0, 0, 0)
+        """
+        - Get user input.
+        - Updates curtain alpha.
+        """
+
+        # Accept logic
+        def _accept_callback() -> None:
+            if self.input_text != "":
+                self.sprite_room_map_border_color = self.input_text
+                # Close curtain
+                self.curtain.go_to_opaque()
+
+        # Typing logic
+        self._handle_query_input(_accept_callback)
 
         # Update curtain
         self.curtain.update(dt)
 
     def _SPRITE_NAME_QUERY(self, dt: int) -> None:
-        # Wait for curtain to be fully invisible
-        if self.curtain.is_done:
-            # Caught 1 key event this frame?
-            if self.game_event_handler.this_frame_event:
-                if self.game_event_handler.this_frame_event.type == pg.KEYDOWN:
-                    # Accept
-                    if self.game_event_handler.this_frame_event.key == pg.K_RETURN:
-                        if self.input_text != "":
-                            self.sprite_name = self.input_text
-                            # Close curtain
-                            # Exit to SPRITE_SHEET_PNG_PATH_QUERY
-                            self.curtain.go_to_opaque()
-                    # Delete
-                    elif self.game_event_handler.this_frame_event.key == pg.K_BACKSPACE:
-                        new_value = self.input_text[:-1]
-                        self._set_input_text(new_value)
-                        # Play text
-                        self.game_sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
-                    # Add
-                    else:
-                        new_value = self.input_text + self.game_event_handler.this_frame_event.unicode
-                        self._set_input_text(new_value)
-                        # Play text
-                        self.game_sound_manager.play_sound("text_1.ogg", 0, 0, 0)
+        """
+        - Get user input.
+        - Updates curtain alpha.
+        """
+
+        # Accept logic
+        def _accept_callback() -> None:
+            if self.input_text != "":
+                self.sprite_name = self.input_text
+                self.curtain.go_to_opaque()
+
+        # Typing logic
+        self._handle_query_input(_accept_callback)
 
         # Update curtain
         self.curtain.update(dt)
 
     def _SPRITE_LAYER_QUERY(self, dt: int) -> None:
-        # Wait for curtain to be fully invisible
-        if self.curtain.is_done:
-            # Caught 1 key event this frame?
-            if self.game_event_handler.this_frame_event:
-                if self.game_event_handler.this_frame_event.type == pg.KEYDOWN:
-                    # Accept
-                    if self.game_event_handler.this_frame_event.key == pg.K_RETURN:
-                        if self.input_text.isdigit():
-                            # Setup the sprite_size
-                            self.sprite_layer = max(int(self.input_text), 0)
-                            # Exit to ADD_SPRITES
-                            # Close curtain to exit to ADD_SPRITES
-                            self.curtain.go_to_opaque()
-                        else:
-                            self._set_input_text("type int only please!")
-                    # Delete
-                    elif self.game_event_handler.this_frame_event.key == pg.K_BACKSPACE:
-                        new_value = self.input_text[:-1]
-                        self._set_input_text(new_value)
-                        # Play text
-                        self.game_sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
-                    # Add
-                    else:
-                        new_value = self.input_text + self.game_event_handler.this_frame_event.unicode
-                        self._set_input_text(new_value)
-                        # Play text
-                        self.game_sound_manager.play_sound("text_1.ogg", 0, 0, 0)
+        """
+        - Get user input.
+        - Updates curtain alpha.
+        """
+
+        # Accept logic
+        def _accept_callback() -> None:
+            if self.input_text.isdigit():
+                self.sprite_layer = max(int(self.input_text), 0)
+                self.curtain.go_to_opaque()
+            else:
+                self._set_input_text("type int only please!")
+
+        # Typing logic
+        self._handle_query_input(_accept_callback)
 
         # Update curtain
         self.curtain.update(dt)
 
     def _SPRITE_TYPE_QUERY(self, dt: int) -> None:
-        # Wait for curtain to be fully invisible
-        if self.curtain.is_done:
-            # Caught 1 key event this frame?
-            if self.game_event_handler.this_frame_event:
-                if self.game_event_handler.this_frame_event.type == pg.KEYDOWN:
-                    # Accept
-                    if self.game_event_handler.this_frame_event.key == pg.K_RETURN:
-                        if self.input_text != "":
-                            self.sprite_type = self.input_text
-                            # Close curtain
-                            # Exit to SPRITE_SHEET_PNG_PATH_QUERY
-                            self.curtain.go_to_opaque()
-                    # Delete
-                    elif self.game_event_handler.this_frame_event.key == pg.K_BACKSPACE:
-                        new_value = self.input_text[:-1]
-                        self._set_input_text(new_value)
-                        # Play text
-                        self.game_sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
-                    # Add
-                    else:
-                        new_value = self.input_text + self.game_event_handler.this_frame_event.unicode
-                        self._set_input_text(new_value)
-                        # Play text
-                        self.game_sound_manager.play_sound("text_1.ogg", 0, 0, 0)
+        """
+        - Get user input.
+        - Updates curtain alpha.
+        """
+
+        # Accept logic
+        def _accept_callback() -> None:
+            if self.input_text != "":
+                self.sprite_type = self.input_text
+                self.curtain.go_to_opaque()
+
+        # Typing logic
+        self._handle_query_input(_accept_callback)
 
         # Update curtain
         self.curtain.update(dt)
 
     def _SPRITE_TILE_TYPE_QUERY(self, dt: int) -> None:
-        # Wait for curtain to be fully invisible
-        if self.curtain.is_done:
-            # Caught 1 key event this frame?
-            if self.game_event_handler.this_frame_event:
-                if self.game_event_handler.this_frame_event.type == pg.KEYDOWN:
-                    # Accept
-                    if self.game_event_handler.this_frame_event.key == pg.K_RETURN:
-                        if self.input_text != "":
-                            self.sprite_tile_type = self.input_text
-                            # Close curtain
-                            # Exit to SPRITE_SHEET_PNG_PATH_QUERY
-                            self.curtain.go_to_opaque()
-                    # Delete
-                    elif self.game_event_handler.this_frame_event.key == pg.K_BACKSPACE:
-                        new_value = self.input_text[:-1]
-                        self._set_input_text(new_value)
-                        # Play text
-                        self.game_sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
-                    # Add
-                    else:
-                        new_value = self.input_text + self.game_event_handler.this_frame_event.unicode
-                        self._set_input_text(new_value)
-                        # Play text
-                        self.game_sound_manager.play_sound("text_1.ogg", 0, 0, 0)
+        """
+        - Get user input.
+        - Updates curtain alpha.
+        """
+
+        # Accept logic
+        def _accept_callback() -> None:
+            if self.input_text != "":
+                self.sprite_tile_type = self.input_text
+                self.curtain.go_to_opaque()
+
+        # Typing logic
+        self._handle_query_input(_accept_callback)
 
         # Update curtain
         self.curtain.update(dt)
 
     def _SPRITE_TILE_MIX_QUERY(self, dt: int) -> None:
-        # Wait for curtain to be fully invisible
-        if self.curtain.is_done:
-            # Caught 1 key event this frame?
-            if self.game_event_handler.this_frame_event:
-                if self.game_event_handler.this_frame_event.type == pg.KEYDOWN:
-                    # Accept
-                    if self.game_event_handler.this_frame_event.key == pg.K_RETURN:
-                        if self.input_text in ["y", "n"]:
-                            if self.input_text == "y":
-                                self.sprite_is_tile_mix = 1
-                            elif self.input_text == "n":
-                                self.sprite_is_tile_mix = 0
-                            # Close curtain
-                            # Exit to SPRITE_SHEET_PNG_PATH_QUERY
-                            self.curtain.go_to_opaque()
-                        else:
-                            self._set_input_text("type y or n only please!")
-                    # Delete
-                    elif self.game_event_handler.this_frame_event.key == pg.K_BACKSPACE:
-                        new_value = self.input_text[:-1]
-                        self._set_input_text(new_value)
-                        # Play text
-                        self.game_sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
-                    # Add
-                    else:
-                        new_value = self.input_text + self.game_event_handler.this_frame_event.unicode
-                        self._set_input_text(new_value)
-                        # Play text
-                        self.game_sound_manager.play_sound("text_1.ogg", 0, 0, 0)
+        """
+        - Get user input.
+        - Updates curtain alpha.
+        """
+
+        # Accept logic
+        def _accept_callback() -> None:
+            options: dict = {
+                "y": 1,
+                "n": 0,
+            }
+            if self.input_text in options:
+                self.sprite_is_tile_mix = options[self.input_text]
+                # Close curtain
+                self.curtain.go_to_opaque()
+            else:
+                self._set_input_text("type y or n only please!")
+
+        # Typing logic
+        self._handle_query_input(_accept_callback)
 
         # Update curtain
         self.curtain.update(dt)
@@ -834,35 +752,17 @@ class SpriteSheetJsonGenerator:
         """
         # Wait for curtain to be fully invisible
         if self.curtain.is_done:
-            # If image is smaller than camera no need to move camera
-            if not self.is_sprite_smaller_than_camera:
-                # Camera movement
-                # Get direction_horizontal
-                direction_horizontal: int = self.game_event_handler.is_right_pressed - self.game_event_handler.is_left_pressed
-                # Update camera anchor position with direction and speed
-                self.camera_anchor_vector.x += direction_horizontal * self.camera_speed * dt
-                # Get direction_vertical
-                direction_vertical: int = self.game_event_handler.is_down_pressed - self.game_event_handler.is_up_pressed
-                # Update camera anchor position with direction and speed
-                self.camera_anchor_vector.y += direction_vertical * self.camera_speed * dt
-                # Lerp camera position to target camera anchor
-                self.camera.update(dt)
+            self._update_camera_anchor_position_with_input(dt)
 
-            # Sprite selection
             # Lmb just pressed
-            is_lmb_just_pressed_occupied: bool = False
             if self.game_event_handler.is_lmb_just_pressed:
                 # Get what is clicked
                 found_tile_lmb_pressed: int = self._get_tile_from_room_collision_map_list(
                     self.world_mouse_tu_x,
                     self.world_mouse_tu_y,
                 )
-                # Clicked occupied? Return
-                if found_tile_lmb_pressed == 1:
-                    is_lmb_just_pressed_occupied = True
-
                 # Clicked on empty?
-                if not is_lmb_just_pressed_occupied:
+                if found_tile_lmb_pressed != 1:
                     # Remember first selected tile rect
                     self.first_world_selected_tile_rect.x = self.world_mouse_snapped_x
                     self.first_world_selected_tile_rect.y = self.world_mouse_snapped_y
@@ -880,31 +780,20 @@ class SpriteSheetJsonGenerator:
         """
         # Wait for curtain to be fully invisible
         if self.curtain.is_done:
-            # If image is smaller than camera no need to move camera
-            if not self.is_sprite_smaller_than_camera:
-                # Camera movement
-                # Get direction_horizontal
-                direction_horizontal: int = self.game_event_handler.is_right_pressed - self.game_event_handler.is_left_pressed
-                # Update camera anchor position with direction and speed
-                self.camera_anchor_vector.x += direction_horizontal * self.camera_speed * dt
-                # Get direction_vertical
-                direction_vertical: int = self.game_event_handler.is_down_pressed - self.game_event_handler.is_up_pressed
-                # Update camera anchor position with direction and speed
-                self.camera_anchor_vector.y += direction_vertical * self.camera_speed * dt
-                # Lerp camera position to target camera anchor
-                self.camera.update(dt)
+            self._update_camera_anchor_position_with_input(dt)
 
-            # Sprite selection
             # Lmb just pressed
-            is_lmb_just_pressed_occupied: bool = False
             if self.game_event_handler.is_lmb_just_pressed:
-                # Check if selection is all empty cells
-                # Iterate size to check all empty
+                is_lmb_just_pressed_occupied: bool = False
+                # Look in selection if got collision
                 self.combined_world_selected_tile_rect_width_tu = int(self.combined_world_selected_tile_rect.width // TILE_SIZE)
                 self.combined_world_selected_tile_rect_height_tu = int(self.combined_world_selected_tile_rect.height // TILE_SIZE)
                 self.combined_world_selected_tile_rect_x_tu = int(self.combined_world_selected_tile_rect.x // TILE_SIZE)
                 self.combined_world_selected_tile_rect_y_tu = int(self.combined_world_selected_tile_rect.y // TILE_SIZE)
                 for world_mouse_tu_xi in range(self.combined_world_selected_tile_rect_width_tu):
+                    # Found occupied? Return
+                    if is_lmb_just_pressed_occupied:
+                        break
                     for world_mouse_tu_yi in range(self.combined_world_selected_tile_rect_height_tu):
                         world_mouse_tu_x: int = self.combined_world_selected_tile_rect_x_tu + world_mouse_tu_xi
                         world_mouse_tu_y: int = self.combined_world_selected_tile_rect_y_tu + world_mouse_tu_yi
@@ -913,9 +802,10 @@ class SpriteSheetJsonGenerator:
                             world_mouse_tu_x,
                             world_mouse_tu_y,
                         )
-                        # At least 1 of them is occupied? Return
+                        # Found occupied? Return
                         if found_tile_lmb_pressed == 1:
                             is_lmb_just_pressed_occupied = True
+                            break
                 # All cells are empty
                 if not is_lmb_just_pressed_occupied:
                     # Exit to ask save quit, save again, redo
@@ -929,162 +819,44 @@ class SpriteSheetJsonGenerator:
         - Get user input for save quit, save again, redo.
         - Updates curtain alpha.
         """
-        # Wait for curtain to be fully invisible
-        if self.curtain.is_done:
-            # Caught 1 key event this frame?
-            if self.game_event_handler.this_frame_event:
-                if self.game_event_handler.this_frame_event.type == pg.KEYDOWN:
-                    # Accept
-                    if self.game_event_handler.this_frame_event.key == pg.K_RETURN:
-                        if self.input_text in [
-                            str(self.save_and_quit_choice_after_add_sprites_state),
-                            str(self.save_and_redo_choice_after_add_sprites_state),
-                            str(self.redo_choice_after_add_sprites_state),
-                            str(self.quit_choice_after_add_sprites_state),
-                        ]:
-                            # 1 = Save and quit
-                            if self.input_text == str(self.save_and_quit_choice_after_add_sprites_state):
-                                self.selected_choice_after_add_sprites_state = self.save_and_quit_choice_after_add_sprites_state
 
-                                # Fill it
-                                # Iterate size to set 1
-                                for world_mouse_tu_xi2 in range(self.combined_world_selected_tile_rect_width_tu):
-                                    for world_mouse_tu_yi2 in range(self.combined_world_selected_tile_rect_height_tu):
-                                        world_mouse_tu_x2 = self.combined_world_selected_tile_rect_x_tu + world_mouse_tu_xi2
-                                        world_mouse_tu_y2 = self.combined_world_selected_tile_rect_y_tu + world_mouse_tu_yi2
-                                        # Store each one in room_collision_map_list
-                                        self._set_tile_from_room_collision_map_list(
-                                            world_mouse_tu_x2,
-                                            world_mouse_tu_y2,
-                                            1,
-                                        )
-                                        if self.sprite_sheet_surf is not None:
-                                            # Draw marker on sprite sheet
-                                            self.sprite_sheet_surf.blit(
-                                                self.selected_surf_marker,
-                                                (
-                                                    world_mouse_tu_x2 * TILE_SIZE,
-                                                    world_mouse_tu_y2 * TILE_SIZE,
-                                                ),
-                                            )
-                                # Add to list
-                                self.sprites_list.append(
-                                    {
-                                        "sprite_name": self.sprite_name,
-                                        "sprite_layer": self.sprite_layer,
-                                        "sprite_tile_type": self.sprite_tile_type,
-                                        "sprite_type": self.sprite_type,
-                                        "sprite_is_tile_mix": self.sprite_is_tile_mix,
-                                        "width": int(self.combined_world_selected_tile_rect.width),
-                                        "height": int(self.combined_world_selected_tile_rect.height),
-                                        "x": int(self.combined_world_selected_tile_rect.x),
-                                        "y": int(self.combined_world_selected_tile_rect.y),
-                                    }
-                                )
+        # Accept logic
+        def _accept_callback() -> None:
+            if int(self.input_text) in [
+                self.save_and_quit_choice_after_add_sprites_state,
+                self.save_and_redo_choice_after_add_sprites_state,
+                self.redo_choice_after_add_sprites_state,
+                self.quit_choice_after_add_sprites_state,
+            ]:
+                # Remember selected option
+                self.selected_choice_after_add_sprites_state = int(self.input_text)
+                # 1 = Save and quit
+                if self.selected_choice_after_add_sprites_state == self.save_and_quit_choice_after_add_sprites_state:
+                    self._fill_selected_region_with_one()
+                    self._update_local_with_user_state_input()
+                    self.game.POST_file_to_disk_dynamic_path(
+                        join(JSONS_REPO_DIR_PATH, f"{self.file_name}.json"),
+                        self.local_sprite_json,
+                    )
+                    self.game_music_manager.fade_out_music(int(self.curtain.fade_duration))
+                    self.curtain.go_to_opaque()
+                # 2 = Save and redo
+                elif self.selected_choice_after_add_sprites_state == self.save_and_redo_choice_after_add_sprites_state:
+                    self._fill_selected_region_with_one()
+                    self._update_local_with_user_state_input()
+                    self.curtain.go_to_opaque()
+                # 3 = Redo
+                elif self.selected_choice_after_add_sprites_state == self.redo_choice_after_add_sprites_state:
+                    self.curtain.go_to_opaque()
+                # 4 = Quit
+                elif self.selected_choice_after_add_sprites_state == self.quit_choice_after_add_sprites_state:
+                    self.game_music_manager.fade_out_music(int(self.curtain.fade_duration))
+                    self.curtain.go_to_opaque()
+            else:
+                self._set_input_text("type 1, 2, 3 or 4 only please!")
 
-                                # Get file name
-                                if self.sprite_sheet_png_path is not None:
-                                    sprite_sheet_png_path_obj = Path(self.sprite_sheet_png_path)
-                                    sprite_sheet_png_name = sprite_sheet_png_path_obj.name
-
-                                    self.sprite_json = {
-                                        "sprite_sheet_png_name": sprite_sheet_png_name,
-                                        "sprite_room_map_body_color": self.sprite_room_map_body_color,
-                                        "sprite_room_map_sub_division_color": self.sprite_room_map_sub_division_color,
-                                        "sprite_room_map_border_color": self.sprite_room_map_border_color,
-                                        "sprites_list": self.sprites_list,
-                                    }
-                                    # Write to json
-                                    self.game.POST_file_to_disk_dynamic_path(
-                                        join(JSONS_REPO_DIR_PATH, f"{self.file_name}.json"),
-                                        self.sprite_json,
-                                    )
-                                    # Close curtain
-                                    # Exit to main menu
-                                    self.game_music_manager.fade_out_music(int(self.curtain.fade_duration))
-                                    self.curtain.go_to_opaque()
-                            # 2 = Save and redo
-                            elif self.input_text == str(self.save_and_redo_choice_after_add_sprites_state):
-                                self.selected_choice_after_add_sprites_state = self.save_and_redo_choice_after_add_sprites_state
-
-                                # Fill it
-                                # Iterate size to set 1
-                                for world_mouse_tu_xi2 in range(self.combined_world_selected_tile_rect_width_tu):
-                                    for world_mouse_tu_yi2 in range(self.combined_world_selected_tile_rect_height_tu):
-                                        world_mouse_tu_x2 = self.combined_world_selected_tile_rect_x_tu + world_mouse_tu_xi2
-                                        world_mouse_tu_y2 = self.combined_world_selected_tile_rect_y_tu + world_mouse_tu_yi2
-                                        # Store each one in room_collision_map_list
-                                        self._set_tile_from_room_collision_map_list(
-                                            world_mouse_tu_x2,
-                                            world_mouse_tu_y2,
-                                            1,
-                                        )
-                                        # Draw marker on sprite sheet
-                                        if self.sprite_sheet_surf is not None:
-                                            self.sprite_sheet_surf.blit(
-                                                self.selected_surf_marker,
-                                                (
-                                                    world_mouse_tu_x2 * TILE_SIZE,
-                                                    world_mouse_tu_y2 * TILE_SIZE,
-                                                ),
-                                            )
-                                # Add to list
-                                self.sprites_list.append(
-                                    {
-                                        "sprite_name": self.sprite_name,
-                                        "sprite_layer": self.sprite_layer,
-                                        "sprite_tile_type": self.sprite_tile_type,
-                                        "sprite_type": self.sprite_type,
-                                        "sprite_is_tile_mix": self.sprite_is_tile_mix,
-                                        "width": int(self.combined_world_selected_tile_rect.width),
-                                        "height": int(self.combined_world_selected_tile_rect.height),
-                                        "x": int(self.combined_world_selected_tile_rect.x),
-                                        "y": int(self.combined_world_selected_tile_rect.y),
-                                    }
-                                )
-
-                                # Get file name
-                                if self.sprite_sheet_png_path is not None:
-                                    sprite_sheet_png_path_obj = Path(self.sprite_sheet_png_path)
-                                    sprite_sheet_png_name = sprite_sheet_png_path_obj.name
-
-                                    self.sprite_json = {
-                                        "sprite_sheet_png_name": sprite_sheet_png_name,
-                                        "sprite_room_map_body_color": self.sprite_room_map_body_color,
-                                        "sprite_room_map_sub_division_color": self.sprite_room_map_sub_division_color,
-                                        "sprite_room_map_border_color": self.sprite_room_map_border_color,
-                                        "sprites_list": self.sprites_list,
-                                    }
-                                    # Close curtain
-                                    # Exit to SPRITE_SIZE_QUERY
-                                    self.curtain.go_to_opaque()
-                            # 3 = Redo
-                            elif self.input_text == str(self.redo_choice_after_add_sprites_state):
-                                self.selected_choice_after_add_sprites_state = self.redo_choice_after_add_sprites_state
-                                # Close curtain
-                                # Exit to ADD_SPRITES
-                                self.curtain.go_to_opaque()
-                            # 4 = Quit
-                            elif self.input_text == str(self.quit_choice_after_add_sprites_state):
-                                self.selected_choice_after_add_sprites_state = self.quit_choice_after_add_sprites_state
-                                # Close curtain
-                                # Exit to main menu
-                                self.game_music_manager.fade_out_music(int(self.curtain.fade_duration))
-                                self.curtain.go_to_opaque()
-                        else:
-                            self._set_input_text("type 1, 2, 3 or 4 only please!")
-                    # Delete
-                    elif self.game_event_handler.this_frame_event.key == pg.K_BACKSPACE:
-                        new_value = self.input_text[:-1]
-                        self._set_input_text(new_value)
-                        # Play text
-                        self.game_sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
-                    # Add
-                    else:
-                        new_value = self.input_text + self.game_event_handler.this_frame_event.unicode
-                        self._set_input_text(new_value)
-                        # Play text
-                        self.game_sound_manager.play_sound("text_1.ogg", 0, 0, 0)
+        # Typing logic
+        self._handle_query_input(_accept_callback)
 
         # Update curtain
         self.curtain.update(dt)
@@ -1103,7 +875,9 @@ class SpriteSheetJsonGenerator:
 
         self.exit_delay_timer.update(dt)
 
-    # State transitions
+    #####################
+    # STATE TRANSITIONS #
+    #####################
     def _JUST_ENTERED_SCENE_to_OPENING_SCENE_CURTAIN(self) -> None:
         self.curtain.go_to_invisible()
 
@@ -1211,10 +985,11 @@ class SpriteSheetJsonGenerator:
     def _CLOSING_SCENE_CURTAIN_to_CLOSED_SCENE_CURTAIN(self) -> None:
         NATIVE_SURF.fill("black")
 
-    # Callbacks
+    #############
+    # CALLBACKS #
+    #############
     def _on_entry_delay_timer_end(self) -> None:
-        self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.OPENING_SCENE_CURTAIN)
-        self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.OPENING_SCENE_CURTAIN)
+        self._change_update_and_draw_state_machine(SpriteSheetJsonGenerator.State.OPENING_SCENE_CURTAIN)
 
     def _on_exit_delay_timer_end(self) -> None:
         # Load title screen music. Played in my set state
@@ -1224,78 +999,100 @@ class SpriteSheetJsonGenerator:
 
     def _on_curtain_invisible(self) -> None:
         if self.state_machine_update.state == SpriteSheetJsonGenerator.State.OPENING_SCENE_CURTAIN:
-            self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.OPENED_SCENE_CURTAIN)
-            self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.OPENED_SCENE_CURTAIN)
+            self._change_update_and_draw_state_machine(SpriteSheetJsonGenerator.State.OPENED_SCENE_CURTAIN)
 
     def _on_curtain_opaque(self) -> None:
-        if self.state_machine_update.state == SpriteSheetJsonGenerator.State.OPENED_SCENE_CURTAIN:
-            self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.SPRITE_SHEET_PNG_PATH_QUERY)
-            self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.SPRITE_SHEET_PNG_PATH_QUERY)
-            self.curtain.go_to_invisible()
-        elif self.state_machine_update.state == SpriteSheetJsonGenerator.State.SPRITE_SHEET_PNG_PATH_QUERY:
-            self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.SPRITE_SHEET_ROOM_MAP_BODY_COLOR_QUERY)
-            self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.SPRITE_SHEET_ROOM_MAP_BODY_COLOR_QUERY)
-            self.curtain.go_to_invisible()
-        elif self.state_machine_update.state == SpriteSheetJsonGenerator.State.SPRITE_SHEET_ROOM_MAP_BODY_COLOR_QUERY:
-            self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.SPRITE_SHEET_ROOM_MAP_SUB_DIVISION_COLOR_QUERY)
-            self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.SPRITE_SHEET_ROOM_MAP_SUB_DIVISION_COLOR_QUERY)
-            self.curtain.go_to_invisible()
-        elif self.state_machine_update.state == SpriteSheetJsonGenerator.State.SPRITE_SHEET_ROOM_MAP_SUB_DIVISION_COLOR_QUERY:
-            self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.SPRITE_SHEET_ROOM_MAP_BORDER_COLOR_QUERY)
-            self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.SPRITE_SHEET_ROOM_MAP_BORDER_COLOR_QUERY)
-            self.curtain.go_to_invisible()
-        elif self.state_machine_update.state == SpriteSheetJsonGenerator.State.SPRITE_SHEET_ROOM_MAP_BORDER_COLOR_QUERY:
-            self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.SPRITE_NAME_QUERY)
-            self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.SPRITE_NAME_QUERY)
-            self.curtain.go_to_invisible()
-        elif self.state_machine_update.state == SpriteSheetJsonGenerator.State.SPRITE_NAME_QUERY:
-            self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.SPRITE_LAYER_QUERY)
-            self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.SPRITE_LAYER_QUERY)
-            self.curtain.go_to_invisible()
-        elif self.state_machine_update.state == SpriteSheetJsonGenerator.State.SPRITE_LAYER_QUERY:
-            self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.SPRITE_TYPE_QUERY)
-            self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.SPRITE_TYPE_QUERY)
-            self.curtain.go_to_invisible()
-        elif self.state_machine_update.state == SpriteSheetJsonGenerator.State.SPRITE_TYPE_QUERY:
-            self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.SPRITE_TILE_TYPE_QUERY)
-            self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.SPRITE_TILE_TYPE_QUERY)
-            self.curtain.go_to_invisible()
-        elif self.state_machine_update.state == SpriteSheetJsonGenerator.State.SPRITE_TILE_TYPE_QUERY:
-            self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.SPRITE_TILE_MIX_QUERY)
-            self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.SPRITE_TILE_MIX_QUERY)
-            self.curtain.go_to_invisible()
-        elif self.state_machine_update.state == SpriteSheetJsonGenerator.State.SPRITE_TILE_MIX_QUERY:
-            self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.ADD_SPRITES)
-            self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.ADD_SPRITES)
-            self.curtain.go_to_invisible()
-        elif self.state_machine_update.state == SpriteSheetJsonGenerator.State.ADD_OTHER_SPRITES:
-            self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.SAVE_QUIT_REDO_QUERY)
-            self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.SAVE_QUIT_REDO_QUERY)
-            self.curtain.go_to_invisible()
-        elif self.state_machine_update.state == SpriteSheetJsonGenerator.State.SAVE_QUIT_REDO_QUERY:
-            if self.selected_choice_after_add_sprites_state == (self.save_and_redo_choice_after_add_sprites_state):
-                self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.SPRITE_NAME_QUERY)
-                self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.SPRITE_NAME_QUERY)
-                self.curtain.go_to_invisible()
-            elif self.selected_choice_after_add_sprites_state == (self.redo_choice_after_add_sprites_state):
-                self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.ADD_SPRITES)
-                self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.ADD_SPRITES)
-                self.curtain.go_to_invisible()
-            elif self.selected_choice_after_add_sprites_state == (self.save_and_quit_choice_after_add_sprites_state):
-                self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.CLOSED_SCENE_CURTAIN)
-                self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.CLOSED_SCENE_CURTAIN)
-            elif self.selected_choice_after_add_sprites_state == (self.quit_choice_after_add_sprites_state):
-                self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.CLOSED_SCENE_CURTAIN)
-                self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.CLOSED_SCENE_CURTAIN)
-        elif self.state_machine_update.state == SpriteSheetJsonGenerator.State.CLOSING_SCENE_CURTAIN:
-            self.state_machine_update.change_state(SpriteSheetJsonGenerator.State.CLOSED_SCENE_CURTAIN)
-            self.state_machine_draw.change_state(SpriteSheetJsonGenerator.State.CLOSED_SCENE_CURTAIN)
+        state_actions: dict[Enum, Callable] = {
+            SpriteSheetJsonGenerator.State.OPENED_SCENE_CURTAIN: self._CURTAIN_OPENED_SCENE_CURTAIN,
+            SpriteSheetJsonGenerator.State.SPRITE_SHEET_PNG_PATH_QUERY: self._CURTAIN_SPRITE_SHEET_PNG_PATH_QUERY,
+            SpriteSheetJsonGenerator.State.SPRITE_SHEET_ROOM_MAP_BODY_COLOR_QUERY: self._CURTAIN_SPRITE_SHEET_ROOM_MAP_BODY_COLOR_QUERY,
+            SpriteSheetJsonGenerator.State.SPRITE_SHEET_ROOM_MAP_SUB_DIVISION_COLOR_QUERY: self._CURTAIN_SPRITE_SHEET_ROOM_MAP_SUB_DIVISION_COLOR_QUERY,
+            SpriteSheetJsonGenerator.State.SPRITE_SHEET_ROOM_MAP_BORDER_COLOR_QUERY: self._CURTAIN_SPRITE_SHEET_ROOM_MAP_BORDER_COLOR_QUERY,
+            SpriteSheetJsonGenerator.State.SPRITE_NAME_QUERY: self._CURTAIN_SPRITE_NAME_QUERY,
+            SpriteSheetJsonGenerator.State.SPRITE_LAYER_QUERY: self._CURTAIN_SPRITE_LAYER_QUERY,
+            SpriteSheetJsonGenerator.State.SPRITE_TYPE_QUERY: self._CURTAIN_SPRITE_TYPE_QUERY,
+            SpriteSheetJsonGenerator.State.SPRITE_TILE_TYPE_QUERY: self._CURTAIN_SPRITE_TILE_TYPE_QUERY,
+            SpriteSheetJsonGenerator.State.SPRITE_TILE_MIX_QUERY: self._CURTAIN_SPRITE_TILE_MIX_QUERY,
+            SpriteSheetJsonGenerator.State.ADD_OTHER_SPRITES: self._CURTAIN_ADD_OTHER_SPRITES,
+            SpriteSheetJsonGenerator.State.SAVE_QUIT_REDO_QUERY: self._CURTAIN_SAVE_QUIT_REDO_QUERY,
+            SpriteSheetJsonGenerator.State.CLOSING_SCENE_CURTAIN: self._CURTAIN_CLOSING_SCENE_CURTAIN,
+        }
+        handler = state_actions.get(self.state_machine_update.state)
+        if handler:
+            handler()
 
-    # Draw
+    ###########################
+    # CURTAIN CALLBACKS STATE #
+    ###########################
+    def _CURTAIN_OPENED_SCENE_CURTAIN(self) -> None:
+        self._change_update_and_draw_state_machine(SpriteSheetJsonGenerator.State.SPRITE_SHEET_PNG_PATH_QUERY)
+        self.curtain.go_to_invisible()
+
+    def _CURTAIN_SPRITE_SHEET_PNG_PATH_QUERY(self) -> None:
+        self._change_update_and_draw_state_machine(SpriteSheetJsonGenerator.State.SPRITE_SHEET_ROOM_MAP_BODY_COLOR_QUERY)
+        self.curtain.go_to_invisible()
+
+    def _CURTAIN_SPRITE_SHEET_ROOM_MAP_BODY_COLOR_QUERY(self) -> None:
+        self._change_update_and_draw_state_machine(SpriteSheetJsonGenerator.State.SPRITE_SHEET_ROOM_MAP_SUB_DIVISION_COLOR_QUERY)
+        self.curtain.go_to_invisible()
+
+    def _CURTAIN_SPRITE_SHEET_ROOM_MAP_SUB_DIVISION_COLOR_QUERY(self) -> None:
+        self._change_update_and_draw_state_machine(SpriteSheetJsonGenerator.State.SPRITE_SHEET_ROOM_MAP_BORDER_COLOR_QUERY)
+        self.curtain.go_to_invisible()
+
+    def _CURTAIN_SPRITE_SHEET_ROOM_MAP_BORDER_COLOR_QUERY(self) -> None:
+        self._change_update_and_draw_state_machine(SpriteSheetJsonGenerator.State.SPRITE_NAME_QUERY)
+        self.curtain.go_to_invisible()
+
+    def _CURTAIN_SPRITE_NAME_QUERY(self) -> None:
+        self._change_update_and_draw_state_machine(SpriteSheetJsonGenerator.State.SPRITE_LAYER_QUERY)
+        self.curtain.go_to_invisible()
+
+    def _CURTAIN_SPRITE_LAYER_QUERY(self) -> None:
+        self._change_update_and_draw_state_machine(SpriteSheetJsonGenerator.State.SPRITE_TYPE_QUERY)
+        self.curtain.go_to_invisible()
+
+    def _CURTAIN_SPRITE_TYPE_QUERY(self) -> None:
+        self._change_update_and_draw_state_machine(SpriteSheetJsonGenerator.State.SPRITE_TILE_TYPE_QUERY)
+        self.curtain.go_to_invisible()
+
+    def _CURTAIN_SPRITE_TILE_TYPE_QUERY(self) -> None:
+        self._change_update_and_draw_state_machine(SpriteSheetJsonGenerator.State.SPRITE_TILE_MIX_QUERY)
+        self.curtain.go_to_invisible()
+
+    def _CURTAIN_SPRITE_TILE_MIX_QUERY(self) -> None:
+        self._change_update_and_draw_state_machine(SpriteSheetJsonGenerator.State.ADD_SPRITES)
+        self.curtain.go_to_invisible()
+
+    def _CURTAIN_ADD_OTHER_SPRITES(self) -> None:
+        self._change_update_and_draw_state_machine(SpriteSheetJsonGenerator.State.SAVE_QUIT_REDO_QUERY)
+        self.curtain.go_to_invisible()
+
+    def _CURTAIN_SAVE_QUIT_REDO_QUERY(self) -> None:
+        if self.selected_choice_after_add_sprites_state == (self.save_and_redo_choice_after_add_sprites_state):
+            self._change_update_and_draw_state_machine(SpriteSheetJsonGenerator.State.SPRITE_NAME_QUERY)
+            self.curtain.go_to_invisible()
+        elif self.selected_choice_after_add_sprites_state == (self.redo_choice_after_add_sprites_state):
+            self._change_update_and_draw_state_machine(SpriteSheetJsonGenerator.State.ADD_SPRITES)
+            self.curtain.go_to_invisible()
+        elif self.selected_choice_after_add_sprites_state == (self.save_and_quit_choice_after_add_sprites_state):
+            self._change_update_and_draw_state_machine(SpriteSheetJsonGenerator.State.CLOSED_SCENE_CURTAIN)
+        elif self.selected_choice_after_add_sprites_state == (self.quit_choice_after_add_sprites_state):
+            self._change_update_and_draw_state_machine(SpriteSheetJsonGenerator.State.CLOSED_SCENE_CURTAIN)
+
+    def _CURTAIN_CLOSING_SCENE_CURTAIN(self) -> None:
+        self._change_update_and_draw_state_machine(SpriteSheetJsonGenerator.State.CLOSED_SCENE_CURTAIN)
+        self.curtain.go_to_invisible()
+
+    ########
+    # DRAW #
+    ########
     def draw(self) -> None:
         self.state_machine_draw.handle(0)
 
-    # Update
+    ##########
+    # UPDATE #
+    ##########
     def update(self, dt: int) -> None:
         # REMOVE IN BUILD
         self.game.debug_draw.add(
@@ -1308,14 +1105,15 @@ class SpriteSheetJsonGenerator:
             }
         )
 
-        # All states here can go to options
+        # All states here can go to options, update and draw options menu, stop my update
         if self.game_event_handler.is_pause_just_pressed:
-            # Update and draw options menu, stop my update
             self.game.set_is_options_menu_active(True)
 
         self.state_machine_update.handle(dt)
 
-    # Helpers
+    ###########
+    # HELPERS #
+    ###########
     def _draw_grid(self) -> None:
         blit_sequence = []
         for i in range(NATIVE_WIDTH_TU):
@@ -1386,3 +1184,102 @@ class SpriteSheetJsonGenerator:
             return None
         else:
             return -1
+
+    def _handle_query_input(self, accept_callback: Callable) -> None:
+        """
+        The query typing logic.
+        """
+        # Wait for curtain to be fully invisible
+        if self.curtain.is_done:
+            # Caught 1 key event this frame?
+            if self.game_event_handler.this_frame_event:
+                if self.game_event_handler.this_frame_event.type == pg.KEYDOWN:
+                    # Accept
+                    if self.game_event_handler.this_frame_event.key == pg.K_RETURN:
+                        accept_callback()
+                    # Delete
+                    elif self.game_event_handler.this_frame_event.key == pg.K_BACKSPACE:
+                        new_value = self.input_text[:-1]
+                        self._set_input_text(new_value)
+                        # Play text
+                        self.game_sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
+                    # Add
+                    else:
+                        new_value = self.input_text + self.game_event_handler.this_frame_event.unicode
+                        self._set_input_text(new_value)
+                        # Play text
+                        self.game_sound_manager.play_sound("text_1.ogg", 0, 0, 0)
+
+    def _update_camera_anchor_position_with_input(self, dt: int) -> None:
+        # If image is smaller than camera no need to move camera
+        if not self.is_sprite_smaller_than_camera:
+            # Camera movement
+            # Get direction_horizontal
+            direction_horizontal: int = self.game_event_handler.is_right_pressed - self.game_event_handler.is_left_pressed
+            # Update camera anchor position with direction and speed
+            self.camera_anchor_vector.x += direction_horizontal * self.camera_speed * dt
+            # Get direction_vertical
+            direction_vertical: int = self.game_event_handler.is_down_pressed - self.game_event_handler.is_up_pressed
+            # Update camera anchor position with direction and speed
+            self.camera_anchor_vector.y += direction_vertical * self.camera_speed * dt
+            # Lerp camera position to target camera anchor
+            self.camera.update(dt)
+
+    def _fill_selected_region_with_one(self) -> None:
+        # Iterate size to set 1
+        for world_mouse_tu_xi2 in range(self.combined_world_selected_tile_rect_width_tu):
+            for world_mouse_tu_yi2 in range(self.combined_world_selected_tile_rect_height_tu):
+                world_mouse_tu_x2 = self.combined_world_selected_tile_rect_x_tu + world_mouse_tu_xi2
+                world_mouse_tu_y2 = self.combined_world_selected_tile_rect_y_tu + world_mouse_tu_yi2
+                # Store each one in room_collision_map_list
+                self._set_tile_from_room_collision_map_list(
+                    world_mouse_tu_x2,
+                    world_mouse_tu_y2,
+                    1,
+                )
+                # Draw marker on sprite sheet
+                if self.sprite_sheet_surf is not None:
+                    self.sprite_sheet_surf.blit(
+                        self.selected_surf_marker,
+                        (
+                            world_mouse_tu_x2 * TILE_SIZE,
+                            world_mouse_tu_y2 * TILE_SIZE,
+                        ),
+                    )
+
+    def _update_local_with_user_state_input(self) -> None:
+        """
+        Prepare local to be saved.
+        """
+        # Add to list
+        self.local_sprites_list.append(
+            {
+                "sprite_name": self.sprite_name,
+                "sprite_layer": self.sprite_layer,
+                "sprite_tile_type": self.sprite_tile_type,
+                "sprite_type": self.sprite_type,
+                "sprite_is_tile_mix": self.sprite_is_tile_mix,
+                "width": int(self.combined_world_selected_tile_rect.width),
+                "height": int(self.combined_world_selected_tile_rect.height),
+                "x": int(self.combined_world_selected_tile_rect.x),
+                "y": int(self.combined_world_selected_tile_rect.y),
+            }
+        )
+        # Get file name
+        if self.sprite_sheet_png_path is not None:
+            sprite_sheet_png_path_obj = Path(self.sprite_sheet_png_path)
+            sprite_sheet_png_name = sprite_sheet_png_path_obj.name
+            self.local_sprite_json = {
+                "sprite_sheet_png_name": sprite_sheet_png_name,
+                "sprite_room_map_body_color": self.sprite_room_map_body_color,
+                "sprite_room_map_sub_division_color": self.sprite_room_map_sub_division_color,
+                "sprite_room_map_border_color": self.sprite_room_map_border_color,
+                "sprites_list": self.local_sprites_list,
+            }
+
+    def _change_update_and_draw_state_machine(self, value: Enum) -> None:
+        """
+        Update and change are the same, so use this to change both.
+        """
+        self.state_machine_update.change_state(value)
+        self.state_machine_draw.change_state(value)

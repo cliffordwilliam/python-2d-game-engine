@@ -122,6 +122,10 @@ class Curtain:
         Forces the alpha to jump to opaque.
         """
 
+        # In case this gets called again from outside
+        if self.is_done and self.direction == 1:
+            return
+
         self.is_done = True
         self.fade_counter = self.fade_duration
         self.remainder = 0
@@ -135,6 +139,10 @@ class Curtain:
         """
         Forces the alpha to jump to opaque.
         """
+
+        # In case this gets called again from outside
+        if self.is_done and self.direction == -1:
+            return
 
         self.is_done = True
         self.fade_counter = 0

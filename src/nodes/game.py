@@ -8,7 +8,6 @@ from actors.stage_1_colonnade import Stage1Colonnade
 from actors.stage_1_glow import Stage1Glow
 from actors.stage_1_pine_trees import Stage1PineTrees
 from actors.stage_1_sky import Stage1Sky
-from constants import create_paths_dict
 from constants import DEFAULT_SETTINGS_DICT
 from constants import JSONS_REPO_DIR_PATH
 from constants import JSONS_ROOMS_DIR_PATH
@@ -33,6 +32,7 @@ from scenes.room_json_generator import RoomJsonGenerator
 from scenes.sprite_sheet_json_generator import SpriteSheetJsonGenerator
 from scenes.title_screen import TitleScreen
 from typeguard import typechecked
+from utils import create_paths_dict
 
 
 @typechecked
@@ -202,25 +202,26 @@ class Game:
         # After POST / DELETE, update dynamic path dict
         self._update_dynamic_paths_dict()
 
+    # This does not use the general way to get dict, this way it is easy to know who mutates settings dict
     def overwriting_local_settings_dict(self, new_settings: dict) -> None:
         """
         Overwrite local settings dict, need exact same shape.
         """
 
         # Ensure that all required keys are present
-        for key in DEFAULT_SETTINGS_DICT:
+        for key in self.local_settings_dict:
             if key not in new_settings:
                 raise KeyError(f"Missing required key: '{key}'")
 
         # Ensure that no extra keys are present
         for key in new_settings:
-            if key not in DEFAULT_SETTINGS_DICT:
+            if key not in self.local_settings_dict:
                 raise KeyError(f"Invalid key: '{key}'")
 
         # Ensure that the new dictionary has valid values
         for key, value in new_settings.items():
-            # Get the expected type from DEFAULT_SETTINGS_DICT
-            expected_type = type(DEFAULT_SETTINGS_DICT[key])
+            # Get the expected type from self.local_settings_dict
+            expected_type = type(self.local_settings_dict[key])
 
             # Check if the value matches the expected type
             if not isinstance(value, expected_type):
@@ -237,12 +238,12 @@ class Game:
         Set a value to local settings dict. Need to be same type.
         """
 
-        # Check if the key exists in the DEFAULT_SETTINGS_DICT
-        if key not in DEFAULT_SETTINGS_DICT:
+        # Check if the key exists in the self.local_settings_dict
+        if key not in self.local_settings_dict:
             raise KeyError(f"Invalid key: '{key}'")
 
-        # Get the expected type from DEFAULT_SETTINGS_DICT
-        expected_type = type(DEFAULT_SETTINGS_DICT[key])
+        # Get the expected type from self.local_settings_dict
+        expected_type = type(self.local_settings_dict[key])
 
         # Check if the value matches the expected type
         if not isinstance(value, expected_type):
@@ -259,8 +260,8 @@ class Game:
         Get a value from local settings dict.
         """
 
-        # Check if the key exists in the DEFAULT_SETTINGS_DICT
-        if key not in DEFAULT_SETTINGS_DICT:
+        # Check if the key exists in the self.local_settings_dict
+        if key not in self.local_settings_dict:
             raise KeyError(f"Invalid key: '{key}'")
 
         # Return the value for the key
