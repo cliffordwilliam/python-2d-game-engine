@@ -43,6 +43,7 @@ if TYPE_CHECKING:
 
 @typechecked
 class RoomJsonGenerator:
+    # Implement Quadtree, fire animation first
     SLOW_FADE_DURATION = 1000.0
     FAST_FADE_DURATION = 250.0
 

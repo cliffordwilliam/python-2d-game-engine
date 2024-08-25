@@ -944,16 +944,7 @@ class SpriteSheetJsonGenerator:
         self._set_prompt_text("does the tile mix (y/n)?")
 
     def _SPRITE_TILE_MIX_QUERY_to_ADD_SPRITES(self) -> None:
-        # Empty the selected tile
-        self.first_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
-        self.second_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
-        self.combined_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
-        self.screen_combined_world_selected_tile_rect_x = 0.0
-        self.screen_combined_world_selected_tile_rect_y = 0.0
-        self.combined_world_selected_tile_rect_width_tu = 0
-        self.combined_world_selected_tile_rect_height_tu = 0
-        self.combined_world_selected_tile_rect_x_tu = 0
-        self.combined_world_selected_tile_rect_y_tu = 0
+        self._empty_selected_sprite()
 
     def _ADD_SPRITES_to_ADD_OTHER_SPRITES(self) -> None:
         pass
@@ -971,16 +962,7 @@ class SpriteSheetJsonGenerator:
         self._set_prompt_text("type the sprite name,")
 
     def _SAVE_QUIT_REDO_QUERY_to_ADD_SPRITES(self) -> None:
-        # Empty the selected tile
-        self.first_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
-        self.second_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
-        self.combined_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
-        self.screen_combined_world_selected_tile_rect_x = 0.0
-        self.screen_combined_world_selected_tile_rect_y = 0.0
-        self.combined_world_selected_tile_rect_width_tu = 0
-        self.combined_world_selected_tile_rect_height_tu = 0
-        self.combined_world_selected_tile_rect_x_tu = 0
-        self.combined_world_selected_tile_rect_y_tu = 0
+        self._empty_selected_sprite()
 
     def _CLOSING_SCENE_CURTAIN_to_CLOSED_SCENE_CURTAIN(self) -> None:
         NATIVE_SURF.fill("black")
@@ -1114,6 +1096,17 @@ class SpriteSheetJsonGenerator:
     ###########
     # HELPERS #
     ###########
+    def _empty_selected_sprite(self) -> None:
+        self.first_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
+        self.second_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
+        self.combined_world_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
+        self.screen_combined_world_selected_tile_rect_x = 0.0
+        self.screen_combined_world_selected_tile_rect_y = 0.0
+        self.combined_world_selected_tile_rect_width_tu = 0
+        self.combined_world_selected_tile_rect_height_tu = 0
+        self.combined_world_selected_tile_rect_x_tu = 0
+        self.combined_world_selected_tile_rect_y_tu = 0
+
     def _draw_grid(self) -> None:
         blit_sequence = []
         for i in range(NATIVE_WIDTH_TU):
