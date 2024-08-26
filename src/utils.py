@@ -116,6 +116,7 @@ def get_one_target_dict_value(key: str, target_dict: dict) -> Any:
 
     # Check if the key exists in the target_dict
     if key not in target_dict:
+        # TODO: Do not crash the app, return None
         raise KeyError(f"Invalid key: '{key}'")
 
     # Return the value for the key

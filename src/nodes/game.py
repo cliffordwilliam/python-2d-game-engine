@@ -8,6 +8,7 @@ from actors.stage_1_colonnade import Stage1Colonnade
 from actors.stage_1_glow import Stage1Glow
 from actors.stage_1_pine_trees import Stage1PineTrees
 from actors.stage_1_sky import Stage1Sky
+from actors.thin_fire import ThinFire
 from constants import DEFAULT_SETTINGS_DICT
 from constants import JSONS_REPO_DIR_PATH
 from constants import JSONS_ROOMS_DIR_PATH
@@ -78,15 +79,19 @@ class Game:
         # Map actor memory to stage sprite sheet name
         self.stage_actors: dict[str, dict[str, Any]] = {
             "stage_1_sprite_sheet.png": {
-                "Fire": CreatedBySplashScreen,
+                "ThinFire": ThinFire,
             }
         }
 
         # Map sprite sheet names to stage sprite sheet name
-        self.stage_surf_names: dict[str, dict[str, str]] = {"stage_1_sprite_sheet.png": {"Fire": "thin_fire_sprite_sheet.png"}}
+        self.stage_surf_names: dict[str, dict[str, str]] = {
+            "stage_1_sprite_sheet.png": {"ThinFire": "thin_fire_sprite_sheet.png"}
+        }
 
         # Map sprite animation json names to stage sprite sheet name
-        self.stage_animation_jsons: dict[str, dict[str, str]] = {"stage_1_sprite_sheet.png": {"Fire": "thin_fire_animation.json"}}
+        self.stage_animation_jsons: dict[str, dict[str, str]] = {
+            "stage_1_sprite_sheet.png": {"ThinFire": "thin_fire_animation.json"}
+        }
 
         # Map parallax memory to stage sprite sheet name
         self.stage_parallax_background_memory_dict: dict[str, dict[str, Any]] = {
