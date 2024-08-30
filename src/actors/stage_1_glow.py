@@ -1,7 +1,6 @@
 from typing import TYPE_CHECKING
 
 from constants import NATIVE_HEIGHT
-from constants import NATIVE_SURF
 from constants import NATIVE_WIDTH
 from constants import NATIVE_WIDTH_TU
 from constants import pg
@@ -68,12 +67,21 @@ class Stage1Glow:
                 self.sprite_region,
             )
 
-    def draw(self) -> None:
+    def draw(
+        self, blit_sequence: list[tuple[pg.Surface, tuple[float, float]]]
+    ) -> list[
+        # List of tuples. Tuple -> (surf, tuple coord)
+        tuple[pg.Surface, tuple[float, float]]
+    ]:
         # Bottom Right
-        NATIVE_SURF.blit(
-            self.surf,
+        blit_sequence.append(
             (
-                0,
-                0,
-            ),
+                self.surf,
+                (
+                    0,
+                    0,
+                ),
+            )
         )
+
+        return blit_sequence

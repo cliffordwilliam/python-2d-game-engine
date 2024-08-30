@@ -159,13 +159,13 @@ All names should be snake case no matter what, this makes it so that the data na
 
 ## Todo
 
-- [ ] Find ways on how to save json to anyone computer for saving and loading feature.
-- [ ] Create an editor to generate jsons for animation data.
+- [x] Find ways on how to save json to anyone computer for saving and loading feature.
+- [x] Create an editor to generate jsons for animation data.
 - [ ] Create the main menu flow, from splash, title, main menu, settings, load and save screen then game.
 - [ ] Be able to save and load at any room in World scene.
 - [x] Find ways to make type safety a thing here. Check below on how I did it.
 - [ ] Update the doc svg, Reason for change is because I cannot import everything at the constants, import when it is needed only. Like Vector and so on.
-- [ ] In the main menu, add options to go to level editor or animation editor and so on.
+- [x] In the main menu, add options to go to level editor or animation editor and so on.
 - [ ] Always recheck if the typing are all complete in every file.
 - [ ] Check if each file has its own doc section in documention.md, make sure that it reflects the code as is too.
 - [ ] Always read if there are any more TODO.

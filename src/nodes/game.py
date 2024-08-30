@@ -48,7 +48,7 @@ class Game:
         # Prepare local settings with default settings
         self.local_settings_dict: dict[str, int] = DEFAULT_SETTINGS_DICT
 
-        # Dynamic paths dict (for player save data slot, room json metadata, animation json metadata, ...)
+        # Dynamic paths dict (for player save data slot, room JSON metadata, animation JSON metadata, ...)
         self.jsons_user_pahts_dict: dict[str, str] = create_paths_dict(JSONS_USER_DIR_PATH)
         self.jsons_repo_pahts_dict: dict[str, str] = create_paths_dict(JSONS_REPO_DIR_PATH)
         self.jsons_repo_rooms_pahts_dict: dict[str, str] = create_paths_dict(JSONS_ROOMS_DIR_PATH)
@@ -83,25 +83,31 @@ class Game:
             self.sound_manager.load_sound(ogg_name, ogg_path)
 
         # Map actor memory to stage sprite sheet name
-        # TODO: Make this dedicated to static actors only
-        self.stage_actors: dict[str, dict[str, Any]] = {
+        self.sprite_sheet_static_actor_mems_dict: dict[str, dict[str, Any]] = {
             "stage_1_sprite_sheet.png": {
+                # Static actor name : static actor mem
                 "ThinFire": ThinFire,
             }
         }
 
         # Map sprite sheet names to stage sprite sheet name
-        self.stage_surf_names: dict[str, dict[str, str]] = {
-            "stage_1_sprite_sheet.png": {"ThinFire": "thin_fire_sprite_sheet.png"}
+        self.sprite_sheet_static_actor_surfs_dict: dict[str, dict[str, str]] = {
+            "stage_1_sprite_sheet.png": {
+                # Static actor name : static actor surf name
+                "ThinFire": "thin_fire_sprite_sheet.png"
+            }
         }
 
-        # Map sprite animation json names to stage sprite sheet name
-        self.stage_animation_jsons: dict[str, dict[str, str]] = {
-            "stage_1_sprite_sheet.png": {"ThinFire": "thin_fire_animation.json"}
+        # Map sprite animation JSON names to stage sprite sheet name
+        self.sprite_sheet_static_actor_jsons_dict: dict[str, dict[str, str]] = {
+            "stage_1_sprite_sheet.png": {
+                # Static actor name : static actor JSON name
+                "ThinFire": "thin_fire_animation.json"
+            }
         }
 
         # Map parallax memory to stage sprite sheet name
-        self.stage_parallax_background_memory_dict: dict[str, dict[str, Any]] = {
+        self.sprite_sheet_parallax_background_mems_dict: dict[str, dict[str, Any]] = {
             "stage_1_sprite_sheet.png": {
                 "clouds": Stage1Clouds,
                 "colonnade": Stage1Colonnade,
@@ -138,7 +144,7 @@ class Game:
         self.jsons_repo_rooms_pahts_dict = create_paths_dict(JSONS_ROOMS_DIR_PATH)
 
     # Abilities
-    def get_sprite_sheet_actor_jsons_dict(self, stage_sprite_sheet_name: str) -> dict[str, dict[str, AnimationMetadata]]:
+    def get_sprite_sheet_static_actor_jsons_dict(self, stage_sprite_sheet_name: str) -> dict[str, dict[str, AnimationMetadata]]:
         """
         Surfs are binded to their stages.
         Pass the stage sprite sheet name to get its surfs.
@@ -146,7 +152,7 @@ class Game:
         It is easy to read this way.
         """
 
-        data = get_one_target_dict_value(stage_sprite_sheet_name, self.stage_animation_jsons)
+        data = get_one_target_dict_value(stage_sprite_sheet_name, self.sprite_sheet_static_actor_jsons_dict)
         # Actor name, animation name, animation metadata
         out: dict[str, dict[str, AnimationMetadata]] = {}
         for actor_name, json_name in data.items():
@@ -156,7 +162,7 @@ class Game:
             out[actor_name] = instance_animation_metadata(data)
         return out
 
-    def get_sprite_sheet_actor_surfs_dict(self, stage_sprite_sheet_name: str) -> dict[str, pg.Surface]:
+    def get_sprite_sheet_static_actor_surfs_dict(self, stage_sprite_sheet_name: str) -> dict[str, pg.Surface]:
         """
         Surfs are binded to their stages.
         Pass the stage sprite sheet name to get its surfs.
@@ -164,7 +170,7 @@ class Game:
         It is easy to read this way.
         """
 
-        data = get_one_target_dict_value(stage_sprite_sheet_name, self.stage_surf_names)
+        data = get_one_target_dict_value(stage_sprite_sheet_name, self.sprite_sheet_static_actor_surfs_dict)
         out: dict[str, Any] = {}
         for actor_name, surf_name in data.items():
             out[actor_name] = pg.image.load(get_one_target_dict_value(surf_name, PNGS_PATHS_DICT)).convert_alpha()
@@ -178,9 +184,9 @@ class Game:
         It is easy to read this way.
         """
 
-        return get_one_target_dict_value(stage_sprite_sheet_name, self.stage_parallax_background_memory_dict)
+        return get_one_target_dict_value(stage_sprite_sheet_name, self.sprite_sheet_parallax_background_mems_dict)
 
-    def get_sprite_sheet_actor_mems_dict(self, stage_sprite_sheet_name: str) -> dict[str, Any]:
+    def get_sprite_sheet_static_actor_mems_dict(self, stage_sprite_sheet_name: str) -> dict[str, Any]:
         """
         Actors are binded to their stages.
         Pass the stage sprite sheet name to get its actors mem.
@@ -188,7 +194,7 @@ class Game:
         It is easy to read this way.
         """
 
-        return get_one_target_dict_value(stage_sprite_sheet_name, self.stage_actors)
+        return get_one_target_dict_value(stage_sprite_sheet_name, self.sprite_sheet_static_actor_mems_dict)
 
     def GET_or_POST_settings_json_from_disk(self) -> None:
         """

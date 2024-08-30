@@ -1,7 +1,6 @@
 from typing import TYPE_CHECKING
 
 from constants import NATIVE_HEIGHT
-from constants import NATIVE_SURF
 from constants import NATIVE_WIDTH
 from constants import pg
 from typeguard import typechecked
@@ -85,9 +84,12 @@ class Stage1PineTrees:
             self.sprite_region,
         )
 
-    def draw(self) -> None:
-        blit_sequence = []
-
+    def draw(
+        self, blit_sequence: list[tuple[pg.Surface, tuple[float, float]]]
+    ) -> list[
+        # List of tuples. Tuple -> (surf, tuple coord)
+        tuple[pg.Surface, tuple[float, float]]
+    ]:
         x = (-self.camera.rect.x * self.draw_scale_x) % NATIVE_WIDTH
 
         # Bottom Right
@@ -111,4 +113,4 @@ class Stage1PineTrees:
             )
         )
 
-        NATIVE_SURF.fblits(blit_sequence)
+        return blit_sequence

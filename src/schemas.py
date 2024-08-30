@@ -130,7 +130,7 @@ SPRITE_SHEET_METADATA_SCHEMA = {
     "additionalProperties": False,
 }
 
-SPRITE_SHEET_SPRITES_LIST = {
+SPRITE_METADATA_SCHEMA = {
     "type": "object",
     "properties": {
         "sprite_name": {"type": "string"},
@@ -207,6 +207,25 @@ def instance_sprite_sheet_metadata(data: dict) -> SpriteSheetMetadata:
     )
 
 
+def instance_sprite_metadata(data: dict) -> SpriteMetadata:
+    # Validate first
+    if not validate_json(data, SPRITE_METADATA_SCHEMA):
+        raise ValueError("Invalid sprite JSON against schema")
+
+    # If safe then create instance
+    return SpriteMetadata(
+        sprite_name=data["sprite_name"],
+        sprite_layer=data["sprite_layer"],
+        sprite_tile_type=data["sprite_tile_type"],
+        sprite_type=data["sprite_type"],
+        sprite_is_tile_mix=data["sprite_is_tile_mix"],
+        width=data["width"],
+        height=data["height"],
+        x=data["x"],
+        y=data["y"],
+    )
+
+
 SETTINGS_SCHEMA = {
     "type": "object",
     "properties": {
@@ -243,6 +262,85 @@ SETTINGS_SCHEMA = {
     ],
     "additionalProperties": False,
 }
+
+
+NONE_OR_BLOB_SPRITE_METADATA_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "name": {"type": "string"},
+        "x": {"type": "integer", "minimum": 0},
+        "y": {"type": "integer", "minimum": 0},
+        "region_x": {"type": "integer", "minimum": 0},
+        "region_y": {"type": "integer", "minimum": 0},
+    },
+    "required": [
+        "name",
+        "x",
+        "y",
+        "region_x",
+        "region_y",
+    ],
+}
+
+
+@dataclass
+class NoneOrBlobSpriteMetadata:
+    name: str
+    x: int
+    y: int
+    region_x: int
+    region_y: int
+
+
+def instance_none_or_blob_sprite_metadata(data: dict) -> NoneOrBlobSpriteMetadata:
+    # Validate first
+    if not validate_json(data, NONE_OR_BLOB_SPRITE_METADATA_SCHEMA):
+        raise ValueError("Invalid sprite JSON against schema")
+
+    # If safe then create instance
+    return NoneOrBlobSpriteMetadata(
+        name=data["name"],
+        x=data["x"],
+        y=data["y"],
+        region_x=data["region_x"],
+        region_y=data["region_y"],
+    )
+
+
+# Used for the adjacent tile output shape only
+ADJACENT_TILE_METADATA_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "tile": {"type": "string"},
+        "world_tu_x": {"type": "integer", "minimum": 0},
+        "world_tu_y": {"type": "integer", "minimum": 0},
+    },
+    "required": [
+        "tile",
+        "world_tu_x",
+        "world_tu_y",
+    ],
+}
+
+
+@dataclass
+class AdjacentTileMetadata:
+    tile: str
+    world_tu_x: int
+    world_tu_y: int
+
+
+def instance_adjacent_tile_metadata(data: dict) -> AdjacentTileMetadata:
+    # Validate first
+    if not validate_json(data, ADJACENT_TILE_METADATA_SCHEMA):
+        raise ValueError("Invalid sprite JSON against schema")
+
+    # If safe then create instance
+    return AdjacentTileMetadata(
+        tile=data["tile"],
+        world_tu_x=data["world_tu_x"],
+        world_tu_y=data["world_tu_y"],
+    )
 
 
 def validate_json(data: dict, schema: Any) -> bool:

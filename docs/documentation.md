@@ -1,6 +1,6 @@
 # My Notes
 
-The following is a diagram showing how the nodes work together. TODO: Update this drawing.
+The following is a diagram showing how the nodes work together. TODO: Update this svg attachment.
 
 ![Alt text](svgs/python-2d-game-engine.drawio.svg "Game engine flow")
 

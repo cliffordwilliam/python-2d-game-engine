@@ -131,7 +131,7 @@ class AnimationJsonGenerator:
         self.sprite_sheet_surf: (None | pg.Surface) = None
         self.sprite_sheet_rect: (None | pg.Rect) = None
 
-        # To be saved json
+        # To be saved JSON
         self.local_animation_json: dict = {}
         self.local_animation_sprites_list: list = []
 
@@ -703,7 +703,7 @@ class AnimationJsonGenerator:
                 # 1 = Save and quit
                 if self.selected_choice_after_add_sprites_state == self.save_and_quit_choice_after_add_sprites_state:
                     self._update_local_with_user_state_input()
-                    # Validate the json before write to disk
+                    # Validate the JSON before write to disk
                     if not validate_json(self.local_animation_json, ANIMATION_SCHEMA):
                         raise ValueError("Invalid animation json against schema")
                     self.game.POST_file_to_disk_dynamic_path(

@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 @typechecked
 class ThinFire:
     """
-    TODO
+    TODO: write doc for this actor
     """
 
     def __init__(

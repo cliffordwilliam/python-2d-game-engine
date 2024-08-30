@@ -136,7 +136,7 @@ class SpriteSheetJsonGenerator:
         self.sprite_sheet_surf: (None | pg.Surface) = None
         self.sprite_sheet_rect: (None | pg.Rect) = None
 
-        # To be saved json
+        # To be saved JSON
         self.local_sprite_json: dict = {}
         self.local_sprites_list: list = []
 
@@ -850,7 +850,7 @@ class SpriteSheetJsonGenerator:
                 if self.selected_choice_after_add_sprites_state == self.save_and_quit_choice_after_add_sprites_state:
                     self._fill_selected_region_with_one()
                     self._update_local_with_user_state_input()
-                    # Validate the json before write to disk
+                    # Validate the JSON before write to disk
                     if not validate_json(self.local_sprite_json, SPRITE_SHEET_METADATA_SCHEMA):
                         raise ValueError("Invalid sprite sheet json against schema")
                     self.game.POST_file_to_disk_dynamic_path(
