@@ -36,7 +36,12 @@ from nodes.state_machine import StateMachine
 from nodes.timer import Timer
 from pygame.math import clamp
 from pygame.math import Vector2
+from schemas import AnimationMetadata
+from schemas import instance_sprite_sheet_metadata
+from schemas import SPRITE_SHEET_METADATA_SCHEMA
+from schemas import SpriteMetadata
 from typeguard import typechecked
+from utils import get_one_target_dict_value
 
 if TYPE_CHECKING:
     from nodes.game import Game
@@ -94,7 +99,12 @@ class RoomJsonGenerator:
     ##########
     def _setup_reformat_sprite_sheet_json_metadata(self) -> None:
         """Click button to update key name, used to access the values here."""
-        self.reformat_sprite_sheet_json_metadata: dict = {}
+        self.SPRITE_NAME_TO_SPRITE_METADATA_SCHEMA = {
+            "type": "object",
+            "patternProperties": {"^[a-zA-Z0-9_]+$": SPRITE_SHEET_METADATA_SCHEMA},
+            "additionalProperties": False,
+        }
+        self.sprite_name_to_sprite_metadata: dict[str, SpriteMetadata] = {}
 
     def _setup_pallete(self) -> None:
         """For opaque curtain to know where to go next."""
@@ -166,11 +176,15 @@ class RoomJsonGenerator:
         self.sprite_sheet_png_name: (None | str) = None
         self.sprite_sheet_surf: (None | pg.Surface) = None
 
-        # Sprite sheet binded actors and surfs
-        self.sprite_sheet_actors_dict: dict = {}
-        self.sprite_sheet_surfs: dict = {}
-        self.sprite_sheet_animation_jsons: dict[str, dict] = {}
-        self.sprite_sheet_parallax_background_memory: dict[str, Any] = {}
+        # Sprite sheet binded actor mems, json and surfs
+        self.sprite_sheet_static_actor_mems_dict: dict[str, Any] = {}
+        self.sprite_sheet_static_actor_surfs_dict: dict[str, pg.Surface] = {}
+        self.sprite_sheet_static_actor_jsons_dict: dict[
+            str, dict[str, AnimationMetadata]
+        ] = {}  # Actor name, animation name, animation meta
+
+        # Sprite sheet binded parallax background mems
+        self.sprite_sheet_parallax_background_mems_dict: dict[str, Any] = {}
 
         # Parallax drawing layer data
         self.parallax_background_instances_list: list = []
@@ -193,13 +207,13 @@ class RoomJsonGenerator:
         self.foreground_collision_map_list: list[list[Any]] = []
 
         # Pre render static background surf
-        self.pre_render_static_background: pg.Surface = pg.Surface((self.room_width, self.room_height))
-        self.pre_render_static_background.set_colorkey("red")
-        self.pre_render_static_background.fill("red")
+        self.pre_render_static_background_surf: pg.Surface = pg.Surface((self.room_width, self.room_height))
+        self.pre_render_static_background_surf.set_colorkey("red")
+        self.pre_render_static_background_surf.fill("red")
         # Pre render solid and foreground surf
-        self.pre_render_solid_foreground: pg.Surface = pg.Surface((self.room_width, self.room_height))
-        self.pre_render_solid_foreground.set_colorkey("red")
-        self.pre_render_solid_foreground.fill("red")
+        self.pre_render_solid_foreground_surf: pg.Surface = pg.Surface((self.room_width, self.room_height))
+        self.pre_render_solid_foreground_surf.set_colorkey("red")
+        self.pre_render_solid_foreground_surf.fill("red")
 
         # To be saved json, file name is room name
         self.file_name: str = ""
@@ -444,7 +458,7 @@ class RoomJsonGenerator:
 
         # Draw the pre render static background
         NATIVE_SURF.blit(
-            self.pre_render_static_background,
+            self.pre_render_static_background_surf,
             (
                 -self.camera.rect.x,
                 -self.camera.rect.y,
@@ -458,7 +472,7 @@ class RoomJsonGenerator:
 
         # Draw the pre render solid foreground
         NATIVE_SURF.blit(
-            self.pre_render_solid_foreground,
+            self.pre_render_solid_foreground_surf,
             (
                 -self.camera.rect.x,
                 -self.camera.rect.y,
@@ -740,189 +754,227 @@ class RoomJsonGenerator:
         # Accept logic
         def _accept_callback() -> None:
             if exists(self.input_text) and self.input_text.endswith(".json"):
-                # GET from disk, Get the sprite sheet metadata
+                # GET from disk, sprite sheet json metadata
                 data: dict = self.game.GET_file_from_disk_dynamic_path(self.input_text)
 
-                # Get sprite sheet name and surf
-                self.sprite_sheet_png_name = data["sprite_sheet_png_name"]
-                if self.sprite_sheet_png_name is not None:
-                    self.sprite_sheet_surf = pg.image.load(PNGS_PATHS_DICT[self.sprite_sheet_png_name]).convert_alpha()
+                # Turn into sprite sheet metadata instance
+                sprite_sheet_metadata_instance = instance_sprite_sheet_metadata(data)
 
-                    # Get the background and actors with sprite_sheet_png_name key
-                    # Animation jsons data and surfs for this sprite sheet
-                    self.sprite_sheet_actors_dict = self.game.stage_actors[self.sprite_sheet_png_name]
-                    # Replace str value with actual surface
-                    temp_dict = self.game.stage_surf_names[self.sprite_sheet_png_name]
-                    for static_actor_name, static_actor_surf_name in temp_dict.items():
-                        self.sprite_sheet_surfs[static_actor_name] = pg.image.load(
-                            PNGS_PATHS_DICT[static_actor_surf_name]
-                        ).convert_alpha()
-                    # Replace str value with actual json
-                    temp_dict = self.game.stage_animation_jsons[self.sprite_sheet_png_name]
-                    for static_actor_name, static_actor_json_name in temp_dict.items():
-                        self.sprite_sheet_animation_jsons[static_actor_name] = self.game.GET_file_from_disk_dynamic_path(
-                            self.game.jsons_repo_pahts_dict[static_actor_json_name]
-                        )
+                # Get sprite sheet name
+                self.sprite_sheet_png_name = sprite_sheet_metadata_instance.sprite_sheet_png_name
 
-                    # Prepare button list
-                    buttons: list[Button] = []
+                # Make sure name is not null
+                if self.sprite_sheet_png_name is None:
+                    raise ValueError("sprite sheet png name is None")
 
-                    # Iterate each sprite metadata
-                    for object in data["sprites_list"]:
-                        # Reformat to key sprite names and its data as values
-                        self.reformat_sprite_sheet_json_metadata[object["sprite_name"]] = object
+                # Use name as key to get the full path to resource
+                existing_path: str = get_one_target_dict_value(self.sprite_sheet_png_name, PNGS_PATHS_DICT)
+                # Use full path -> load sprite sheet surf
+                self.sprite_sheet_surf = pg.image.load(existing_path).convert_alpha()
 
-                        # Populate the pallete button
-                        button: Button = Button(
-                            surf_size_tuple=(264, 19),
-                            topleft=(29, 14),
-                            text=object["sprite_name"],
-                            text_topleft=(53, 2),
-                            description_text=object["sprite_type"],
-                        )
-                        # Create subsurf
-                        subsurf: pg.Surface = self.sprite_sheet_surf.subsurface(
-                            (
-                                object["x"],
-                                object["y"],
-                                object["width"],
-                                object["height"],
-                            )
-                        )
-                        # Create base subsurf
-                        base_subsurf_width: int = 49
-                        base_subsurf_height: int = 19
-                        base_subsurf: pg.Surface = pg.Surface((base_subsurf_width, base_subsurf_height))
-                        base_subsurf.fill(self.clear_color)
-                        scaled_height: float = base_subsurf_width * object["height"] / object["width"]
-                        # Scale so width is 49
-                        subsurf = pg.transform.scale(subsurf, (base_subsurf_width, scaled_height))
-                        y_diff: float = scaled_height - base_subsurf_height
-                        base_subsurf.blit(subsurf, (0, -y_diff / 2))
-                        button.draw_extra_surf_on_surf(base_subsurf, (1, 0))
-                        buttons.append(button)
+                # Get stage binded actor data
+                self.sprite_sheet_static_actor_mems_dict = self.game.get_sprite_sheet_actor_mems_dict(self.sprite_sheet_png_name)
+                self.sprite_sheet_static_actor_surfs_dict = self.game.get_sprite_sheet_actor_surfs_dict(
+                    self.sprite_sheet_png_name
+                )
+                self.sprite_sheet_static_actor_jsons_dict = self.game.get_sprite_sheet_actor_jsons_dict(
+                    self.sprite_sheet_png_name
+                )
+                self.sprite_sheet_parallax_background_mems_dict = self.game.get_sprite_sheet_parallax_mems_dict(
+                    self.sprite_sheet_png_name
+                )
 
-                        # Init parallax background
-                        if object["sprite_type"] == "parallax_background":
-                            # Init the instance container
-                            self.parallax_background_instances_list.append(None)
+                # Prepare button list to feed button container
+                buttons: list[Button] = []
 
-                        # Init static background
-                        if object["sprite_type"] == "static_background":
-                            # Count static background total layers
-                            if self.static_background_layers < object["sprite_layer"]:
-                                self.static_background_layers = object["sprite_layer"]
-
-                        # Init foreground
-                        if object["sprite_type"] == "foreground":
-                            # Count foreground total layers
-                            if self.foreground_layers < object["sprite_layer"]:
-                                self.foreground_layers = object["sprite_layer"]
-
-                    # Static background layers total is ready here, populate
-                    # Init collision map for each static background layers
-                    for _ in range(self.static_background_layers):
-                        self.static_background_collision_map_list.append(
-                            [0 for _ in range(self.room_width_tu * self.room_height_tu)],
-                        )
-
-                    # Init collision map for solid layer
-                    self.static_actor_instances_list = [0 for _ in range(self.room_width_tu * self.room_height_tu)]
-
-                    # Init collision map for static actor
-                    self.solid_collision_map_list = [0 for _ in range(self.room_width_tu * self.room_height_tu)]
-
-                    # Foreground layers total is ready here, populate
-                    # Init collision map for each foreground layers
-                    for _ in range(self.foreground_layers):
-                        self.foreground_collision_map_list.append(
-                            [0 for _ in range(self.room_width_tu * self.room_height_tu)],
-                        )
-
-                    # Init pre render static background
-                    self.pre_render_static_background = pg.Surface((self.room_width, self.room_height))
-                    self.pre_render_static_background.set_colorkey("red")
-                    self.pre_render_static_background.fill("red")
-                    # Init pre render solid and foreground
-                    self.pre_render_solid_foreground = pg.Surface((self.room_width, self.room_height))
-                    self.pre_render_solid_foreground.set_colorkey("red")
-                    self.pre_render_solid_foreground.fill("red")
-
-                    # Add static actor to buttons list
-                    for static_actor_name in self.sprite_sheet_surfs:
-                        # Get static actor metadata
-                        static_actor_surf: pg.Surface = self.sprite_sheet_surfs[static_actor_name]
-                        static_actor_json: dict = self.sprite_sheet_animation_jsons[static_actor_name]
-                        static_actor_first_animation: str = list(static_actor_json.keys())[0]
-                        static_actor_width: int = static_actor_json[static_actor_first_animation]["animation_sprite_width"]
-                        static_actor_height: int = static_actor_json[static_actor_first_animation]["animation_sprite_height"]
-                        # Add this to reformat sprite sheet json metadata, same format from sprite sheet json
-                        self.reformat_sprite_sheet_json_metadata[static_actor_name] = {
-                            "sprite_name": static_actor_name,
-                            "sprite_layer": 1,
-                            "sprite_tile_type": "none",
-                            "sprite_type": "static_actor",
-                            "sprite_is_tile_mix": 0,
-                            "width": static_actor_width,
-                            "height": static_actor_height,
-                            "x": 0,
-                            "y": 0,
-                        }
-                        # Populate the pallete button
-                        button = Button(
-                            surf_size_tuple=(264, 19),
-                            topleft=(29, 14),
-                            text=static_actor_name,
-                            text_topleft=(53, 2),
-                            description_text="static_actor",
-                        )
-                        # Create subsurf
-                        subsurf = static_actor_surf.subsurface(
-                            (
-                                0,
-                                0,
-                                static_actor_width,
-                                static_actor_height,
-                            )
-                        )
-                        # Create base subsurf
-                        base_subsurf_width = 49
-                        base_subsurf_height = 19
-                        base_subsurf = pg.Surface((base_subsurf_width, base_subsurf_height))
-                        base_subsurf.fill(self.clear_color)
-                        scaled_height = base_subsurf_width * object["height"] / object["width"]
-                        # Scale so width is 49
-                        subsurf = pg.transform.scale(subsurf, (base_subsurf_width, scaled_height))
-                        y_diff = scaled_height - base_subsurf_height
-                        base_subsurf.blit(subsurf, (0, -y_diff / 2))
-                        button.draw_extra_surf_on_surf(base_subsurf, (1, 0))
-                        buttons.append(button)
-
-                    # Init button container
-                    self.button_container = ButtonContainer(
-                        buttons=buttons,
-                        offset=0,
-                        limit=7,
-                        is_pagination=True,
-                        game_event_handler=self.game_event_handler,
-                        game_sound_manager=self.game.sound_manager,
+                # Iterate sprite metadata
+                for sprite_metadata_intance in sprite_sheet_metadata_instance.sprites_list:
+                    # TODO: validate this, and also cleanup the rest of the dict get, and schema
+                    # Populate the selected state to metadata dict. Key is sprite name, value is the sprite metadata
+                    # set_one_target_dict_value(
+                    #     sprite_metadata_intance.sprite_name,
+                    #     sprite_metadata_intance,
+                    #     self.sprite_name_to_sprite_metadata,
+                    #     self.SPRITE_NAME_TO_SPRITE_METADATA_SCHEMA,
+                    # )
+                    self.sprite_name_to_sprite_metadata[sprite_metadata_intance.sprite_name] = sprite_metadata_intance
+                    # Create button
+                    button: Button = Button(
+                        surf_size_tuple=(264, 19),
+                        topleft=(29, 14),
+                        text=sprite_metadata_intance.sprite_name,
+                        text_topleft=(53, 2),
+                        description_text=sprite_metadata_intance.sprite_type,
                     )
-                    self.button_container.add_event_listener(self.on_button_selected, ButtonContainer.BUTTON_SELECTED)
-                    # Init the selected name
-                    self.selected_sprite_name = buttons[0].text
-                    # Init the cursor size
-                    sprite_sheet_obj = self.reformat_sprite_sheet_json_metadata[self.selected_sprite_name]
-                    # None has size, blob is always autotile size 1 tile
-                    if sprite_sheet_obj["sprite_tile_type"] == "none":
-                        self.cursor_width = sprite_sheet_obj["width"]
-                        self.cursor_height = sprite_sheet_obj["height"]
-                        self.cursor_width_tu = self.cursor_width // TILE_SIZE
-                        self.cursor_height_tu = self.cursor_height // TILE_SIZE
-                    else:
-                        self.cursor_width = TILE_SIZE
-                        self.cursor_height = TILE_SIZE
-                        self.cursor_width_tu = 1
-                        self.cursor_height_tu = 1
+                    # Create button icon from sprite sheet surf with metadata region
+                    subsurf: pg.Surface = self.sprite_sheet_surf.subsurface(
+                        (
+                            sprite_metadata_intance.x,
+                            sprite_metadata_intance.y,
+                            sprite_metadata_intance.width,
+                            sprite_metadata_intance.height,
+                        )
+                    )
+                    button = self._create_button_icons(
+                        subsurf,
+                        sprite_metadata_intance.width,
+                        sprite_metadata_intance.height,
+                        button,
+                    )
+                    # Collect button
+                    buttons.append(button)
+
+                    # Init parallax background
+                    if sprite_metadata_intance.sprite_type == "parallax_background":
+                        # Pad parallax layer with None for every layer found
+                        self.parallax_background_instances_list.append(None)
+
+                    # Init static background
+                    if sprite_metadata_intance.sprite_type == "static_background":
+                        # Count total static background layers
+                        if self.static_background_layers < sprite_metadata_intance.sprite_layer:
+                            self.static_background_layers = sprite_metadata_intance.sprite_layer
+
+                    # Init foreground
+                    if sprite_metadata_intance.sprite_type == "foreground":
+                        # Count total foreground layers
+                        if self.foreground_layers < sprite_metadata_intance.sprite_layer:
+                            self.foreground_layers = sprite_metadata_intance.sprite_layer
+
+                # Total background and foreground layer count is ready here
+
+                # Init collision map for each static background layers
+                for _ in range(self.static_background_layers):
+                    self.static_background_collision_map_list.append(
+                        [0 for _ in range(self.room_width_tu * self.room_height_tu)],
+                    )
+
+                # Init collision map for solid layer
+                self.static_actor_instances_list = [0 for _ in range(self.room_width_tu * self.room_height_tu)]
+
+                # Init collision map for static actor
+                self.solid_collision_map_list = [0 for _ in range(self.room_width_tu * self.room_height_tu)]
+
+                # Init collision map for each foreground layers
+                for _ in range(self.foreground_layers):
+                    self.foreground_collision_map_list.append(
+                        [0 for _ in range(self.room_width_tu * self.room_height_tu)],
+                    )
+
+                # Init pre render static background surf
+                self.pre_render_static_background_surf = pg.Surface((self.room_width, self.room_height))
+                self.pre_render_static_background_surf.set_colorkey("red")
+                self.pre_render_static_background_surf.fill("red")
+                # Init pre render solid and foreground surf
+                self.pre_render_solid_foreground_surf = pg.Surface((self.room_width, self.room_height))
+                self.pre_render_solid_foreground_surf.set_colorkey("red")
+                self.pre_render_solid_foreground_surf.fill("red")
+
+                # Iterate binded sprite sheet actors names
+                for static_actor_name in self.sprite_sheet_static_actor_surfs_dict:
+                    # Use this iter name to get this iter surf and json
+
+                    # Get surf
+                    static_actor_surf: pg.Surface = get_one_target_dict_value(
+                        static_actor_name, self.sprite_sheet_static_actor_surfs_dict
+                    )
+
+                    # Get animation metadata instance
+                    static_actor_animation_name_to_animation_metadata_instance: dict[
+                        str, AnimationMetadata
+                    ] = get_one_target_dict_value(static_actor_name, self.sprite_sheet_static_actor_jsons_dict)
+                    # Unpack animation metadata instace
+                    static_actor_first_animation_name: str = list(
+                        static_actor_animation_name_to_animation_metadata_instance.keys()
+                    )[0]
+                    # Get the values for each animation name
+                    static_actor_first_animation_metadata: AnimationMetadata = get_one_target_dict_value(
+                        static_actor_first_animation_name, static_actor_animation_name_to_animation_metadata_instance
+                    )
+                    static_actor_width: int = static_actor_first_animation_metadata.animation_sprite_width
+                    static_actor_height: int = static_actor_first_animation_metadata.animation_sprite_height
+                    # Collect static actor to the selected state to metadata dict
+                    # set_one_target_dict_value(
+                    #     static_actor_name,
+                    #     SpriteMetadata(
+                    #         sprite_name=static_actor_name,
+                    #         sprite_layer=1,
+                    #         sprite_tile_type="none",
+                    #         sprite_type="static_actor",
+                    #         sprite_is_tile_mix=0,
+                    #         width=static_actor_width,
+                    #         height=static_actor_height,
+                    #         x=0,
+                    #         y=0,
+                    #     ),
+                    #     self.sprite_name_to_sprite_metadata,
+                    #     self.SPRITE_NAME_TO_SPRITE_METADATA_SCHEMA,
+                    # )
+                    self.sprite_name_to_sprite_metadata[static_actor_name] = SpriteMetadata(
+                        sprite_name=static_actor_name,
+                        sprite_layer=1,
+                        sprite_tile_type="none",
+                        sprite_type="static_actor",
+                        sprite_is_tile_mix=0,
+                        width=static_actor_width,
+                        height=static_actor_height,
+                        x=0,
+                        y=0,
+                    )
+                    # Create button
+                    button = Button(
+                        surf_size_tuple=(264, 19),
+                        topleft=(29, 14),
+                        text=static_actor_name,
+                        text_topleft=(53, 2),
+                        description_text="static_actor",
+                    )
+                    # Create button icon from sprite sheet surf with metadata region
+                    subsurf = static_actor_surf.subsurface(
+                        (
+                            0,
+                            0,
+                            static_actor_width,
+                            static_actor_height,
+                        )
+                    )
+                    button = self._create_button_icons(
+                        subsurf,
+                        static_actor_width,
+                        static_actor_height,
+                        button,
+                    )
+                    # Collect button
+                    buttons.append(button)
+
+                # Init button container
+                self.button_container = ButtonContainer(
+                    buttons=buttons,
+                    offset=0,
+                    limit=7,
+                    is_pagination=True,
+                    game_event_handler=self.game_event_handler,
+                    game_sound_manager=self.game.sound_manager,
+                )
+                self.button_container.add_event_listener(self.on_button_selected, ButtonContainer.BUTTON_SELECTED)
+                # Init the first selected name
+                self.selected_sprite_name = buttons[0].text
+                # Init the cursor size
+                sprite_metadata_intance = get_one_target_dict_value(
+                    self.selected_sprite_name,
+                    self.sprite_name_to_sprite_metadata,
+                )
+                # None has size, blob is always autotile size 1 tile
+                if sprite_metadata_intance.sprite_tile_type == "none":
+                    self.cursor_width = sprite_metadata_intance.width
+                    self.cursor_height = sprite_metadata_intance.height
+                    self.cursor_width_tu = self.cursor_width // TILE_SIZE
+                    self.cursor_height_tu = self.cursor_height // TILE_SIZE
+                else:
+                    self.cursor_width = TILE_SIZE
+                    self.cursor_height = TILE_SIZE
+                    self.cursor_width_tu = 1
+                    self.cursor_height_tu = 1
 
                 self.curtain.go_to_opaque()
             else:
@@ -948,16 +1000,16 @@ class RoomJsonGenerator:
             # TODO: Turn the block to a func and use the name as key
 
             # Get sprite metadata from reformat with selected sprite name
-            selected_sprite_type: str = self.reformat_sprite_sheet_json_metadata[self.selected_sprite_name]["sprite_type"]
-            selected_sprite_layer_index: int = (
-                self.reformat_sprite_sheet_json_metadata[self.selected_sprite_name]["sprite_layer"] - 1
+            sprite_metadata_intance: SpriteMetadata = get_one_target_dict_value(
+                self.selected_sprite_name,
+                self.sprite_name_to_sprite_metadata,
             )
-            selected_sprite_tile_type: str = self.reformat_sprite_sheet_json_metadata[self.selected_sprite_name][
-                "sprite_tile_type"
-            ]
-            selected_sprite_x: int = self.reformat_sprite_sheet_json_metadata[self.selected_sprite_name]["x"]
-            selected_sprite_y: int = self.reformat_sprite_sheet_json_metadata[self.selected_sprite_name]["y"]
-            selected_sprite_name: str = self.reformat_sprite_sheet_json_metadata[self.selected_sprite_name]["sprite_name"]
+            selected_sprite_type: str = sprite_metadata_intance.sprite_type
+            selected_sprite_layer_index: int = sprite_metadata_intance.sprite_layer - 1
+            selected_sprite_tile_type: str = sprite_metadata_intance.sprite_tile_type
+            selected_sprite_x: int = sprite_metadata_intance.x
+            selected_sprite_y: int = sprite_metadata_intance.y
+            selected_sprite_name: str = sprite_metadata_intance.sprite_name
 
             ######################
             # STATIC ACTOR STATE #
@@ -978,16 +1030,26 @@ class RoomJsonGenerator:
                     # Cell is empty
                     if found_tile == 0:
                         # Get static actor metadata
-                        static_actor_surf: pg.Surface = self.sprite_sheet_surfs[selected_sprite_name]
-                        static_actor_json: dict = self.sprite_sheet_animation_jsons[selected_sprite_name]
+                        static_actor_surf: pg.Surface = get_one_target_dict_value(
+                            selected_sprite_name,
+                            self.sprite_sheet_static_actor_surfs_dict,
+                        )
+                        static_actor_animation_metadata_instance: dict[str, AnimationMetadata] = get_one_target_dict_value(
+                            selected_sprite_name,
+                            self.sprite_sheet_static_actor_jsons_dict,
+                        )
+                        static_actor_mem: Any = get_one_target_dict_value(
+                            selected_sprite_name,
+                            self.sprite_sheet_static_actor_mems_dict,
+                        )
                         # Fill collision map with instance in cursor pos
                         self._set_tile_from_collision_map_list(
                             self.world_mouse_tu_x,
                             self.world_mouse_tu_y,
-                            self.sprite_sheet_actors_dict[selected_sprite_name](
+                            static_actor_mem(
                                 static_actor_surf,
                                 self.camera,
-                                static_actor_json,
+                                static_actor_animation_metadata_instance,
                                 self.world_mouse_snapped_x,
                                 self.world_mouse_snapped_y,
                             ),
@@ -1003,10 +1065,13 @@ class RoomJsonGenerator:
                 if self.game_event_handler.is_lmb_just_pressed:
                     # This layer is None?
                     if self.parallax_background_instances_list[selected_sprite_layer_index] is None:
+                        # Get binded mem with name
+                        parallax_background_mem = get_one_target_dict_value(
+                            self.selected_sprite_name,
+                            self.sprite_sheet_parallax_background_mems_dict,
+                        )
                         # Fill with instance
-                        self.parallax_background_instances_list[
-                            selected_sprite_layer_index
-                        ] = self.sprite_sheet_parallax_background_memory[self.selected_sprite_name](
+                        self.parallax_background_instances_list[selected_sprite_layer_index] = parallax_background_mem(
                             self.sprite_sheet_surf,
                             self.camera,
                         )
@@ -1311,6 +1376,8 @@ class RoomJsonGenerator:
                 # GET from disk
                 data = self.game.GET_file_from_disk_dynamic_path(file_path)
 
+                # TODO: When save feature is done. Validate data or raise exception
+
                 # Draw marks on the world surf
                 file_name = data["file_name"]
                 room_x_ru = data["room_x_ru"]
@@ -1448,9 +1515,12 @@ class RoomJsonGenerator:
         # Update selected name
         self.selected_sprite_name = selected_button.text
         # Update cursor size
-        if self.reformat_sprite_sheet_json_metadata[self.selected_sprite_name]["sprite_tile_type"] == "none":
-            self.cursor_width = self.reformat_sprite_sheet_json_metadata[self.selected_sprite_name]["width"]
-            self.cursor_height = self.reformat_sprite_sheet_json_metadata[self.selected_sprite_name]["height"]
+        sprite_sheet_metadata_instance: SpriteMetadata = get_one_target_dict_value(
+            self.selected_sprite_name, self.sprite_name_to_sprite_metadata
+        )
+        if sprite_sheet_metadata_instance.sprite_tile_type == "none":
+            self.cursor_width = sprite_sheet_metadata_instance.width
+            self.cursor_height = sprite_sheet_metadata_instance.height
             self.cursor_width_tu = int(self.cursor_width // TILE_SIZE)
             self.cursor_height_tu = int(self.cursor_height // TILE_SIZE)
         else:
@@ -1495,16 +1565,33 @@ class RoomJsonGenerator:
     ###########
     # HELPERS #
     ###########
+    def _create_button_icons(self, subsurf: pg.Surface, height: int, width: int, button: Button) -> Button:
+        """
+        Pass a subsurf, original height and width, and the button to draw the icon on.
+        On draw completion the button is returned.
+        """
+        # Create button icon from sprite sheet surf with metadata region
+        base_subsurf_width = 49
+        base_subsurf_height = 19
+        base_subsurf = pg.Surface((base_subsurf_width, base_subsurf_height))
+        base_subsurf.fill(self.clear_color)
+        scaled_height = base_subsurf_width * height / width
+        subsurf = pg.transform.scale(subsurf, (base_subsurf_width, scaled_height))
+        y_diff = scaled_height - base_subsurf_height
+        base_subsurf.blit(subsurf, (0, -y_diff / 2))
+        button.draw_extra_surf_on_surf(base_subsurf, (1, 0))
+        return button
+
     def _update_pre_render(self) -> None:
         # Clear pre render, make new ones so it does not build up data
         # Pre render static background
-        self.pre_render_static_background = pg.Surface((self.room_width, self.room_height))
-        self.pre_render_static_background.set_colorkey("red")
-        self.pre_render_static_background.fill("red")
+        self.pre_render_static_background_surf = pg.Surface((self.room_width, self.room_height))
+        self.pre_render_static_background_surf.set_colorkey("red")
+        self.pre_render_static_background_surf.fill("red")
         # Pre render solid and foreground
-        self.pre_render_solid_foreground = pg.Surface((self.room_width, self.room_height))
-        self.pre_render_solid_foreground.set_colorkey("red")
-        self.pre_render_solid_foreground.fill("red")
+        self.pre_render_solid_foreground_surf = pg.Surface((self.room_width, self.room_height))
+        self.pre_render_solid_foreground_surf.set_colorkey("red")
+        self.pre_render_solid_foreground_surf.fill("red")
 
         # Iter over each static collision map layer
         for collision_map in self.static_background_collision_map_list:
@@ -1514,13 +1601,15 @@ class RoomJsonGenerator:
                 if cell == 0:
                     continue
                 # Get metadata
+                # TODO: Make schema for this
                 x = cell["x"]
                 y = cell["y"]
                 region_x = cell["region_x"]
                 region_y = cell["region_y"]
                 # Draw each one on pre_render_static_background
                 if self.sprite_sheet_surf is not None:
-                    self.pre_render_static_background.blit(
+                    # Cannot use fblits because this has regions
+                    self.pre_render_static_background_surf.blit(
                         self.sprite_sheet_surf, (x, y), (region_x, region_y, TILE_SIZE, TILE_SIZE)
                     )
 
@@ -1536,7 +1625,10 @@ class RoomJsonGenerator:
             region_y = cell["region_y"]
             # Draw each one on pre render
             if self.sprite_sheet_surf is not None:
-                self.pre_render_solid_foreground.blit(self.sprite_sheet_surf, (x, y), (region_x, region_y, TILE_SIZE, TILE_SIZE))
+                # Cannot use fblits because this has regions
+                self.pre_render_solid_foreground_surf.blit(
+                    self.sprite_sheet_surf, (x, y), (region_x, region_y, TILE_SIZE, TILE_SIZE)
+                )
 
         # Iter over each foreground collision map layer
         for collision_map in self.foreground_collision_map_list:
@@ -1552,7 +1644,8 @@ class RoomJsonGenerator:
                 region_y = cell["region_y"]
                 # Draw each one on pre render
                 if self.sprite_sheet_surf is not None:
-                    self.pre_render_solid_foreground.blit(
+                    # Cannot use fblits because this has regions
+                    self.pre_render_solid_foreground_surf.blit(
                         self.sprite_sheet_surf, (x, y), (region_x, region_y, TILE_SIZE, TILE_SIZE)
                     )
 
@@ -1606,9 +1699,6 @@ class RoomJsonGenerator:
                 collision_map_list,
             )
 
-            # Update pre render
-            self._update_pre_render()
-
             # Get my neighbors
             adjacent_tile_obj_neighbors = self._get_adjacent_tiles(
                 self.world_mouse_tu_x,
@@ -1625,17 +1715,20 @@ class RoomJsonGenerator:
                 neighbor_world_snapped_y = neighbor_world_tu_y * TILE_SIZE
 
                 # Get neighbor sprite metadata
-                neighbor_sprite_is_tile_mix = self.reformat_sprite_sheet_json_metadata[neighbor_tile_name]["sprite_is_tile_mix"]
-                neighbor_sprite_x = self.reformat_sprite_sheet_json_metadata[neighbor_tile_name]["x"]
-                neighbor_sprite_y = self.reformat_sprite_sheet_json_metadata[neighbor_tile_name]["y"]
-                neighbor_sprite_tile_type = self.reformat_sprite_sheet_json_metadata[neighbor_tile_name]["sprite_tile_type"]
+                sprite_sheet_metadata_instance = self.sprite_name_to_sprite_metadata[neighbor_tile_name]
+                neighbor_sprite_is_tile_mix = sprite_sheet_metadata_instance.sprite_is_tile_mix
+                neighbor_sprite_x = sprite_sheet_metadata_instance.x
+                neighbor_sprite_y = sprite_sheet_metadata_instance.y
+                neighbor_sprite_tile_type = sprite_sheet_metadata_instance.sprite_tile_type
 
                 # Neighbor not my kind?
                 if neighbor_tile_name != self.selected_sprite_name:
-                    # Neighbor not mixed?
+                    # Neighbor not mixed? Do not want to mix with me
                     if neighbor_sprite_is_tile_mix == 0:
                         # Skip this neighbor
                         continue
+
+                # This neighbor wants to mix with me, so update its autotile
 
                 # Draw autotile on surf with proper offset
                 self._draw_autotile_sprite_on_given_pos(
@@ -1650,6 +1743,9 @@ class RoomJsonGenerator:
                     neighbor_world_snapped_y,
                     neighbor_tile_name,
                 )
+
+            # Update pre render
+            self._update_pre_render()
 
     def _on_lmb_just_pressed_none_tile_type(
         self,
@@ -1734,17 +1830,20 @@ class RoomJsonGenerator:
                 neighbor_world_snapped_y = neighbor_world_tu_y * TILE_SIZE
 
                 # Get neighbor sprite metadata
-                neighbor_sprite_is_tile_mix = self.reformat_sprite_sheet_json_metadata[neighbor_tile_name]["sprite_is_tile_mix"]
-                neighbor_sprite_x = self.reformat_sprite_sheet_json_metadata[neighbor_tile_name]["x"]
-                neighbor_sprite_y = self.reformat_sprite_sheet_json_metadata[neighbor_tile_name]["y"]
-                neighbor_sprite_tile_type = self.reformat_sprite_sheet_json_metadata[neighbor_tile_name]["sprite_tile_type"]
+                sprite_sheet_metadata_instance = self.sprite_name_to_sprite_metadata[neighbor_tile_name]
+                neighbor_sprite_is_tile_mix = sprite_sheet_metadata_instance.sprite_is_tile_mix
+                neighbor_sprite_x = sprite_sheet_metadata_instance.x
+                neighbor_sprite_y = sprite_sheet_metadata_instance.y
+                neighbor_sprite_tile_type = sprite_sheet_metadata_instance.sprite_tile_type
 
                 # Neighbor not my kind?
                 if neighbor_tile_name != self.selected_sprite_name:
-                    # Neighbor not mixed?
+                    # Neighbor not mixed? Do not want to mix with me
                     if neighbor_sprite_is_tile_mix == 0:
                         # Skip this neighbor
                         continue
+
+                # This neighbor wants to mix with me, so update its autotile
 
                 # Draw autotile on surf with proper offset
                 self._draw_autotile_sprite_on_given_pos(
@@ -1759,6 +1858,9 @@ class RoomJsonGenerator:
                     neighbor_world_snapped_y,
                     neighbor_tile_name,
                 )
+
+            # Update pre render
+            self._update_pre_render()
 
     def _draw_autotile_sprite_on_given_pos(
         self,
@@ -2023,12 +2125,10 @@ class RoomJsonGenerator:
             # Found something
             if tile != -1 and tile != 0:
                 # Not my kind and not mixed? Skip this one
-                neighbor_tile_name = self.reformat_sprite_sheet_json_metadata[tile["name"]]["sprite_name"]
-                just_added_sprite_name = self.reformat_sprite_sheet_json_metadata[self.selected_sprite_name]["sprite_name"]
+                neighbor_tile_name = self.sprite_name_to_sprite_metadata[tile["name"]].sprite_name
+                just_added_sprite_name = self.sprite_name_to_sprite_metadata[self.selected_sprite_name].sprite_name
                 if neighbor_tile_name != just_added_sprite_name:
-                    neighbor_sprite_is_tile_mix = self.reformat_sprite_sheet_json_metadata[neighbor_tile_name][
-                        "sprite_is_tile_mix"
-                    ]
+                    neighbor_sprite_is_tile_mix = self.sprite_name_to_sprite_metadata[neighbor_tile_name].sprite_is_tile_mix
                     if not neighbor_sprite_is_tile_mix:
                         continue
                 # For corner tiles, check that they have both neighbor in the cardinal directions

@@ -8,6 +8,8 @@ from os.path import join
 from platform import system
 from typing import Any
 
+from schemas import validate_json
+
 
 def create_paths_dict(directory: str) -> dict[str, str]:
     """
@@ -52,59 +54,31 @@ def get_os_specific_directory(app_name: Any) -> str:
     return directory
 
 
-# TODO: Use this in other json other than the settings dict, like editors
-# TODO: Make a post too
-# TODO: Do not check type, check the shape, cuz dict val can be another dict
-def overwriting_target_dict(new_dict: dict, target_dict: dict) -> None:
+def overwriting_target_dict(new_dict: dict, target_dict: dict, target_dict_schema: Any) -> None:
     """
     Overwrite dict, need exact same shape.
     Do not use this on local settings dict.
     Use the game setter and getter method.
     """
 
-    # Ensure that all required keys are present
-    for key in target_dict:
-        if key not in new_dict:
-            raise KeyError(f"Missing required key: '{key}'")
+    if not validate_json(new_dict, target_dict_schema):
+        raise ValueError("Invalid new dict JSON against target dict schema")
 
-    # Ensure that no extra keys are present
-    for key in new_dict:
-        if key not in target_dict:
-            raise KeyError(f"Invalid key: '{key}'")
-
-    # Ensure that the new dictionary has valid values
-    for key, value in new_dict.items():
-        # Get the expected type from target_dict
-        expected_type = type(target_dict[key])
-
-        # Check if the value matches the expected type
-        if not isinstance(value, expected_type):
-            raise TypeError(f"Key '{key}' expects a value of type {expected_type.__name__}, but got {type(value).__name__}.")
-
-    # If all checks pass, overwrite the current settings
     target_dict.update(new_dict)
 
 
-def set_one_target_dict_value(key: str, value: Any, target_dict: dict) -> None:
+def set_one_target_dict_value(key: str, value: Any, target_dict: dict, target_dict_schema: Any) -> None:
     """
-    Set a value to local settings dict. Need to be same type.
+    Set a value to local settings dict. Need to be same type. For POST and PATCH.
     Do not use this on local settings dict.
     Use the game setter and getter method.
     """
 
-    # Check if the key exists in the target_dict
-    if key not in target_dict:
-        raise KeyError(f"Invalid key: '{key}'")
-
-    # Get the expected type from target_dict
-    expected_type = type(target_dict[key])
-
-    # Check if the value matches the expected type
-    if not isinstance(value, expected_type):
-        raise TypeError(f"Key '{key}' expects a value of type {expected_type.__name__}, but got {type(value).__name__}.")
-
     # Set the new value
     target_dict[key] = value
+
+    if not validate_json(target_dict, target_dict_schema):
+        raise ValueError("Invalid new dict JSON against target dict schema")
 
 
 def get_one_target_dict_value(key: str, target_dict: dict) -> Any:
@@ -116,7 +90,6 @@ def get_one_target_dict_value(key: str, target_dict: dict) -> Any:
 
     # Check if the key exists in the target_dict
     if key not in target_dict:
-        # TODO: Do not crash the app, return None
         raise KeyError(f"Invalid key: '{key}'")
 
     # Return the value for the key

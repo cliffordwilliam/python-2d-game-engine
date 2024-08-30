@@ -659,7 +659,7 @@ class OptionsMenu:
             # Overwrite disk with game local settings
             self.game.PATCH_file_to_disk_dynamic_path(
                 self.game.jsons_user_pahts_dict[SETTINGS_FILE_NAME],
-                self.game.local_settings_dict,
+                self.game.get_local_settings_dict(),
             )
 
         # Reset button selected?

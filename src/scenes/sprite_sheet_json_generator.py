@@ -1,3 +1,4 @@
+import re
 from enum import auto
 from enum import Enum
 from os.path import exists
@@ -23,6 +24,8 @@ from nodes.state_machine import StateMachine
 from nodes.timer import Timer
 from pygame.math import clamp
 from pygame.math import Vector2
+from schemas import SPRITE_SHEET_METADATA_SCHEMA
+from schemas import validate_json
 from typeguard import typechecked
 
 if TYPE_CHECKING:
@@ -31,6 +34,7 @@ if TYPE_CHECKING:
 
 @typechecked
 class SpriteSheetJsonGenerator:
+    HEX_COLOR_PATTERN = re.compile(r"^#[0-9A-Fa-f]{6}$")
     SLOW_FADE_DURATION = 1000.0
     FAST_FADE_DURATION = 250.0
 
@@ -598,9 +602,13 @@ class SpriteSheetJsonGenerator:
         # Accept logic
         def _accept_callback() -> None:
             if self.input_text != "":
-                self.sprite_room_map_body_color = self.input_text
-                # Close curtain
-                self.curtain.go_to_opaque()
+                # Valid hex?
+                if self.HEX_COLOR_PATTERN.match(self.input_text):
+                    self.sprite_room_map_body_color = self.input_text
+                    # Close curtain
+                    self.curtain.go_to_opaque()
+                else:
+                    raise ValueError(f"Invalid hex color code: '{self.input_text}'")
 
         # Typing logic
         self._handle_query_input(_accept_callback)
@@ -617,9 +625,13 @@ class SpriteSheetJsonGenerator:
         # Accept logic
         def _accept_callback() -> None:
             if self.input_text != "":
-                self.sprite_room_map_sub_division_color = self.input_text
-                # Close curtain
-                self.curtain.go_to_opaque()
+                # Valid hex?
+                if self.HEX_COLOR_PATTERN.match(self.input_text):
+                    self.sprite_room_map_sub_division_color = self.input_text
+                    # Close curtain
+                    self.curtain.go_to_opaque()
+                else:
+                    raise ValueError(f"Invalid hex color code: '{self.input_text}'")
 
         # Typing logic
         self._handle_query_input(_accept_callback)
@@ -636,9 +648,13 @@ class SpriteSheetJsonGenerator:
         # Accept logic
         def _accept_callback() -> None:
             if self.input_text != "":
-                self.sprite_room_map_border_color = self.input_text
-                # Close curtain
-                self.curtain.go_to_opaque()
+                # Valid hex?
+                if self.HEX_COLOR_PATTERN.match(self.input_text):
+                    self.sprite_room_map_border_color = self.input_text
+                    # Close curtain
+                    self.curtain.go_to_opaque()
+                else:
+                    raise ValueError(f"Invalid hex color code: '{self.input_text}'")
 
         # Typing logic
         self._handle_query_input(_accept_callback)
@@ -834,6 +850,9 @@ class SpriteSheetJsonGenerator:
                 if self.selected_choice_after_add_sprites_state == self.save_and_quit_choice_after_add_sprites_state:
                     self._fill_selected_region_with_one()
                     self._update_local_with_user_state_input()
+                    # Validate the json before write to disk
+                    if not validate_json(self.local_sprite_json, SPRITE_SHEET_METADATA_SCHEMA):
+                        raise ValueError("Invalid sprite sheet json against schema")
                     self.game.POST_file_to_disk_dynamic_path(
                         join(JSONS_REPO_DIR_PATH, f"{self.file_name}.json"),
                         self.local_sprite_json,

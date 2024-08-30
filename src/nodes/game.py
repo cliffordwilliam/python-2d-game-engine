@@ -17,6 +17,7 @@ from constants import MAX_RESOLUTION_INDEX
 from constants import NATIVE_WIDTH
 from constants import OGGS_PATHS_DICT
 from constants import pg
+from constants import PNGS_PATHS_DICT
 from constants import SETTINGS_FILE_NAME
 from constants import WINDOW_HEIGHT
 from constants import WINDOW_WIDTH
@@ -32,8 +33,13 @@ from scenes.main_menu import MainMenu
 from scenes.room_json_generator import RoomJsonGenerator
 from scenes.sprite_sheet_json_generator import SpriteSheetJsonGenerator
 from scenes.title_screen import TitleScreen
+from schemas import AnimationMetadata
+from schemas import instance_animation_metadata
+from schemas import SETTINGS_SCHEMA
+from schemas import validate_json
 from typeguard import typechecked
 from utils import create_paths_dict
+from utils import get_one_target_dict_value
 
 
 @typechecked
@@ -77,6 +83,7 @@ class Game:
             self.sound_manager.load_sound(ogg_name, ogg_path)
 
         # Map actor memory to stage sprite sheet name
+        # TODO: Make this dedicated to static actors only
         self.stage_actors: dict[str, dict[str, Any]] = {
             "stage_1_sprite_sheet.png": {
                 "ThinFire": ThinFire,
@@ -131,6 +138,58 @@ class Game:
         self.jsons_repo_rooms_pahts_dict = create_paths_dict(JSONS_ROOMS_DIR_PATH)
 
     # Abilities
+    def get_sprite_sheet_actor_jsons_dict(self, stage_sprite_sheet_name: str) -> dict[str, dict[str, AnimationMetadata]]:
+        """
+        Surfs are binded to their stages.
+        Pass the stage sprite sheet name to get its surfs.
+        You get a dict, key is surf actor str name, value is actor surf.
+        It is easy to read this way.
+        """
+
+        data = get_one_target_dict_value(stage_sprite_sheet_name, self.stage_animation_jsons)
+        # Actor name, animation name, animation metadata
+        out: dict[str, dict[str, AnimationMetadata]] = {}
+        for actor_name, json_name in data.items():
+            existing_json_dynamic_path: str = get_one_target_dict_value(json_name, self.jsons_repo_pahts_dict)
+            data = self.GET_file_from_disk_dynamic_path(existing_json_dynamic_path)
+            # Convert the dictionary to the data class, this validates it too
+            out[actor_name] = instance_animation_metadata(data)
+        return out
+
+    def get_sprite_sheet_actor_surfs_dict(self, stage_sprite_sheet_name: str) -> dict[str, pg.Surface]:
+        """
+        Surfs are binded to their stages.
+        Pass the stage sprite sheet name to get its surfs.
+        You get a dict, key is surf actor str name, value is actor surf.
+        It is easy to read this way.
+        """
+
+        data = get_one_target_dict_value(stage_sprite_sheet_name, self.stage_surf_names)
+        out: dict[str, Any] = {}
+        for actor_name, surf_name in data.items():
+            out[actor_name] = pg.image.load(get_one_target_dict_value(surf_name, PNGS_PATHS_DICT)).convert_alpha()
+        return out
+
+    def get_sprite_sheet_parallax_mems_dict(self, stage_sprite_sheet_name: str) -> dict[str, Any]:
+        """
+        Actors are binded to their stages.
+        Pass the stage sprite sheet name to get its actors mem.
+        You get a dict, key is actor str name, value is actor mem.
+        It is easy to read this way.
+        """
+
+        return get_one_target_dict_value(stage_sprite_sheet_name, self.stage_parallax_background_memory_dict)
+
+    def get_sprite_sheet_actor_mems_dict(self, stage_sprite_sheet_name: str) -> dict[str, Any]:
+        """
+        Actors are binded to their stages.
+        Pass the stage sprite sheet name to get its actors mem.
+        You get a dict, key is actor str name, value is actor mem.
+        It is easy to read this way.
+        """
+
+        return get_one_target_dict_value(stage_sprite_sheet_name, self.stage_actors)
+
     def GET_or_POST_settings_json_from_disk(self) -> None:
         """
         GET prev saved disk settings, then overwrites local settings with disk.
@@ -149,7 +208,7 @@ class Game:
                 self.get_local_settings_dict(),
             )
 
-    def GET_file_from_disk_dynamic_path(self, existing_dynamic_path: str) -> Any:
+    def GET_file_from_disk_dynamic_path(self, existing_dynamic_path_dict_value: str) -> Any:
         """
         GET file from user disk.
         Use the dynamic paths dict path.
@@ -161,15 +220,15 @@ class Game:
             **self.jsons_repo_pahts_dict,
             **self.jsons_repo_rooms_pahts_dict,
         }
-        if existing_dynamic_path not in all_paths.values():
+        if existing_dynamic_path_dict_value not in all_paths.values():
             raise KeyError("Path does not exist")
 
         # GET 200
-        with open(existing_dynamic_path, "r") as file:
+        with open(existing_dynamic_path_dict_value, "r") as file:
             data = load(file)
             return data
 
-    def PATCH_file_to_disk_dynamic_path(self, existing_dynamic_path: str, file_content: Any) -> None:
+    def PATCH_file_to_disk_dynamic_path(self, existing_dynamic_path_dict_value: str, file_content: Any) -> None:
         """
         POST file to user disk.
         Use the dynamic paths dict path.
@@ -181,12 +240,12 @@ class Game:
             **self.jsons_repo_pahts_dict,
             **self.jsons_repo_rooms_pahts_dict,
         }
-        if existing_dynamic_path not in all_paths.values():
+        if existing_dynamic_path_dict_value not in all_paths.values():
             raise KeyError("Path does not exist")
 
         # PATCH 200
         with open(
-            existing_dynamic_path,
+            existing_dynamic_path_dict_value,
             "w",
         ) as file:
             dump(file_content, file, separators=(",", ":"))
@@ -213,24 +272,8 @@ class Game:
         Overwrite local settings dict, need exact same shape.
         """
 
-        # Ensure that all required keys are present
-        for key in self.local_settings_dict:
-            if key not in new_settings:
-                raise KeyError(f"Missing required key: '{key}'")
-
-        # Ensure that no extra keys are present
-        for key in new_settings:
-            if key not in self.local_settings_dict:
-                raise KeyError(f"Invalid key: '{key}'")
-
-        # Ensure that the new dictionary has valid values
-        for key, value in new_settings.items():
-            # Get the expected type from self.local_settings_dict
-            expected_type = type(self.local_settings_dict[key])
-
-            # Check if the value matches the expected type
-            if not isinstance(value, expected_type):
-                raise TypeError(f"Key '{key}' expects a value of type {expected_type.__name__}, but got {type(value).__name__}.")
+        if not validate_json(new_settings, SETTINGS_SCHEMA):
+            raise ValueError("Invalid new settings JSON against schema")
 
         # If all checks pass, overwrite the current settings
         self.local_settings_dict.update(new_settings)
@@ -243,19 +286,11 @@ class Game:
         Set a value to local settings dict. Need to be same type.
         """
 
-        # Check if the key exists in the self.local_settings_dict
-        if key not in self.local_settings_dict:
-            raise KeyError(f"Invalid key: '{key}'")
-
-        # Get the expected type from self.local_settings_dict
-        expected_type = type(self.local_settings_dict[key])
-
-        # Check if the value matches the expected type
-        if not isinstance(value, expected_type):
-            raise TypeError(f"Key '{key}' expects a value of type {expected_type.__name__}, but got {type(value).__name__}.")
-
         # Set the new value
         self.local_settings_dict[key] = value
+
+        if not validate_json(self.local_settings_dict, SETTINGS_SCHEMA):
+            raise ValueError("Invalid new settings JSON against schema")
 
         # Update event handler function binds, in case event key was changed
         self.event_handler.bind_game_local_setting_key_with_input_flag_setter()

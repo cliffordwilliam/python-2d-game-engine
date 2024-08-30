@@ -1,5 +1,7 @@
 from typing import Callable
 
+from schemas import AnimationMetadata
+from schemas import AnimationSpriteMetadata
 from typeguard import typechecked
 
 
@@ -12,7 +14,7 @@ class Animator:
     def __init__(
         self,
         initial_animation_name: str,
-        animation_data: dict,
+        animation_data: dict[str, AnimationMetadata],
     ):
         # Starting animation
         if initial_animation_name not in animation_data:
@@ -21,12 +23,14 @@ class Animator:
 
         # Get animation metadata
         self.animation_data = animation_data
-        self.animation_is_loop: int = self.animation_data[self.current_animation]["animation_is_loop"]
-        self.next_animation_name: str = self.animation_data[self.current_animation]["next_animation_name"]
-        self.animation_duration: int = self.animation_data[self.current_animation]["animation_duration"]
-        self.animation_sprite_height: int = self.animation_data[self.current_animation]["animation_sprite_height"]
-        self.animation_sprite_width: int = self.animation_data[self.current_animation]["animation_sprite_width"]
-        self.animation_sprites_list: list[dict[str, int]] = self.animation_data[self.current_animation]["animation_sprites_list"]
+        self.animation_is_loop: int = self.animation_data[self.current_animation].animation_is_loop
+        self.next_animation_name: str = self.animation_data[self.current_animation].next_animation_name
+        self.animation_duration: int = self.animation_data[self.current_animation].animation_duration
+        self.animation_sprite_height: int = self.animation_data[self.current_animation].animation_sprite_height
+        self.animation_sprite_width: int = self.animation_data[self.current_animation].animation_sprite_width
+        self.animation_sprites_list: list[AnimationSpriteMetadata] = self.animation_data[
+            self.current_animation
+        ].animation_sprites_list
         self.frames_list_len: int = len(self.animation_sprites_list)
         self.frames_list_index_len: int = self.frames_list_len - 1
         self.frame_index: int = -1
@@ -67,12 +71,12 @@ class Animator:
         if value not in self.animation_data:
             raise ValueError(f"Unsupported animation name: {value}")
         self.current_animation = value
-        self.animation_is_loop = self.animation_data[self.current_animation]["animation_is_loop"]
-        self.next_animation_name = self.animation_data[self.current_animation]["next_animation_name"]
-        self.animation_duration = self.animation_data[self.current_animation]["animation_duration"]
-        self.animation_sprite_height = self.animation_data[self.current_animation]["animation_sprite_height"]
-        self.animation_sprite_width = self.animation_data[self.current_animation]["animation_sprite_width"]
-        self.animation_sprites_list = self.animation_data[self.current_animation]["animation_sprites_list"]
+        self.animation_is_loop = self.animation_data[self.current_animation].animation_is_loop
+        self.next_animation_name = self.animation_data[self.current_animation].next_animation_name
+        self.animation_duration = self.animation_data[self.current_animation].animation_duration
+        self.animation_sprite_height = self.animation_data[self.current_animation].animation_sprite_height
+        self.animation_sprite_width = self.animation_data[self.current_animation].animation_sprite_width
+        self.animation_sprites_list = self.animation_data[self.current_animation].animation_sprites_list
         self.frames_list_len = len(self.animation_sprites_list)
         self.frames_list_index_len = self.frames_list_len - 1
         self._set_frame_index(-1)

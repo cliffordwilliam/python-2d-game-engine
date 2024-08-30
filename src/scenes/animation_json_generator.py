@@ -23,6 +23,8 @@ from nodes.state_machine import StateMachine
 from nodes.timer import Timer
 from pygame.math import clamp
 from pygame.math import Vector2
+from schemas import ANIMATION_SCHEMA
+from schemas import validate_json
 from typeguard import typechecked
 
 if TYPE_CHECKING:
@@ -701,6 +703,9 @@ class AnimationJsonGenerator:
                 # 1 = Save and quit
                 if self.selected_choice_after_add_sprites_state == self.save_and_quit_choice_after_add_sprites_state:
                     self._update_local_with_user_state_input()
+                    # Validate the json before write to disk
+                    if not validate_json(self.local_animation_json, ANIMATION_SCHEMA):
+                        raise ValueError("Invalid animation json against schema")
                     self.game.POST_file_to_disk_dynamic_path(
                         join(JSONS_REPO_DIR_PATH, f"{self.file_name}.json"), self.local_animation_json
                     )
