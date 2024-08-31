@@ -53,13 +53,18 @@ if TYPE_CHECKING:
 
 @typechecked
 class RoomJsonGenerator:
-    # TODO: Better drawing system with remove all, bucket fill, combine rect fill, held draw
-    # TODO: Add twin goddess, door and gate blocks here too
-    # TODO: Add door too
     # TODO: Add player, then be able to switch between edit and test mode
+    # Add plyaer to collide to room limits first, spawn it like a tree, enter toggle edit to test mode
     # TODO: Add Enemies, when go back to edit, reset to their initial position
     # TODO: Save and load room, then that is it for now
+    # TODO: Add twin goddess and door here too, twin goddess are just like goblins, instead attack allow save
+    # Make door have 2 states later, open and close, when it closes it uses the gate sprite
+    # so add the sprite sheet like thin fire mapped to stage, map gate to all stages
+    # TODO: Add door to minimap too
     # TODO: Later need to be able to place down things that is remembered (appear once only) like items, boss, cutscenes
+    # So since cutscenes are binded to each room, name them with numbers, when player finished a cutscene += 1 to their
+    # animation seen counter, each animation based on their name has a condition if they should appear or not
+    # based on the player cutscene counter that was saved
     # TODO: Implement Quadtree, fire animation first
     SLOW_FADE_DURATION = 1000.0
     FAST_FADE_DURATION = 250.0
@@ -1001,11 +1006,11 @@ class RoomJsonGenerator:
             if selected_sprite_type == "static_actor":
                 # Get the selected static actor
                 selected_static_actor_instance = self.sprite_sheet_static_actor_instance_dict[selected_sprite_name]
-                ####################
-                # Lmb just pressed #
-                ####################
+                ###############
+                # Lmb pressed #
+                ###############
 
-                if self.game_event_handler.is_lmb_just_pressed:
+                if self.game_event_handler.is_lmb_pressed:
                     # Get clicked cell
                     found_tile = self._get_tile_from_collision_map_list(
                         self.world_mouse_tu_x,
@@ -1033,10 +1038,10 @@ class RoomJsonGenerator:
                             collision_map_list=self.static_actor_collision_map_list,
                         )
 
-                ####################
-                # Rmb just pressed #
-                ####################
-                if self.game_event_handler.is_rmb_just_pressed:
+                ###############
+                # Rmb pressed #
+                ###############
+                if self.game_event_handler.is_rmb_pressed:
                     # Get clicked cell
                     found_tile = self._get_tile_from_collision_map_list(
                         self.world_mouse_tu_x,
@@ -1105,11 +1110,11 @@ class RoomJsonGenerator:
                 # Get background collision map LAYER
                 selected_background_layer_collision_map: list = self.background_collision_map_list[selected_sprite_layer_index]
 
-                ####################
-                # Lmb just pressed #
-                ####################
+                ###############
+                # Lmb pressed #
+                ###############
 
-                if self.game_event_handler.is_lmb_just_pressed:
+                if self.game_event_handler.is_lmb_pressed:
                     ##################
                     # NONE TILE TYPE #
                     ##################
@@ -1135,11 +1140,11 @@ class RoomJsonGenerator:
                             selected_sprite_name,
                         )
 
-                ####################
-                # Rmb just pressed #
-                ####################
+                ###############
+                # Rmb pressed #
+                ###############
 
-                if self.game_event_handler.is_rmb_just_pressed:
+                if self.game_event_handler.is_rmb_pressed:
                     ##################
                     # NONE TILE TYPE #
                     ##################
@@ -1163,11 +1168,11 @@ class RoomJsonGenerator:
             ###############
 
             elif selected_sprite_type == "solid":
-                ####################
-                # Lmb just pressed #
-                ####################
+                ###############
+                # Lmb pressed #
+                ###############
 
-                if self.game_event_handler.is_lmb_just_pressed:
+                if self.game_event_handler.is_lmb_pressed:
                     ##################
                     # NONE TILE TYPE #
                     ##################
@@ -1193,11 +1198,11 @@ class RoomJsonGenerator:
                             selected_sprite_name,
                         )
 
-                ####################
-                # Rmb just pressed #
-                ####################
+                ###############
+                # Rmb pressed #
+                ###############
 
-                if self.game_event_handler.is_rmb_just_pressed:
+                if self.game_event_handler.is_rmb_pressed:
                     ##################
                     # NONE TILE TYPE #
                     ##################
@@ -1221,11 +1226,11 @@ class RoomJsonGenerator:
             ##############
 
             elif selected_sprite_type == "thin":
-                ####################
-                # Lmb just pressed #
-                ####################
+                ###############
+                # Lmb pressed #
+                ###############
 
-                if self.game_event_handler.is_lmb_just_pressed:
+                if self.game_event_handler.is_lmb_pressed:
                     ##################
                     # NONE TILE TYPE #
                     ##################
@@ -1251,11 +1256,11 @@ class RoomJsonGenerator:
                             selected_sprite_name,
                         )
 
-                ####################
-                # Rmb just pressed #
-                ####################
+                ###############
+                # Rmb pressed #
+                ###############
 
-                if self.game_event_handler.is_rmb_just_pressed:
+                if self.game_event_handler.is_rmb_pressed:
                     ##################
                     # NONE TILE TYPE #
                     ##################
@@ -1282,11 +1287,11 @@ class RoomJsonGenerator:
                 # Get background layer collision map
                 selected_foreground_layer_collision_map: list = self.foreground_collision_map_list[selected_sprite_layer_index]
 
-                ####################
-                # Lmb just pressed #
-                ####################
+                ###############
+                # Lmb pressed #
+                ###############
 
-                if self.game_event_handler.is_lmb_just_pressed:
+                if self.game_event_handler.is_lmb_pressed:
                     ##################
                     # NONE TILE TYPE #
                     ##################
@@ -1312,11 +1317,11 @@ class RoomJsonGenerator:
                             selected_sprite_name,
                         )
 
-                ####################
-                # Rmb just pressed #
-                ####################
+                ###############
+                # Rmb pressed #
+                ###############
 
-                if self.game_event_handler.is_rmb_just_pressed:
+                if self.game_event_handler.is_rmb_pressed:
                     ##################
                     # NONE TILE TYPE #
                     ##################
