@@ -116,7 +116,7 @@ class Animator:
         # Fire FRAME_CHANGED event with info region x y
         self.frame_data = self.animation_sprites_list[self.frame_index]
         for callback in self.event_listeners[self.FRAME_CHANGED]:
-            callback(self.frame_data)
+            callback(self.frame_index, self.frame_data)
 
     def update(self, dt: int) -> None:
         # Prev frame stayed on last frame?

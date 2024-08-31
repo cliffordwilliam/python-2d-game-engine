@@ -53,6 +53,13 @@ if TYPE_CHECKING:
 
 @typechecked
 class RoomJsonGenerator:
+    # TODO: Better drawing system with remove all, bucket fill, combine rect fill, held draw
+    # TODO: Add twin goddess, door and gate blocks here too
+    # TODO: Add door too
+    # TODO: Add player, then be able to switch between edit and test mode
+    # TODO: Add Enemies, when go back to edit, reset to their initial position
+    # TODO: Save and load room, then that is it for now
+    # TODO: Later need to be able to place down things that is remembered (appear once only) like items, boss, cutscenes
     # TODO: Implement Quadtree, fire animation first
     SLOW_FADE_DURATION = 1000.0
     FAST_FADE_DURATION = 250.0
@@ -191,6 +198,11 @@ class RoomJsonGenerator:
             str,
             dict[str, AnimationMetadata],
         ] = {}
+        self.sprite_sheet_static_actor_instance_dict: dict[
+            # Static actor name : static actor instance
+            str,
+            Any,
+        ] = {}
 
         # Sprite sheet binded parallax background mems
         self.sprite_sheet_parallax_background_mems_dict: dict[str, Any] = {}
@@ -203,7 +215,7 @@ class RoomJsonGenerator:
         self.background_collision_map_list: list[list[(int | NoneOrBlobSpriteMetadata)]] = []
 
         # Static actor layer data
-        self.static_actor_collision_map_list: list[(int | Any)] = [0 for _ in range(self.room_width_tu * self.room_height_tu)]
+        self.static_actor_collision_map_list: list[int] = [0 for _ in range(self.room_width_tu * self.room_height_tu)]
 
         # TODO: item actors layer (things that player interact with like twin goddess, item drop, door, teleported etc)
         # TODO: dynamic actors layer (anything that moves under the player like goblins, bullets)
@@ -443,18 +455,21 @@ class RoomJsonGenerator:
             )
         )
 
+        # Draw static actor (these are extra moving bg in front of the bg, fire and waterfall and so on)
+        for static_actor_instance in self.sprite_sheet_static_actor_instance_dict.values():
+            static_actor_instance_pre_render_surf = static_actor_instance.draw()
+            blit_sequence.append(
+                (
+                    static_actor_instance_pre_render_surf,
+                    (
+                        -self.camera.rect.x,
+                        -self.camera.rect.y,
+                    ),
+                )
+            )
+
         # Draw  parallax background and pre render background collection
         NATIVE_SURF.fblits(blit_sequence)
-
-        # Draw static actor (these are extra moving bg in front of the bg, fire and waterfall and so on)
-        # TODO: if flame has 5 frames, then only draw 5 frame as big as room and draw that
-        for static_actor in self.static_actor_collision_map_list:
-            # Not a zero
-            if static_actor != 0 and static_actor != -1:
-                if isinstance(static_actor, int):
-                    raise ValueError("Static actor collision map can only store 0, -1 and static actor instance ")
-                # Should be a actor class instance
-                static_actor.draw()
 
         # Draw the pre render solid foreground
         NATIVE_SURF.blit(
@@ -726,6 +741,29 @@ class RoomJsonGenerator:
                     self.sprite_sheet_png_name
                 )
 
+                # Loop over static actor key name and value mem
+                for static_actor_name, static_actor_mem in self.sprite_sheet_static_actor_mems_dict.items():
+                    # Get static actor surf
+                    static_actor_surf: pg.Surface = get_one_target_dict_value(
+                        static_actor_name,
+                        self.sprite_sheet_static_actor_surfs_dict,
+                    )
+                    # Get static actor json
+                    static_actor_animation_metadata_instance: dict[str, AnimationMetadata] = get_one_target_dict_value(
+                        static_actor_name,
+                        self.sprite_sheet_static_actor_jsons_dict,
+                    )
+                    # Instance a new static actor
+                    new_static_actor_instance = static_actor_mem(
+                        static_actor_surf,
+                        self.camera,
+                        static_actor_animation_metadata_instance,
+                        self.room_width,
+                        self.room_height,
+                    )
+                    # Add to name to instance dict
+                    self.sprite_sheet_static_actor_instance_dict[static_actor_name] = new_static_actor_instance
+
                 # Prepare button list to feed button container
                 buttons: list[Button] = []
 
@@ -818,9 +856,7 @@ class RoomJsonGenerator:
                     # Use this iter name to get this iter surf and JSON
 
                     # Get surf
-                    static_actor_surf: pg.Surface = get_one_target_dict_value(
-                        static_actor_name, self.sprite_sheet_static_actor_surfs_dict
-                    )
+                    static_actor_surf = get_one_target_dict_value(static_actor_name, self.sprite_sheet_static_actor_surfs_dict)
 
                     # Get animation metadata instance
                     static_actor_animation_name_to_animation_metadata_instance: dict[
@@ -939,13 +975,8 @@ class RoomJsonGenerator:
             self._move_camera(dt)
 
             # Update static actors
-            for static_actor in self.static_actor_collision_map_list:
-                # Not a zero
-                if static_actor != 0 and static_actor != -1:
-                    if isinstance(static_actor, int):
-                        raise ValueError("Static actor collision map can only store 0, -1 and static actor instance ")
-                    # Should be a actor class instance
-                    static_actor.update(dt)
+            for static_actor_instance in self.sprite_sheet_static_actor_instance_dict.values():
+                static_actor_instance.update(dt)
 
             # TODO: Turn the block to a func and use the name as key
 
@@ -982,30 +1013,14 @@ class RoomJsonGenerator:
                     if isinstance(found_tile, NoneOrBlobSpriteMetadata):
                         raise ValueError("static_actor_collision_map_list cannot contain NoneOrBlobSpriteMetadata")
 
-                    # Here found tile should only be either 0, -1 or actor class instance
+                    # Here found tile should only be either 0, -1
 
                     # Cell is empty
                     if found_tile == 0:
-                        # Get static actor surf
-                        static_actor_surf: pg.Surface = get_one_target_dict_value(
-                            selected_sprite_name,
-                            self.sprite_sheet_static_actor_surfs_dict,
-                        )
-                        # Get static actor json
-                        static_actor_animation_metadata_instance: dict[str, AnimationMetadata] = get_one_target_dict_value(
-                            selected_sprite_name,
-                            self.sprite_sheet_static_actor_jsons_dict,
-                        )
-                        # Get static actor mem
-                        static_actor_mem: Any = get_one_target_dict_value(
-                            selected_sprite_name,
-                            self.sprite_sheet_static_actor_mems_dict,
-                        )
-                        # Instance a new static actor
-                        new_static_actor_instance = static_actor_mem(
-                            static_actor_surf,
-                            self.camera,
-                            static_actor_animation_metadata_instance,
+                        # Get the selected static actor
+                        selected_static_actor_instance = self.sprite_sheet_static_actor_instance_dict[selected_sprite_name]
+                        # Add new set of frames in each one of their pre render frame surfs
+                        selected_static_actor_instance.POST_draw_frames_on_each_pre_render_frame_surfs(
                             self.world_mouse_snapped_x,
                             self.world_mouse_snapped_y,
                         )
@@ -1013,7 +1028,7 @@ class RoomJsonGenerator:
                         self._set_tile_from_collision_map_list(
                             world_tu_x=self.world_mouse_tu_x,
                             world_tu_y=self.world_mouse_tu_y,
-                            value=new_static_actor_instance,
+                            value=1,
                             collision_map_list=self.static_actor_collision_map_list,
                         )
 
@@ -1032,11 +1047,11 @@ class RoomJsonGenerator:
                     if isinstance(found_tile, NoneOrBlobSpriteMetadata):
                         raise ValueError("static_actor_collision_map_list cannot contain NoneOrBlobSpriteMetadata")
 
-                    # Here found tile should only be either 0, -1 or actor class instance
+                    # Here found tile should only be int
 
                     # Cell is not int 0 or out of bound
                     if found_tile != 0 and found_tile != -1:
-                        # Should be an actor class instance here, turn it to zero
+                        # Should be int 1, turn it to zero
                         self._set_tile_from_collision_map_list(
                             world_tu_x=self.world_mouse_tu_x,
                             world_tu_y=self.world_mouse_tu_y,
