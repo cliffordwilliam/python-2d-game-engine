@@ -760,6 +760,8 @@ class RoomJsonGenerator:
                         static_actor_animation_metadata_instance,
                         self.room_width,
                         self.room_height,
+                        self.room_width_tu,
+                        self.room_height_tu,
                     )
                     # Add to name to instance dict
                     self.sprite_sheet_static_actor_instance_dict[static_actor_name] = new_static_actor_instance
@@ -997,6 +999,8 @@ class RoomJsonGenerator:
             ######################
 
             if selected_sprite_type == "static_actor":
+                # Get the selected static actor
+                selected_static_actor_instance = self.sprite_sheet_static_actor_instance_dict[selected_sprite_name]
                 ####################
                 # Lmb just pressed #
                 ####################
@@ -1017,18 +1021,15 @@ class RoomJsonGenerator:
 
                     # Cell is empty
                     if found_tile == 0:
-                        # Get the selected static actor
-                        selected_static_actor_instance = self.sprite_sheet_static_actor_instance_dict[selected_sprite_name]
-                        # Add new set of frames in each one of their pre render frame surfs
-                        selected_static_actor_instance.POST_draw_frames_on_each_pre_render_frame_surfs(
-                            self.world_mouse_snapped_x,
-                            self.world_mouse_snapped_y,
-                        )
-                        # Fill collision map with new staic actor instance in cursor pos
+                        # Fill collision map with 1 in cursor pos
                         self._set_tile_from_collision_map_list(
                             world_tu_x=self.world_mouse_tu_x,
                             world_tu_y=self.world_mouse_tu_y,
                             value=1,
+                            collision_map_list=self.static_actor_collision_map_list,
+                        )
+                        # Update pre render frame surfs based on collision map
+                        selected_static_actor_instance.update_pre_render_frame_surfs(
                             collision_map_list=self.static_actor_collision_map_list,
                         )
 
@@ -1056,6 +1057,10 @@ class RoomJsonGenerator:
                             world_tu_x=self.world_mouse_tu_x,
                             world_tu_y=self.world_mouse_tu_y,
                             value=0,
+                            collision_map_list=self.static_actor_collision_map_list,
+                        )
+                        # Update pre render frame surfs based on collision map
+                        selected_static_actor_instance.update_pre_render_frame_surfs(
                             collision_map_list=self.static_actor_collision_map_list,
                         )
 

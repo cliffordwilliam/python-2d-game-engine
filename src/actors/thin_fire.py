@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING
 
 from constants import pg
+from constants import TILE_SIZE
 from nodes.animator import Animator
 from schemas import AnimationMetadata
 from schemas import AnimationSpriteMetadata
@@ -23,6 +24,8 @@ class ThinFire:
         animation_data: dict[str, AnimationMetadata],
         room_width: int,
         room_height: int,
+        room_width_tu: int,
+        room_height_tu: int,
     ):
         # Owner loads sprite sheet, camera and animation data for me
         self.sprite_sheet_surf: pg.Surface = sprite_sheet_surf
@@ -40,18 +43,18 @@ class ThinFire:
         self.animation_sprites_list_len: int = len(self.animation_sprites_list)
         self.pre_render_frame_surf_width: int = room_width
         self.pre_render_frame_surf_height: int = room_height
+        self.pre_render_frame_surf_width_tu: int = room_width_tu
+        self.pre_render_frame_surf_height_tu: int = room_height_tu
 
         # Pre render surfs as big as room, 1 surf for 1 frame
         self.pre_render_frame_surfs_list: list[pg.Surface] = []
 
         # For every frame creates a surf as big as room
         for _ in range(self.animation_sprites_list_len):
-            self.pre_render_frame_surf: pg.Surface = pg.Surface(
-                (self.pre_render_frame_surf_width, self.pre_render_frame_surf_height)
-            )
-            self.pre_render_frame_surf.set_colorkey("red")
-            self.pre_render_frame_surf.fill("red")
-            self.pre_render_frame_surfs_list.append(self.pre_render_frame_surf)
+            pre_render_frame_surf: pg.Surface = pg.Surface((self.pre_render_frame_surf_width, self.pre_render_frame_surf_height))
+            pre_render_frame_surf.set_colorkey("red")
+            pre_render_frame_surf.fill("red")
+            self.pre_render_frame_surfs_list.append(pre_render_frame_surf)
 
         # Animator node
         self.animator = Animator(
@@ -63,28 +66,57 @@ class ThinFire:
     def _on_animation_frame_change(self, frame_index: int, _frame_data: AnimationSpriteMetadata) -> None:
         self.frame_index = frame_index
 
-    def POST_draw_frames_on_each_pre_render_frame_surfs(self, world_mouse_snapped_x: int, world_mouse_snapped_y: int) -> None:
-        # TODO: Create new surfs on every add and delete
-        # TODO: need to find way to keep track of added ones top left positions, since I already know the size
-        # TODO: Use the collision map and turn that into top left coord
-        # TODO: Then loop the bottom one with the lists of top left coords
-        # Iter each pre render frame surfs / animation frames
-        for i in range(self.animation_sprites_list_len):
-            # Get this pre render frame surf
-            pre_render_frame_surf = self.pre_render_frame_surfs_list[i]
-            # Get this animation frame
-            animation_sprite_metadata = self.animation_sprites_list[i]
-            # Draw this animation frame on this pre render on snapped world mouse
-            pre_render_frame_surf.blit(
-                self.sprite_sheet_surf,
-                (world_mouse_snapped_x, world_mouse_snapped_y),
-                (
-                    animation_sprite_metadata.x,
-                    animation_sprite_metadata.y,
-                    self.animation_sprite_width,
-                    self.animation_sprite_height,
-                ),
-            )
+    def update_pre_render_frame_surfs(self, collision_map_list: list[int]) -> None:
+        """
+        Reads the given collision map.
+        Whenever it reads, it will recreate the whole pre render from square one.
+        Then based on what is on collision map, will draw on pre render as if it is the first time.
+        """
+
+        # Reset the pre render surfs
+        self.pre_render_frame_surfs_list = []
+        # For every frame creates a surf as big as room
+        for _ in range(self.animation_sprites_list_len):
+            pre_render_frame_surf = pg.Surface((self.pre_render_frame_surf_width, self.pre_render_frame_surf_height))
+            pre_render_frame_surf.set_colorkey("red")
+            pre_render_frame_surf.fill("red")
+            self.pre_render_frame_surfs_list.append(pre_render_frame_surf)
+        # Iter over the collision map cells
+        for cell_index in range(len(collision_map_list)):
+            # Get cell
+            cell = collision_map_list[cell_index]
+            # Cell occupied?
+            if cell == 1:
+                # Turn occupied cell index to coord
+                coord = self._get_coords_from_index(
+                    cell_index,
+                    self.pre_render_frame_surf_width_tu,
+                    self.pre_render_frame_surf_height_tu,
+                )
+                # Make sure index exists
+                if coord[0] == -1 or coord[1] == -1:
+                    return
+                world_x_tu = coord[0]
+                world_y_tu = coord[1]
+                world_x_snapped = world_x_tu * TILE_SIZE
+                world_y_snapped = world_y_tu * TILE_SIZE
+                # Use coord to update each pre render
+                for j in range(self.animation_sprites_list_len):
+                    # Get this pre render frame surf
+                    pre_render_frame_surf = self.pre_render_frame_surfs_list[j]
+                    # Get this animation frame
+                    animation_sprite_metadata = self.animation_sprites_list[j]
+                    # Draw this animation frame on this pre render on snapped world mouse
+                    pre_render_frame_surf.blit(
+                        self.sprite_sheet_surf,
+                        (world_x_snapped, world_y_snapped),
+                        (
+                            animation_sprite_metadata.x,
+                            animation_sprite_metadata.y,
+                            self.animation_sprite_width,
+                            self.animation_sprite_height,
+                        ),
+                    )
 
     def draw(self) -> pg.Surface:
         # Return the current pre render frame for fblits
@@ -93,3 +125,16 @@ class ThinFire:
     def update(self, dt: int) -> None:
         # Update animation counter
         self.animator.update(dt)
+
+    # Helper
+    def _get_coords_from_index(self, index: int, room_width_tu: int, room_height_tu: int) -> tuple[int, int]:
+        """
+        Returns the (x, y) coordinates for a given index in the collision map list.
+        Returns (-1, -1) if the index is out of bounds.
+        """
+        if 0 <= index < room_width_tu * room_height_tu:
+            x = index % room_width_tu
+            y = index // room_width_tu
+            return x, y
+        else:
+            return -1, -1
