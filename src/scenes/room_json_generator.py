@@ -53,6 +53,7 @@ if TYPE_CHECKING:
 
 @typechecked
 class RoomJsonGenerator:
+    # TODO: Do better algo for the flood fill and rect combined fill, do the auto tile update at the very end after all POST
     # TODO: Add player, then be able to switch between edit and test mode
     # Add plyaer to collide to room limits first, spawn it like a tree, enter toggle edit to test mode
     # TODO: Add Enemies, when go back to edit, reset to their initial position
@@ -511,68 +512,24 @@ class RoomJsonGenerator:
             #################
             # Second select #
             #################
-            # TODO: Make a func for this, make the world uses it too
             # Draw combined cursor
-            mouse_position_tuple: tuple[int, int] = pg.mouse.get_pos()
-            mouse_position_x_tuple: int = mouse_position_tuple[0]
-            mouse_position_y_tuple: int = mouse_position_tuple[1]
-            # Scale mouse position
-            mouse_position_x_tuple_scaled: int | float = mouse_position_x_tuple // self.game.get_one_local_settings_dict_value(
-                "resolution_scale"
+            updated_data = self._process_mouse_cursor(
+                self.first_room_selected_tile_rect,
+                self.second_room_selected_tile_rect,
+                self.combined_room_selected_tile_rect,
+                self.screen_combined_room_selected_tile_rect_x,
+                self.screen_combined_room_selected_tile_rect_y,
+                self.room_width,
+                self.room_height,
+                TILE_SIZE,
+                False,
             )
-            mouse_position_y_tuple_scaled: int | float = mouse_position_y_tuple // self.game.get_one_local_settings_dict_value(
-                "resolution_scale"
-            )
-            # Clamp this in the max room size instead (hardcoded 2 x 2, no point in increasing, if not too slow)
-            mouse_position_x_tuple_scaled = clamp(
-                mouse_position_x_tuple_scaled,
-                0,
-                # Because this will refer to top left of a cell
-                # If it is flushed to the right it is out of bound
-                self.room_width - 1,
-            )
-            mouse_position_y_tuple_scaled = clamp(
-                mouse_position_y_tuple_scaled,
-                0,
-                # Because this will refer to top left of a cell
-                # If it is flushed to the bottom it is out of bound
-                self.room_height - 1,
-            )
-            # Convert positions
-            self.world_mouse_x = mouse_position_x_tuple_scaled + self.camera.rect.x
-            self.world_mouse_y = mouse_position_y_tuple_scaled + self.camera.rect.y
-            self.world_mouse_x = min(
-                self.world_mouse_x,
-                self.room_width - TILE_SIZE,
-            )
-            self.world_mouse_y = min(
-                self.world_mouse_y,
-                self.room_height - TILE_SIZE,
-            )
-            self.world_mouse_tu_x = int(self.world_mouse_x // TILE_SIZE)
-            self.world_mouse_tu_y = int(self.world_mouse_y // TILE_SIZE)
-            self.world_mouse_snapped_x = self.world_mouse_tu_x * TILE_SIZE
-            self.world_mouse_snapped_y = self.world_mouse_tu_y * TILE_SIZE
-            self.screen_mouse_x = self.world_mouse_snapped_x - self.camera.rect.x
-            self.screen_mouse_y = self.world_mouse_snapped_y - self.camera.rect.y
-            # Combine the first rect with this cursor
-            self.second_room_selected_tile_rect.x = self.world_mouse_snapped_x
-            self.second_room_selected_tile_rect.y = self.world_mouse_snapped_y
-            self.combined_room_selected_tile_rect = self.first_room_selected_tile_rect.union(self.second_room_selected_tile_rect)
-            self.screen_combined_room_selected_tile_rect_x = self.combined_room_selected_tile_rect.x - self.camera.rect.x
-            self.screen_combined_room_selected_tile_rect_y = self.combined_room_selected_tile_rect.y - self.camera.rect.y
-            # Draw combined cursor
-            pg.draw.rect(
-                NATIVE_SURF,
-                "green",
-                [
-                    self.screen_combined_room_selected_tile_rect_x,
-                    self.screen_combined_room_selected_tile_rect_y,
-                    self.combined_room_selected_tile_rect.width,
-                    self.combined_room_selected_tile_rect.height,
-                ],
-                1,
-            )
+            # Update the data after cursor
+            self.first_room_selected_tile_rect = updated_data["first_rect"]
+            self.second_room_selected_tile_rect = updated_data["second_rect"]
+            self.combined_room_selected_tile_rect = updated_data["combined_rect"]
+            self.screen_combined_room_selected_tile_rect_x = updated_data["screen_combined_rect_x"]
+            self.screen_combined_room_selected_tile_rect_y = updated_data["screen_combined_rect_y"]
         # Paint, erase and flood fill
         else:
             # Draw cursor
@@ -616,70 +573,23 @@ class RoomJsonGenerator:
         # When it is done only, so that it does not mess with saving
         if self.curtain.is_done:
             # Draw cursor
-            # Custom algo
-            # Get mouse position
-            mouse_position_tuple: tuple[int, int] = pg.mouse.get_pos()
-            mouse_position_x_tuple: int = mouse_position_tuple[0]
-            mouse_position_y_tuple: int = mouse_position_tuple[1]
-            # Scale mouse position
-            mouse_position_x_tuple_scaled: int | float = mouse_position_x_tuple // self.game.get_one_local_settings_dict_value(
-                "resolution_scale"
+            updated_data = self._process_mouse_cursor(
+                self.first_world_selected_tile_rect,
+                self.second_world_selected_tile_rect,
+                self.combined_world_selected_tile_rect,
+                self.screen_combined_world_selected_tile_rect_x,
+                self.screen_combined_world_selected_tile_rect_y,
+                WORLD_WIDTH,
+                WORLD_HEIGHT,
+                WORLD_CELL_SIZE,
+                True,
             )
-            mouse_position_y_tuple_scaled: int | float = mouse_position_y_tuple // self.game.get_one_local_settings_dict_value(
-                "resolution_scale"
-            )
-            # Clamp this in the max room size instead (hardcoded 2 x 2, no point in increasing, if not too slow)
-            mouse_position_x_tuple_scaled = clamp(
-                mouse_position_x_tuple_scaled,
-                (self.first_world_selected_tile_rect.x - WORLD_CELL_SIZE),
-                # Because this will refer to top left of a cell
-                # If it is flushed to the right it is out of bound
-                (self.first_world_selected_tile_rect.x + 2 * WORLD_CELL_SIZE) - 1,
-            )
-            mouse_position_y_tuple_scaled = clamp(
-                mouse_position_y_tuple_scaled,
-                (self.first_world_selected_tile_rect.y - WORLD_CELL_SIZE),
-                # Because this will refer to top left of a cell
-                # If it is flushed to the bottom it is out of bound
-                (self.first_world_selected_tile_rect.y + 2 * WORLD_CELL_SIZE) - 1,
-            )
-            # Convert positions
-            self.world_mouse_x = mouse_position_x_tuple_scaled + self.camera.rect.x
-            self.world_mouse_y = mouse_position_y_tuple_scaled + self.camera.rect.y
-            self.world_mouse_x = min(
-                self.world_mouse_x,
-                WORLD_WIDTH - WORLD_CELL_SIZE,
-            )
-            self.world_mouse_y = min(
-                self.world_mouse_y,
-                WORLD_HEIGHT - WORLD_CELL_SIZE,
-            )
-            self.world_mouse_tu_x = int(self.world_mouse_x // WORLD_CELL_SIZE)
-            self.world_mouse_tu_y = int(self.world_mouse_y // WORLD_CELL_SIZE)
-            self.world_mouse_snapped_x = self.world_mouse_tu_x * WORLD_CELL_SIZE
-            self.world_mouse_snapped_y = self.world_mouse_tu_y * WORLD_CELL_SIZE
-            self.screen_mouse_x = self.world_mouse_snapped_x - self.camera.rect.x
-            self.screen_mouse_y = self.world_mouse_snapped_y - self.camera.rect.y
-            # Combine the first rect with this cursor
-            self.second_world_selected_tile_rect.x = self.world_mouse_snapped_x
-            self.second_world_selected_tile_rect.y = self.world_mouse_snapped_y
-            self.combined_world_selected_tile_rect = self.first_world_selected_tile_rect.union(
-                self.second_world_selected_tile_rect
-            )
-            self.screen_combined_world_selected_tile_rect_x = self.combined_world_selected_tile_rect.x - self.camera.rect.x
-            self.screen_combined_world_selected_tile_rect_y = self.combined_world_selected_tile_rect.y - self.camera.rect.y
-            # Draw combined cursor
-            pg.draw.rect(
-                NATIVE_SURF,
-                "green",
-                [
-                    self.screen_combined_world_selected_tile_rect_x,
-                    self.screen_combined_world_selected_tile_rect_y,
-                    self.combined_world_selected_tile_rect.width,
-                    self.combined_world_selected_tile_rect.height,
-                ],
-                1,
-            )
+            # Update the data after cursor
+            self.first_world_selected_tile_rect = updated_data["first_rect"]
+            self.second_world_selected_tile_rect = updated_data["second_rect"]
+            self.combined_world_selected_tile_rect = updated_data["combined_rect"]
+            self.screen_combined_world_selected_tile_rect_x = updated_data["screen_combined_rect_x"]
+            self.screen_combined_world_selected_tile_rect_y = updated_data["screen_combined_rect_y"]
 
         # Curtain
         self.curtain.draw(NATIVE_SURF, 0)
@@ -2906,6 +2816,110 @@ class RoomJsonGenerator:
                 adjacent_tiles.append(adjacent_tile_instance)
 
         return adjacent_tiles
+
+    def _process_mouse_cursor(
+        self,
+        first_rect: pg.FRect,
+        second_rect: pg.FRect,
+        combined_rect: pg.FRect,
+        screen_combined_rect_x: float,
+        screen_combined_rect_y: float,
+        room_width: int,
+        room_height: int,
+        cell_size: int,
+        clamp_rect: bool,
+    ) -> dict[str, Any]:
+        """
+        This function returns the paseed argument back in a dict where the key is the same str name to its parameters.
+        This is because it does not update the self prop in place.
+        """
+        # Get and scale mouse position
+        mouse_position_tuple: tuple[int, int] = pg.mouse.get_pos()
+        mouse_position_x_tuple: int = mouse_position_tuple[0]
+        mouse_position_y_tuple: int = mouse_position_tuple[1]
+        # Scale mouse position
+        mouse_position_x_tuple_scaled: int | float = mouse_position_x_tuple // self.game.get_one_local_settings_dict_value(
+            "resolution_scale"
+        )
+        mouse_position_y_tuple_scaled: int | float = mouse_position_y_tuple // self.game.get_one_local_settings_dict_value(
+            "resolution_scale"
+        )
+        if clamp_rect:
+            mouse_position_x_tuple_scaled = clamp(
+                mouse_position_x_tuple_scaled,
+                (first_rect.x - cell_size),
+                # Because this will refer to top left of a cell
+                # If it is flushed to the right it is out of bound
+                (first_rect.x + 2 * cell_size) - 1,
+            )
+            mouse_position_y_tuple_scaled = clamp(
+                mouse_position_y_tuple_scaled,
+                (first_rect.y - cell_size),
+                # Because this will refer to top left of a cell
+                # If it is flushed to the bottom it is out of bound
+                (first_rect.y + 2 * cell_size) - 1,
+            )
+        else:
+            mouse_position_x_tuple_scaled = clamp(
+                mouse_position_x_tuple_scaled,
+                0,
+                # Because this will refer to top left of a cell
+                # If it is flushed to the right it is out of bound
+                room_width - 1,
+            )
+            mouse_position_y_tuple_scaled = clamp(
+                mouse_position_y_tuple_scaled,
+                0,
+                # Because this will refer to top left of a cell
+                # If it is flushed to the bottom it is out of bound
+                room_height - 1,
+            )
+        # Convert positions
+        self.world_mouse_x = mouse_position_x_tuple_scaled + self.camera.rect.x
+        self.world_mouse_y = mouse_position_y_tuple_scaled + self.camera.rect.y
+        self.world_mouse_x = min(
+            self.world_mouse_x,
+            room_width - cell_size,
+        )
+        self.world_mouse_y = min(
+            self.world_mouse_y,
+            room_height - cell_size,
+        )
+        self.world_mouse_tu_x = int(self.world_mouse_x // cell_size)
+        self.world_mouse_tu_y = int(self.world_mouse_y // cell_size)
+        self.world_mouse_snapped_x = self.world_mouse_tu_x * cell_size
+        self.world_mouse_snapped_y = self.world_mouse_tu_y * cell_size
+        self.screen_mouse_x = self.world_mouse_snapped_x - self.camera.rect.x
+        self.screen_mouse_y = self.world_mouse_snapped_y - self.camera.rect.y
+        # Combine the first rect with the current cursor position
+        second_rect.x = self.world_mouse_snapped_x
+        second_rect.y = self.world_mouse_snapped_y
+        combined_rect = first_rect.union(second_rect)
+        screen_combined_rect_x = combined_rect.x - self.camera.rect.x
+        screen_combined_rect_y = combined_rect.y - self.camera.rect.y
+        # Draw the combined cursor
+        pg.draw.rect(
+            NATIVE_SURF,
+            "green",
+            [
+                screen_combined_rect_x,
+                screen_combined_rect_y,
+                combined_rect.width,
+                combined_rect.height,
+            ],
+            1,
+        )
+        return {
+            "first_rect": first_rect,
+            "second_rect": second_rect,
+            "combined_rect": combined_rect,
+            "screen_combined_rect_x": screen_combined_rect_x,
+            "screen_combined_rect_y": screen_combined_rect_y,
+            "room_width": room_width,
+            "room_height": room_height,
+            "cell_size": cell_size,
+            "clamp_rect": clamp_rect,
+        }
 
     def _handle_query_input(self, accept_callback: Callable) -> None:
         """
