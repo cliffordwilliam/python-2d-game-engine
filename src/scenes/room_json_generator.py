@@ -111,6 +111,7 @@ class RoomJsonGenerator:
         self._setup_pallete()
         self._setup_reformat_sprite_sheet_json_metadata()
         self._setup_second_rect_region_feature_room()
+        self.is_mutate = False
 
     ##########
     # SETUPS #
@@ -973,6 +974,7 @@ class RoomJsonGenerator:
         self.curtain.update(dt)
 
     def _EDIT_ROOM(self, dt: int) -> None:
+        self.is_mutate = False
         # Wait for curtain to be fully invisible
         if self.curtain.is_done:
             # Move camera with input
@@ -1102,9 +1104,10 @@ class RoomJsonGenerator:
                         # Lmb just pressed
                         if self.game_event_handler.is_lmb_just_pressed:
                             # Get what is clicked
-                            found_tile_lmb_pressed = self._get_tile_from_world_collision_map_list(
+                            found_tile_lmb_pressed = self._get_tile_from_collision_map_list(
                                 self.world_mouse_tu_x,
                                 self.world_mouse_tu_y,
+                                selected_background_layer_collision_map,
                             )
                             # Clicked on empty? Valid first selection
                             if found_tile_lmb_pressed == 0:
@@ -1136,9 +1139,10 @@ class RoomJsonGenerator:
                                     world_tu_x = self.combined_room_selected_tile_rect_x_ru + world_tu_xi
                                     world_tu_y = self.combined_room_selected_tile_rect_y_ru + world_tu_yi
                                     # Get each one in room_collision_map_list
-                                    found_tile = self._get_tile_from_world_collision_map_list(
+                                    found_tile = self._get_tile_from_collision_map_list(
                                         world_tu_x,
                                         world_tu_y,
+                                        selected_background_layer_collision_map,
                                     )
                                     # Find empty cell in combined here
                                     if found_tile == 0:
@@ -1162,7 +1166,7 @@ class RoomJsonGenerator:
                                         ##################
                                         # BLOB TILE TYPE #
                                         ##################
-
+                                        # Really slow but it works
                                         elif selected_sprite_tile_type != "none":
                                             self._on_lmb_just_pressed_blob_tile_type(
                                                 # The selected collision map
@@ -1350,6 +1354,7 @@ class RoomJsonGenerator:
                     if selected_sprite_tile_type != "none":
 
                         def _flood_fill_callback(world_tu_x: int, world_tu_y: int, collision_map_list: list) -> None:
+                            # Really slow but it works
                             self._on_lmb_just_pressed_blob_tile_type(
                                 # The selected collision map
                                 collision_map_list,
@@ -1476,6 +1481,7 @@ class RoomJsonGenerator:
                     if selected_sprite_tile_type != "none":
 
                         def _flood_fill_callback(world_tu_x: int, world_tu_y: int, collision_map_list: list) -> None:
+                            # Really slow but it works
                             self._on_lmb_just_pressed_blob_tile_type(
                                 # The selected collision map
                                 collision_map_list,
@@ -1605,6 +1611,7 @@ class RoomJsonGenerator:
                     if selected_sprite_tile_type != "none":
 
                         def _flood_fill_callback(world_tu_x: int, world_tu_y: int, collision_map_list: list) -> None:
+                            # Really slow but it works
                             self._on_lmb_just_pressed_blob_tile_type(
                                 # The selected collision map
                                 collision_map_list,
@@ -1689,6 +1696,10 @@ class RoomJsonGenerator:
             if self.game_event_handler.is_jump_just_pressed:
                 self.is_from_edit_pressed_jump = True
                 self.curtain.go_to_opaque()
+
+        # Update pre render
+        if self.is_mutate:
+            self._update_pre_render()
 
         # Update curtain
         self.curtain.update(dt)
@@ -1923,42 +1934,37 @@ class RoomJsonGenerator:
     # HELPERS #
     ###########
     def _on_mmb_pressed(self, world_tu_x: int, world_tu_y: int, collision_map_list: list, callback: Callable) -> None:
-        """
-        Designed to work when you POST a 1 x 1 tile only.
-        So pass only callback that POST 1 x1 tile only.
-        Callback should have parameters for world_tu_x and world_tu_y.
-        """
-        # By design should not work with sprite that is bigger than 1 tile size
         if self.cursor_height > TILE_SIZE or self.cursor_width > TILE_SIZE:
             return
 
-        # Fill first clicked flood fill cell
-        callback(
-            world_tu_x=world_tu_x,
-            world_tu_y=world_tu_y,
-            collision_map_list=collision_map_list,
-        )
-        # Check adjacent, exclude corners, get list of empty ones
-        adjacent_empty_tiles_list: list[dict[str, int]] = self._get_adjacent_tiles_no_corners(
-            world_tu_x=world_tu_x,
-            world_tu_y=world_tu_y,
-            collision_map_list=collision_map_list,
-        )
-        # Iter on empty ones and call this func again with empty position
-        for adjacent_empty_tile_position_metadata in adjacent_empty_tiles_list:
-            # Unpack tu x and tu y
-            tu_x: int = adjacent_empty_tile_position_metadata["adjacent_world_tu_x"]
-            tu_y: int = adjacent_empty_tile_position_metadata["adjacent_world_tu_y"]
-            # Recursive call this func
-            self._on_mmb_pressed(
-                # Initiate with world mouse position
-                world_tu_x=tu_x,
-                world_tu_y=tu_y,
-                # Set this selected collision map
+        stack = [(world_tu_x, world_tu_y)]
+        processed = set()
+
+        while stack:
+            current_x, current_y = stack.pop()
+
+            if (current_x, current_y) in processed:
+                continue
+
+            processed.add((current_x, current_y))
+
+            callback(
+                world_tu_x=current_x,
+                world_tu_y=current_y,
                 collision_map_list=collision_map_list,
-                # The recursive callback
-                callback=callback,
             )
+
+            adjacent_empty_tiles_list = self._get_adjacent_tiles_no_corners(
+                world_tu_x=current_x,
+                world_tu_y=current_y,
+                collision_map_list=collision_map_list,
+            )
+
+            for adjacent_empty_tile in adjacent_empty_tiles_list:
+                tu_x = adjacent_empty_tile["adjacent_world_tu_x"]
+                tu_y = adjacent_empty_tile["adjacent_world_tu_y"]
+                if (tu_x, tu_y) not in processed:
+                    stack.append((tu_x, tu_y))
 
     def _on_static_actor_lmb_pressed(
         self, selected_static_actor_instance: Any, world_mouse_tu_x: int, world_mouse_tu_y: int
@@ -2174,8 +2180,6 @@ class RoomJsonGenerator:
         Click filled tile. Erase and set to 0.
         """
         self._fill_cursor_region_collision_map_with_0(collision_map_list)
-        # Update pre render
-        self._update_pre_render()
 
     def _on_rmb_just_pressed_blob_tile_type(
         self,
@@ -2250,9 +2254,6 @@ class RoomJsonGenerator:
                     neighbor_tile_name,
                 )
 
-            # Update pre render
-            self._update_pre_render()
-
     def _on_lmb_just_pressed_none_tile_type(
         self,
         collision_map_list: list[Any],
@@ -2279,9 +2280,6 @@ class RoomJsonGenerator:
                 world_tu_x,
                 world_tu_y,
             )
-
-            # Update pre render
-            self._update_pre_render()
 
     def _on_lmb_just_pressed_blob_tile_type(
         self,
@@ -2393,9 +2391,6 @@ class RoomJsonGenerator:
                     neighbor_tile_name,
                 )
 
-            # Update pre render
-            self._update_pre_render()
-
     def _draw_autotile_sprite_on_given_pos(
         self,
         sprite_tile_type: str,
@@ -2458,9 +2453,6 @@ class RoomJsonGenerator:
             value=none_or_blob_sprite_metadata_instance,
             collision_map_list=selected_layer_collision_map,
         )
-
-        # Update pre render
-        self._update_pre_render()
 
     def _fill_cursor_region_collision_map_with_0(
         self,
@@ -2667,6 +2659,8 @@ class RoomJsonGenerator:
         Returns -1 if out of bounds
         Because camera needs extra 1 and thus may get out of bound.
         """
+        # TODO: create a condition for this
+        self.is_mutate = True
         if 0 <= world_tu_x < self.room_width_tu and 0 <= world_tu_y < self.room_height_tu:
             collision_map_list[world_tu_y * self.room_width_tu + world_tu_x] = value
             return None
