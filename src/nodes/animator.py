@@ -33,7 +33,7 @@ class Animator:
         ].animation_sprites_list
         self.frames_list_len: int = len(self.animation_sprites_list)
         self.frames_list_index_len: int = self.frames_list_len - 1
-        self.frame_index: int = -1
+        self.frame_index: int = 0
         self.timer: int = 0
 
         # Set to true when done counting
@@ -79,7 +79,7 @@ class Animator:
         self.animation_sprites_list = self.animation_data[self.current_animation].animation_sprites_list
         self.frames_list_len = len(self.animation_sprites_list)
         self.frames_list_index_len = self.frames_list_len - 1
-        self._set_frame_index(-1)
+        self._set_frame_index(0)
         self.timer = 0
 
     def _set_frame_index(self, value: int) -> None:

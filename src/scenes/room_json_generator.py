@@ -111,7 +111,18 @@ class RoomJsonGenerator:
         self._setup_pallete()
         self._setup_reformat_sprite_sheet_json_metadata()
         self._setup_second_rect_region_feature_room()
+
+        # TODO: move this somewhere else
+        # Indicate to when to update the pre render
         self.is_mutate = False
+
+        # TODO: Temporary player for now
+        self.player_rect = pg.FRect(0, 0, 6, 31)
+        self.player_surf = pg.Surface((6, 31))
+        self.player_surf.fill("red")
+
+        # TODO: move this to a func
+        self.is_play_test_mode: bool = False
 
     ##########
     # SETUPS #
@@ -446,6 +457,7 @@ class RoomJsonGenerator:
             cursor_width=WORLD_CELL_SIZE,
             cursor_height=WORLD_CELL_SIZE,
             cell_size=WORLD_CELL_SIZE,
+            is_world=True,
         )
 
         # Curtain
@@ -490,8 +502,19 @@ class RoomJsonGenerator:
                 )
             )
 
-        # Draw  parallax background and pre render background collection
+        # Draw parallax background and pre render background collection
         NATIVE_SURF.fblits(blit_sequence)
+
+        # TODO: Draw enemies first?
+
+        # TODO: This is temp draw player
+        NATIVE_SURF.blit(
+            self.player_surf,
+            (
+                self.player_rect.x - self.camera.rect.x,
+                self.player_rect.y - self.camera.rect.y,
+            ),
+        )
 
         # Draw the pre render solid foreground
         NATIVE_SURF.blit(
@@ -502,49 +525,52 @@ class RoomJsonGenerator:
             ),
         )
 
-        # Draw grid
-        self._draw_grid()
+        # Draw grid and cursor in editor only, not play test
+        if not self.is_play_test_mode:
+            # Draw grid
+            self._draw_grid()
 
-        # Filter only some sprite types
+            # Filter only some sprite types
 
-        # Combine rect fill
-        # Only some can turn this to true
-        if self.is_lmb_was_just_pressed:
-            #################
-            # Second select #
-            #################
-            # Draw combined cursor
-            updated_data = self._process_mouse_cursor(
-                self.first_room_selected_tile_rect,
-                self.second_room_selected_tile_rect,
-                self.combined_room_selected_tile_rect,
-                self.screen_combined_room_selected_tile_rect_x,
-                self.screen_combined_room_selected_tile_rect_y,
-                self.room_width,
-                self.room_height,
-                TILE_SIZE,
-                False,
-            )
-            # Update the data after cursor
-            self.first_room_selected_tile_rect = updated_data["first_rect"]
-            self.second_room_selected_tile_rect = updated_data["second_rect"]
-            self.combined_room_selected_tile_rect = updated_data["combined_rect"]
-            self.screen_combined_room_selected_tile_rect_x = updated_data["screen_combined_rect_x"]
-            self.screen_combined_room_selected_tile_rect_y = updated_data["screen_combined_rect_y"]
-        # Paint, erase and flood fill
-        else:
-            # Draw cursor
-            self._draw_cursor(
-                mouse_position_x_tuple_scaled_min=NATIVE_RECT.left,
-                mouse_position_x_tuple_scaled_max=NATIVE_RECT.right,
-                mouse_position_y_tuple_scaled_min=NATIVE_RECT.top,
-                mouse_position_y_tuple_scaled_max=NATIVE_RECT.bottom,
-                room_width=self.room_width,
-                room_height=self.room_height,
-                cursor_width=self.cursor_width,
-                cursor_height=self.cursor_height,
-                cell_size=TILE_SIZE,
-            )
+            # Combine rect fill
+            # Only some can turn this to true
+            if self.is_lmb_was_just_pressed:
+                #################
+                # Second select #
+                #################
+                # Draw combined cursor
+                updated_data = self._process_mouse_cursor(
+                    self.first_room_selected_tile_rect,
+                    self.second_room_selected_tile_rect,
+                    self.combined_room_selected_tile_rect,
+                    self.screen_combined_room_selected_tile_rect_x,
+                    self.screen_combined_room_selected_tile_rect_y,
+                    self.room_width,
+                    self.room_height,
+                    TILE_SIZE,
+                    False,
+                )
+                # Update the data after cursor
+                self.first_room_selected_tile_rect = updated_data["first_rect"]
+                self.second_room_selected_tile_rect = updated_data["second_rect"]
+                self.combined_room_selected_tile_rect = updated_data["combined_rect"]
+                self.screen_combined_room_selected_tile_rect_x = updated_data["screen_combined_rect_x"]
+                self.screen_combined_room_selected_tile_rect_y = updated_data["screen_combined_rect_y"]
+            # Paint, erase and flood fill
+            else:
+                # Draw cursor
+                self._draw_cursor(
+                    mouse_position_x_tuple_scaled_min=NATIVE_RECT.left,
+                    mouse_position_x_tuple_scaled_max=NATIVE_RECT.right,
+                    mouse_position_y_tuple_scaled_min=NATIVE_RECT.top,
+                    mouse_position_y_tuple_scaled_max=NATIVE_RECT.bottom,
+                    room_width=self.room_width,
+                    room_height=self.room_height,
+                    cursor_width=self.cursor_width,
+                    cursor_height=self.cursor_height,
+                    cell_size=TILE_SIZE,
+                    is_world=False,
+                )
 
         # Curtain
         self.curtain.draw(NATIVE_SURF, 0)
@@ -867,7 +893,7 @@ class RoomJsonGenerator:
                     static_actor_animation_name_to_animation_metadata_instance: dict[
                         str, AnimationMetadata
                     ] = get_one_target_dict_value(static_actor_name, self.sprite_sheet_static_actor_jsons_dict)
-                    # Unpack animation metadata instace
+                    # Unpack animation metadata instance
                     static_actor_first_animation_name: str = list(
                         static_actor_animation_name_to_animation_metadata_instance.keys()
                     )[0]
@@ -931,6 +957,49 @@ class RoomJsonGenerator:
                     # Collect button
                     buttons.append(button)
 
+                # Init player
+                # For now its a button to let you place rect
+
+                # Construct sprite metadata
+                player_name = "player"
+                new_sprite_metadata_dict = {
+                    "sprite_name": player_name,
+                    "sprite_layer": 1,
+                    "sprite_tile_type": "none",
+                    "sprite_type": "dynamic_actor",
+                    "sprite_is_tile_mix": 0,
+                    # TODO: Update this with player sprite sheet data
+                    "width": 6,
+                    "height": 31,
+                    "x": 0,
+                    "y": 0,
+                }
+
+                # Turn into sprite metadata instance
+                sprite_metadata_instance = instance_sprite_metadata(new_sprite_metadata_dict)
+
+                # Make sure value is a SpriteMetadata
+                if not isinstance(sprite_metadata_instance, SpriteMetadata):
+                    raise ValueError("Invalid sprite metadata JSON data against schema")
+
+                # Make sure key is a string
+                if not isinstance(player_name, str):
+                    raise TypeError("player_name should be a string")
+
+                # POST sprite metadata instance to sprite_name_to_sprite_metadata
+                self.sprite_name_to_sprite_metadata[player_name] = sprite_metadata_instance
+
+                # Create button
+                button = Button(
+                    surf_size_tuple=(264, 19),
+                    topleft=(29, 14),
+                    text=player_name,
+                    text_topleft=(53, 2),
+                    description_text="dynamic_actor",
+                )
+                # Collect button
+                buttons.append(button)
+
                 # All buttons list are collected here
 
                 # Init button container
@@ -977,216 +1046,370 @@ class RoomJsonGenerator:
         self.is_mutate = False
         # Wait for curtain to be fully invisible
         if self.curtain.is_done:
-            # Move camera with input
-            self._move_camera(dt)
-
             # Update static actors
             for static_actor_instance in self.sprite_sheet_static_actor_instance_dict.values():
                 static_actor_instance.update(dt)
 
-            # TODO: Turn the block to a func and use the name as key
+            if not self.is_play_test_mode:
+                # Move camera with input
+                self._move_camera_anchor_vector(dt)
 
-            # Get sprite metadata from reformat with selected sprite name
-            sprite_metadata_instance: SpriteMetadata = get_one_target_dict_value(
-                self.selected_sprite_name,
-                self.sprite_name_to_sprite_metadata,
-            )
-            selected_sprite_type: str = sprite_metadata_instance.sprite_type
-            selected_sprite_layer_index: int = sprite_metadata_instance.sprite_layer - 1
-            selected_sprite_tile_type: str = sprite_metadata_instance.sprite_tile_type
-            selected_sprite_x: int = sprite_metadata_instance.x
-            selected_sprite_y: int = sprite_metadata_instance.y
-            selected_sprite_name: str = sprite_metadata_instance.sprite_name
+                # TODO: Turn the block to a func and use the name as key
 
-            ######################
-            # STATIC ACTOR STATE #
-            ######################
+                # Get sprite metadata from reformat with selected sprite name
+                sprite_metadata_instance: SpriteMetadata = get_one_target_dict_value(
+                    self.selected_sprite_name,
+                    self.sprite_name_to_sprite_metadata,
+                )
+                selected_sprite_type: str = sprite_metadata_instance.sprite_type
+                selected_sprite_layer_index: int = sprite_metadata_instance.sprite_layer - 1
+                selected_sprite_tile_type: str = sprite_metadata_instance.sprite_tile_type
+                selected_sprite_x: int = sprite_metadata_instance.x
+                selected_sprite_y: int = sprite_metadata_instance.y
+                selected_sprite_name: str = sprite_metadata_instance.sprite_name
 
-            if selected_sprite_type == "static_actor":
-                # Get the selected static actor
-                selected_static_actor_instance = self.sprite_sheet_static_actor_instance_dict[selected_sprite_name]
-                ###############
-                # Lmb pressed #
-                ###############
-                if self.game_event_handler.is_lmb_pressed:
-                    self._on_static_actor_lmb_pressed(
-                        selected_static_actor_instance=selected_static_actor_instance,
-                        world_mouse_tu_x=self.world_mouse_tu_x,
-                        world_mouse_tu_y=self.world_mouse_tu_y,
-                    )
+                #######################
+                # DYNAMIC ACTOR STATE #
+                #######################
 
-                ###############
-                # Rmb pressed #
-                ###############
-                if self.game_event_handler.is_rmb_pressed:
-                    # Get clicked cell
-                    found_tile = self._get_tile_from_collision_map_list(
-                        self.world_mouse_tu_x,
-                        self.world_mouse_tu_y,
-                        self.static_actor_collision_map_list,
-                    )
+                if selected_sprite_type == "dynamic_actor":
+                    ###############
+                    # Lmb pressed #
+                    ###############
+                    if self.game_event_handler.is_lmb_pressed:
+                        # Get top left tile click position
+                        world_mouse_x = self.world_mouse_tu_x * TILE_SIZE
+                        world_mouse_y = self.world_mouse_tu_y * TILE_SIZE
+                        # Turn it into tile mid bottom instead
+                        world_mouse_bottom_left_x = world_mouse_x
+                        world_mouse_bottom_left_y = world_mouse_y + TILE_SIZE
+                        # Place player mid bottom, to the clicked cell bottom left
+                        self.player_rect.left = world_mouse_bottom_left_x - (self.player_rect.width // 2)
+                        self.player_rect.bottom = world_mouse_bottom_left_y
 
-                    # Make sure value is NOT a NoneOrBlobSpriteMetadata
-                    if isinstance(found_tile, NoneOrBlobSpriteMetadata):
-                        raise ValueError("static_actor_collision_map_list cannot contain NoneOrBlobSpriteMetadata")
+                ######################
+                # STATIC ACTOR STATE #
+                ######################
 
-                    # Here found tile should only be int
-
-                    # Cell is not int 0 or out of bound
-                    if found_tile != 0 and found_tile != -1:
-                        # Should be int 1, turn it to zero
-                        self._set_tile_from_collision_map_list(
-                            world_tu_x=self.world_mouse_tu_x,
-                            world_tu_y=self.world_mouse_tu_y,
-                            value=0,
-                            collision_map_list=self.static_actor_collision_map_list,
-                        )
-                        # Update pre render frame surfs based on collision map
-                        selected_static_actor_instance.update_pre_render_frame_surfs(
-                            collision_map_list=self.static_actor_collision_map_list,
+                if selected_sprite_type == "static_actor":
+                    # Get the selected static actor
+                    selected_static_actor_instance = self.sprite_sheet_static_actor_instance_dict[selected_sprite_name]
+                    ###############
+                    # Lmb pressed #
+                    ###############
+                    if self.game_event_handler.is_lmb_pressed:
+                        self._on_static_actor_lmb_pressed(
+                            selected_static_actor_instance=selected_static_actor_instance,
+                            world_mouse_tu_x=self.world_mouse_tu_x,
+                            world_mouse_tu_y=self.world_mouse_tu_y,
                         )
 
-            #############################
-            # PARALLAX BACKGROUND STATE #
-            #############################
-
-            if selected_sprite_type == "parallax_background":
-                ####################
-                # Lmb just pressed #
-                ####################
-                if self.game_event_handler.is_lmb_just_pressed:
-                    # This layer is None?
-                    if self.parallax_background_instances_list[selected_sprite_layer_index] is None:
-                        # Get binded mem with name
-                        parallax_background_mem = get_one_target_dict_value(
-                            self.selected_sprite_name,
-                            self.sprite_sheet_parallax_background_mems_dict,
+                    ###############
+                    # Rmb pressed #
+                    ###############
+                    if self.game_event_handler.is_rmb_pressed:
+                        # Get clicked cell
+                        found_tile = self._get_tile_from_collision_map_list(
+                            self.world_mouse_tu_x,
+                            self.world_mouse_tu_y,
+                            self.static_actor_collision_map_list,
                         )
-                        # Create new parallax background instance
-                        new_parallax_background_instance = parallax_background_mem(
-                            self.sprite_sheet_surf,
-                            self.camera,
-                        )
-                        # Fill with new parallax background instance
-                        self.parallax_background_instances_list[selected_sprite_layer_index] = new_parallax_background_instance
 
-                ####################
-                # Rmb just pressed #
-                ####################
-                if self.game_event_handler.is_rmb_just_pressed:
-                    # This layer has instance?
-                    if self.parallax_background_instances_list[selected_sprite_layer_index] is not None:
-                        # Make it None
-                        self.parallax_background_instances_list[selected_sprite_layer_index] = None
+                        # Make sure value is NOT a NoneOrBlobSpriteMetadata
+                        if isinstance(found_tile, NoneOrBlobSpriteMetadata):
+                            raise ValueError("static_actor_collision_map_list cannot contain NoneOrBlobSpriteMetadata")
 
-            ####################
-            # BACKGROUND STATE #
-            ####################
+                        # Here found tile should only be int
 
-            elif selected_sprite_type == "background":
-                # TODO: Write the controls in the grid background
-                # TODO: Have a clear canvas function where it clears off everything
-
-                # Get background collision map LAYER
-                selected_background_layer_collision_map: list = self.background_collision_map_list[selected_sprite_layer_index]
+                        # Cell is not int 0 or out of bound
+                        if found_tile != 0 and found_tile != -1:
+                            # Should be int 1, turn it to zero
+                            self._set_tile_from_collision_map_list(
+                                world_tu_x=self.world_mouse_tu_x,
+                                world_tu_y=self.world_mouse_tu_y,
+                                value=0,
+                                collision_map_list=self.static_actor_collision_map_list,
+                            )
+                            # Update pre render frame surfs based on collision map
+                            selected_static_actor_instance.update_pre_render_frame_surfs(
+                                collision_map_list=self.static_actor_collision_map_list,
+                            )
 
                 #############################
-                # Combined rect paint state #
+                # PARALLAX BACKGROUND STATE #
                 #############################
-                # TODO: Make a func for this, also make this works for the other sprite types too
-                # By design should not work with sprite that is bigger than 1 tile size
-                is_1_tile_size: bool = self.cursor_height == TILE_SIZE and self.cursor_width == TILE_SIZE
-                if self.game_event_handler.is_attack_pressed and is_1_tile_size:
-                    ################
-                    # First select #
-                    ################
-                    if not self.is_lmb_was_just_pressed:
-                        # Lmb just pressed
-                        if self.game_event_handler.is_lmb_just_pressed:
-                            # Get what is clicked
-                            found_tile_lmb_pressed = self._get_tile_from_collision_map_list(
-                                self.world_mouse_tu_x,
-                                self.world_mouse_tu_y,
-                                selected_background_layer_collision_map,
+
+                if selected_sprite_type == "parallax_background":
+                    ####################
+                    # Lmb just pressed #
+                    ####################
+                    if self.game_event_handler.is_lmb_just_pressed:
+                        # This layer is None?
+                        if self.parallax_background_instances_list[selected_sprite_layer_index] is None:
+                            # Get binded mem with name
+                            parallax_background_mem = get_one_target_dict_value(
+                                self.selected_sprite_name,
+                                self.sprite_sheet_parallax_background_mems_dict,
                             )
-                            # Clicked on empty? Valid first selection
-                            if found_tile_lmb_pressed == 0:
-                                # Remember first selected tile rect
-                                self.first_room_selected_tile_rect.x = self.world_mouse_snapped_x
-                                self.first_room_selected_tile_rect.y = self.world_mouse_snapped_y
-                                # Exit
-                                self.is_lmb_was_just_pressed = True
-                    #################
-                    # Second select #
-                    #################
-                    elif self.is_lmb_was_just_pressed:
-                        # Lmb just pressed
-                        if self.game_event_handler.is_lmb_just_released:
-                            # TODO: Make a func for this
-                            # Fill the combined
-                            # Check if selection is all empty cells
-                            # Iterate size to check all empty
-                            self.combined_room_selected_tile_rect_width_ru = int(
-                                self.combined_room_selected_tile_rect.width // TILE_SIZE
+                            # Create new parallax background instance
+                            new_parallax_background_instance = parallax_background_mem(
+                                self.sprite_sheet_surf,
+                                self.camera,
                             )
-                            self.combined_room_selected_tile_rect_height_ru = int(
-                                self.combined_room_selected_tile_rect.height // TILE_SIZE
-                            )
-                            self.combined_room_selected_tile_rect_x_ru = int(self.combined_room_selected_tile_rect.x // TILE_SIZE)
-                            self.combined_room_selected_tile_rect_y_ru = int(self.combined_room_selected_tile_rect.y // TILE_SIZE)
-                            for world_tu_xi in range(self.combined_room_selected_tile_rect_width_ru):
-                                for world_tu_yi in range(self.combined_room_selected_tile_rect_height_ru):
-                                    world_tu_x = self.combined_room_selected_tile_rect_x_ru + world_tu_xi
-                                    world_tu_y = self.combined_room_selected_tile_rect_y_ru + world_tu_yi
-                                    # Get each one in room_collision_map_list
-                                    found_tile = self._get_tile_from_collision_map_list(
-                                        world_tu_x,
-                                        world_tu_y,
-                                        selected_background_layer_collision_map,
+                            # Fill with new parallax background instance
+                            self.parallax_background_instances_list[
+                                selected_sprite_layer_index
+                            ] = new_parallax_background_instance
+
+                    ####################
+                    # Rmb just pressed #
+                    ####################
+                    if self.game_event_handler.is_rmb_just_pressed:
+                        # This layer has instance?
+                        if self.parallax_background_instances_list[selected_sprite_layer_index] is not None:
+                            # Make it None
+                            self.parallax_background_instances_list[selected_sprite_layer_index] = None
+
+                ####################
+                # BACKGROUND STATE #
+                ####################
+
+                elif selected_sprite_type == "background":
+                    # TODO: Write the controls in the grid background
+                    # TODO: Have a clear canvas function where it clears off everything
+
+                    # Get background collision map LAYER
+                    selected_background_layer_collision_map: list = self.background_collision_map_list[
+                        selected_sprite_layer_index
+                    ]
+
+                    #############################
+                    # Combined rect paint state #
+                    #############################
+                    # TODO: Make a func for this, also make this works for the other sprite types too
+                    # By design should not work with sprite that is bigger than 1 tile size
+                    is_1_tile_size: bool = self.cursor_height == TILE_SIZE and self.cursor_width == TILE_SIZE
+                    if self.game_event_handler.is_attack_pressed and is_1_tile_size:
+                        ################
+                        # First select #
+                        ################
+                        if not self.is_lmb_was_just_pressed:
+                            # Lmb just pressed
+                            if self.game_event_handler.is_lmb_just_pressed:
+                                # Get what is clicked
+                                found_tile_lmb_pressed = self._get_tile_from_collision_map_list(
+                                    self.world_mouse_tu_x,
+                                    self.world_mouse_tu_y,
+                                    selected_background_layer_collision_map,
+                                )
+                                # Clicked on empty? Valid first selection
+                                if found_tile_lmb_pressed == 0:
+                                    # Remember first selected tile rect
+                                    self.first_room_selected_tile_rect.x = self.world_mouse_snapped_x
+                                    self.first_room_selected_tile_rect.y = self.world_mouse_snapped_y
+                                    # Exit
+                                    self.is_lmb_was_just_pressed = True
+                        #################
+                        # Second select #
+                        #################
+                        elif self.is_lmb_was_just_pressed:
+                            # Lmb just pressed
+                            if self.game_event_handler.is_lmb_just_released:
+                                # TODO: Make a func for this
+                                # Fill the combined
+                                # Check if selection is all empty cells
+                                # Iterate size to check all empty
+                                self.combined_room_selected_tile_rect_width_ru = int(
+                                    self.combined_room_selected_tile_rect.width // TILE_SIZE
+                                )
+                                self.combined_room_selected_tile_rect_height_ru = int(
+                                    self.combined_room_selected_tile_rect.height // TILE_SIZE
+                                )
+                                self.combined_room_selected_tile_rect_x_ru = int(
+                                    self.combined_room_selected_tile_rect.x // TILE_SIZE
+                                )
+                                self.combined_room_selected_tile_rect_y_ru = int(
+                                    self.combined_room_selected_tile_rect.y // TILE_SIZE
+                                )
+                                for world_tu_xi in range(self.combined_room_selected_tile_rect_width_ru):
+                                    for world_tu_yi in range(self.combined_room_selected_tile_rect_height_ru):
+                                        world_tu_x = self.combined_room_selected_tile_rect_x_ru + world_tu_xi
+                                        world_tu_y = self.combined_room_selected_tile_rect_y_ru + world_tu_yi
+                                        # Get each one in room_collision_map_list
+                                        found_tile = self._get_tile_from_collision_map_list(
+                                            world_tu_x,
+                                            world_tu_y,
+                                            selected_background_layer_collision_map,
+                                        )
+                                        # Find empty cell in combined here
+                                        if found_tile == 0:
+                                            ##################
+                                            # NONE TILE TYPE #
+                                            ##################
+
+                                            if selected_sprite_tile_type == "none":
+                                                self._on_lmb_just_pressed_none_tile_type(
+                                                    # The selected collision map
+                                                    selected_background_layer_collision_map,
+                                                    # Other dynamic data this needs
+                                                    selected_sprite_x,
+                                                    selected_sprite_y,
+                                                    selected_sprite_name,
+                                                    # Then subsequent callbacks are from neighbor pos
+                                                    world_tu_x=world_tu_x,
+                                                    world_tu_y=world_tu_y,
+                                                )
+
+                                            ##################
+                                            # BLOB TILE TYPE #
+                                            ##################
+                                            # Really slow but it works
+                                            elif selected_sprite_tile_type != "none":
+                                                self._on_lmb_just_pressed_blob_tile_type(
+                                                    # The selected collision map
+                                                    selected_background_layer_collision_map,
+                                                    # Other dynamic data this needs
+                                                    selected_sprite_x,
+                                                    selected_sprite_y,
+                                                    selected_sprite_tile_type,
+                                                    selected_sprite_name,
+                                                    # Then subsequent callbacks are from neighbor pos
+                                                    world_tu_x=world_tu_x,
+                                                    world_tu_y=world_tu_y,
+                                                )
+                                # Cleanup exit to enter first state again
+                                # Reset flag
+                                self.is_lmb_was_just_pressed = False
+                    ######################
+                    # Normal paint state #
+                    ######################
+                    else:
+                        ####################
+                        # Mmb just pressed #
+                        ####################
+
+                        if self.game_event_handler.is_mmb_just_pressed:
+                            ##################
+                            # NONE TILE TYPE #
+                            ##################
+
+                            if selected_sprite_tile_type == "none":
+
+                                def _flood_fill_callback(world_tu_x: int, world_tu_y: int, collision_map_list: list) -> None:
+                                    self._on_lmb_just_pressed_none_tile_type(
+                                        # The selected collision map
+                                        collision_map_list,
+                                        # Other dynamic data this needs
+                                        selected_sprite_x,
+                                        selected_sprite_y,
+                                        selected_sprite_name,
+                                        # Then subsequent callbacks are from neighbor pos
+                                        world_tu_x=world_tu_x,
+                                        world_tu_y=world_tu_y,
                                     )
-                                    # Find empty cell in combined here
-                                    if found_tile == 0:
-                                        ##################
-                                        # NONE TILE TYPE #
-                                        ##################
 
-                                        if selected_sprite_tile_type == "none":
-                                            self._on_lmb_just_pressed_none_tile_type(
-                                                # The selected collision map
-                                                selected_background_layer_collision_map,
-                                                # Other dynamic data this needs
-                                                selected_sprite_x,
-                                                selected_sprite_y,
-                                                selected_sprite_name,
-                                                # Then subsequent callbacks are from neighbor pos
-                                                world_tu_x=world_tu_x,
-                                                world_tu_y=world_tu_y,
-                                            )
+                                self._on_mmb_pressed(
+                                    # Initiate with world mouse position
+                                    world_tu_x=self.world_mouse_tu_x,
+                                    world_tu_y=self.world_mouse_tu_y,
+                                    # Set this selected collision map
+                                    collision_map_list=selected_background_layer_collision_map,
+                                    # The recursive callback
+                                    callback=_flood_fill_callback,
+                                )
 
-                                        ##################
-                                        # BLOB TILE TYPE #
-                                        ##################
-                                        # Really slow but it works
-                                        elif selected_sprite_tile_type != "none":
-                                            self._on_lmb_just_pressed_blob_tile_type(
-                                                # The selected collision map
-                                                selected_background_layer_collision_map,
-                                                # Other dynamic data this needs
-                                                selected_sprite_x,
-                                                selected_sprite_y,
-                                                selected_sprite_tile_type,
-                                                selected_sprite_name,
-                                                # Then subsequent callbacks are from neighbor pos
-                                                world_tu_x=world_tu_x,
-                                                world_tu_y=world_tu_y,
-                                            )
-                            # Cleanup exit to enter first state again
-                            # Reset flag
-                            self.is_lmb_was_just_pressed = False
-                ######################
-                # Normal paint state #
-                ######################
-                else:
+                            ##################
+                            # BLOB TILE TYPE #
+                            ##################
+
+                            if selected_sprite_tile_type != "none":
+
+                                def _flood_fill_callback(world_tu_x: int, world_tu_y: int, collision_map_list: list) -> None:
+                                    self._on_lmb_just_pressed_blob_tile_type(
+                                        # The selected collision map
+                                        collision_map_list,
+                                        # Other dynamic data this needs
+                                        selected_sprite_x,
+                                        selected_sprite_y,
+                                        selected_sprite_tile_type,
+                                        selected_sprite_name,
+                                        # Then subsequent callbacks are from neighbor pos
+                                        world_tu_x=world_tu_x,
+                                        world_tu_y=world_tu_y,
+                                    )
+
+                                self._on_mmb_pressed(
+                                    # Initiate with world mouse position
+                                    world_tu_x=self.world_mouse_tu_x,
+                                    world_tu_y=self.world_mouse_tu_y,
+                                    # Set this selected collision map
+                                    collision_map_list=selected_background_layer_collision_map,
+                                    # The recursive callback
+                                    callback=_flood_fill_callback,
+                                )
+
+                        ###############
+                        # Lmb pressed #
+                        ###############
+
+                        if self.game_event_handler.is_lmb_pressed:
+                            ##################
+                            # NONE TILE TYPE #
+                            ##################
+
+                            if selected_sprite_tile_type == "none":
+                                self._on_lmb_just_pressed_none_tile_type(
+                                    selected_background_layer_collision_map,
+                                    selected_sprite_x,
+                                    selected_sprite_y,
+                                    selected_sprite_name,
+                                    world_tu_x=self.world_mouse_tu_x,
+                                    world_tu_y=self.world_mouse_tu_y,
+                                )
+
+                            ##################
+                            # BLOB TILE TYPE #
+                            ##################
+
+                            if selected_sprite_tile_type != "none":
+                                self._on_lmb_just_pressed_blob_tile_type(
+                                    selected_background_layer_collision_map,
+                                    selected_sprite_x,
+                                    selected_sprite_y,
+                                    selected_sprite_tile_type,
+                                    selected_sprite_name,
+                                    world_tu_x=self.world_mouse_tu_x,
+                                    world_tu_y=self.world_mouse_tu_y,
+                                )
+
+                        ###############
+                        # Rmb pressed #
+                        ###############
+
+                        if self.game_event_handler.is_rmb_pressed:
+                            ##################
+                            # NONE TILE TYPE #
+                            ##################
+
+                            if selected_sprite_tile_type == "none":
+                                self._on_rmb_just_pressed_none_tile_type(
+                                    selected_background_layer_collision_map,
+                                )
+
+                            ##################
+                            # BLOB TILE TYPE #
+                            ##################
+
+                            if selected_sprite_tile_type != "none":
+                                self._on_rmb_just_pressed_blob_tile_type(
+                                    selected_background_layer_collision_map,
+                                )
+
+                ###############
+                # SOLID STATE #
+                ###############
+
+                elif selected_sprite_type == "solid":
                     ####################
                     # Mmb just pressed #
                     ####################
@@ -1216,7 +1439,7 @@ class RoomJsonGenerator:
                                 world_tu_x=self.world_mouse_tu_x,
                                 world_tu_y=self.world_mouse_tu_y,
                                 # Set this selected collision map
-                                collision_map_list=selected_background_layer_collision_map,
+                                collision_map_list=self.solid_collision_map_list,
                                 # The recursive callback
                                 callback=_flood_fill_callback,
                             )
@@ -1228,6 +1451,7 @@ class RoomJsonGenerator:
                         if selected_sprite_tile_type != "none":
 
                             def _flood_fill_callback(world_tu_x: int, world_tu_y: int, collision_map_list: list) -> None:
+                                # Really slow but it works
                                 self._on_lmb_just_pressed_blob_tile_type(
                                     # The selected collision map
                                     collision_map_list,
@@ -1246,7 +1470,7 @@ class RoomJsonGenerator:
                                 world_tu_x=self.world_mouse_tu_x,
                                 world_tu_y=self.world_mouse_tu_y,
                                 # Set this selected collision map
-                                collision_map_list=selected_background_layer_collision_map,
+                                collision_map_list=self.solid_collision_map_list,
                                 # The recursive callback
                                 callback=_flood_fill_callback,
                             )
@@ -1262,7 +1486,7 @@ class RoomJsonGenerator:
 
                         if selected_sprite_tile_type == "none":
                             self._on_lmb_just_pressed_none_tile_type(
-                                selected_background_layer_collision_map,
+                                self.solid_collision_map_list,
                                 selected_sprite_x,
                                 selected_sprite_y,
                                 selected_sprite_name,
@@ -1276,7 +1500,7 @@ class RoomJsonGenerator:
 
                         if selected_sprite_tile_type != "none":
                             self._on_lmb_just_pressed_blob_tile_type(
-                                selected_background_layer_collision_map,
+                                self.solid_collision_map_list,
                                 selected_sprite_x,
                                 selected_sprite_y,
                                 selected_sprite_tile_type,
@@ -1296,7 +1520,7 @@ class RoomJsonGenerator:
 
                         if selected_sprite_tile_type == "none":
                             self._on_rmb_just_pressed_none_tile_type(
-                                selected_background_layer_collision_map,
+                                self.solid_collision_map_list,
                             )
 
                         ##################
@@ -1305,401 +1529,285 @@ class RoomJsonGenerator:
 
                         if selected_sprite_tile_type != "none":
                             self._on_rmb_just_pressed_blob_tile_type(
-                                selected_background_layer_collision_map,
+                                self.solid_collision_map_list,
                             )
 
-            ###############
-            # SOLID STATE #
-            ###############
+                ##############
+                # THIN STATE #
+                ##############
 
-            elif selected_sprite_type == "solid":
-                ####################
-                # Mmb just pressed #
-                ####################
+                elif selected_sprite_type == "thin":
+                    ####################
+                    # Mmb just pressed #
+                    ####################
 
-                if self.game_event_handler.is_mmb_just_pressed:
-                    ##################
-                    # NONE TILE TYPE #
-                    ##################
+                    if self.game_event_handler.is_mmb_just_pressed:
+                        ##################
+                        # NONE TILE TYPE #
+                        ##################
 
-                    if selected_sprite_tile_type == "none":
+                        if selected_sprite_tile_type == "none":
 
-                        def _flood_fill_callback(world_tu_x: int, world_tu_y: int, collision_map_list: list) -> None:
+                            def _flood_fill_callback(world_tu_x: int, world_tu_y: int, collision_map_list: list) -> None:
+                                self._on_lmb_just_pressed_none_tile_type(
+                                    # The selected collision map
+                                    collision_map_list,
+                                    # Other dynamic data this needs
+                                    selected_sprite_x,
+                                    selected_sprite_y,
+                                    selected_sprite_name,
+                                    # Then subsequent callbacks are from neighbor pos
+                                    world_tu_x=world_tu_x,
+                                    world_tu_y=world_tu_y,
+                                )
+
+                            self._on_mmb_pressed(
+                                # Initiate with world mouse position
+                                world_tu_x=self.world_mouse_tu_x,
+                                world_tu_y=self.world_mouse_tu_y,
+                                # Set this selected collision map
+                                collision_map_list=self.solid_collision_map_list,
+                                # The recursive callback
+                                callback=_flood_fill_callback,
+                            )
+
+                        ##################
+                        # BLOB TILE TYPE #
+                        ##################
+
+                        if selected_sprite_tile_type != "none":
+
+                            def _flood_fill_callback(world_tu_x: int, world_tu_y: int, collision_map_list: list) -> None:
+                                # Really slow but it works
+                                self._on_lmb_just_pressed_blob_tile_type(
+                                    # The selected collision map
+                                    collision_map_list,
+                                    # Other dynamic data this needs
+                                    selected_sprite_x,
+                                    selected_sprite_y,
+                                    selected_sprite_tile_type,
+                                    selected_sprite_name,
+                                    # Then subsequent callbacks are from neighbor pos
+                                    world_tu_x=world_tu_x,
+                                    world_tu_y=world_tu_y,
+                                )
+
+                            self._on_mmb_pressed(
+                                # Initiate with world mouse position
+                                world_tu_x=self.world_mouse_tu_x,
+                                world_tu_y=self.world_mouse_tu_y,
+                                # Set this selected collision map
+                                collision_map_list=self.solid_collision_map_list,
+                                # The recursive callback
+                                callback=_flood_fill_callback,
+                            )
+
+                    ###############
+                    # Lmb pressed #
+                    ###############
+
+                    if self.game_event_handler.is_lmb_pressed:
+                        ##################
+                        # NONE TILE TYPE #
+                        ##################
+
+                        if selected_sprite_tile_type == "none":
                             self._on_lmb_just_pressed_none_tile_type(
-                                # The selected collision map
-                                collision_map_list,
-                                # Other dynamic data this needs
+                                self.solid_collision_map_list,
                                 selected_sprite_x,
                                 selected_sprite_y,
                                 selected_sprite_name,
-                                # Then subsequent callbacks are from neighbor pos
-                                world_tu_x=world_tu_x,
-                                world_tu_y=world_tu_y,
+                                world_tu_x=self.world_mouse_tu_x,
+                                world_tu_y=self.world_mouse_tu_y,
                             )
 
-                        self._on_mmb_pressed(
-                            # Initiate with world mouse position
-                            world_tu_x=self.world_mouse_tu_x,
-                            world_tu_y=self.world_mouse_tu_y,
-                            # Set this selected collision map
-                            collision_map_list=self.solid_collision_map_list,
-                            # The recursive callback
-                            callback=_flood_fill_callback,
-                        )
+                        ##################
+                        # BLOB TILE TYPE #
+                        ##################
 
-                    ##################
-                    # BLOB TILE TYPE #
-                    ##################
-
-                    if selected_sprite_tile_type != "none":
-
-                        def _flood_fill_callback(world_tu_x: int, world_tu_y: int, collision_map_list: list) -> None:
-                            # Really slow but it works
+                        if selected_sprite_tile_type != "none":
                             self._on_lmb_just_pressed_blob_tile_type(
-                                # The selected collision map
-                                collision_map_list,
-                                # Other dynamic data this needs
+                                self.solid_collision_map_list,
                                 selected_sprite_x,
                                 selected_sprite_y,
                                 selected_sprite_tile_type,
                                 selected_sprite_name,
-                                # Then subsequent callbacks are from neighbor pos
-                                world_tu_x=world_tu_x,
-                                world_tu_y=world_tu_y,
+                                world_tu_x=self.world_mouse_tu_x,
+                                world_tu_y=self.world_mouse_tu_y,
                             )
 
-                        self._on_mmb_pressed(
-                            # Initiate with world mouse position
-                            world_tu_x=self.world_mouse_tu_x,
-                            world_tu_y=self.world_mouse_tu_y,
-                            # Set this selected collision map
-                            collision_map_list=self.solid_collision_map_list,
-                            # The recursive callback
-                            callback=_flood_fill_callback,
-                        )
+                    ###############
+                    # Rmb pressed #
+                    ###############
 
-                ###############
-                # Lmb pressed #
-                ###############
+                    if self.game_event_handler.is_rmb_pressed:
+                        ##################
+                        # NONE TILE TYPE #
+                        ##################
 
-                if self.game_event_handler.is_lmb_pressed:
-                    ##################
-                    # NONE TILE TYPE #
-                    ##################
+                        if selected_sprite_tile_type == "none":
+                            self._on_rmb_just_pressed_none_tile_type(
+                                self.solid_collision_map_list,
+                            )
 
-                    if selected_sprite_tile_type == "none":
-                        self._on_lmb_just_pressed_none_tile_type(
-                            self.solid_collision_map_list,
-                            selected_sprite_x,
-                            selected_sprite_y,
-                            selected_sprite_name,
-                            world_tu_x=self.world_mouse_tu_x,
-                            world_tu_y=self.world_mouse_tu_y,
-                        )
+                        ##################
+                        # BLOB TILE TYPE #
+                        ##################
 
-                    ##################
-                    # BLOB TILE TYPE #
-                    ##################
+                        if selected_sprite_tile_type != "none":
+                            self._on_rmb_just_pressed_blob_tile_type(
+                                self.solid_collision_map_list,
+                            )
 
-                    if selected_sprite_tile_type != "none":
-                        self._on_lmb_just_pressed_blob_tile_type(
-                            self.solid_collision_map_list,
-                            selected_sprite_x,
-                            selected_sprite_y,
-                            selected_sprite_tile_type,
-                            selected_sprite_name,
-                            world_tu_x=self.world_mouse_tu_x,
-                            world_tu_y=self.world_mouse_tu_y,
-                        )
-
-                ###############
-                # Rmb pressed #
-                ###############
-
-                if self.game_event_handler.is_rmb_pressed:
-                    ##################
-                    # NONE TILE TYPE #
-                    ##################
-
-                    if selected_sprite_tile_type == "none":
-                        self._on_rmb_just_pressed_none_tile_type(
-                            self.solid_collision_map_list,
-                        )
-
-                    ##################
-                    # BLOB TILE TYPE #
-                    ##################
-
-                    if selected_sprite_tile_type != "none":
-                        self._on_rmb_just_pressed_blob_tile_type(
-                            self.solid_collision_map_list,
-                        )
-
-            ##############
-            # THIN STATE #
-            ##############
-
-            elif selected_sprite_type == "thin":
                 ####################
-                # Mmb just pressed #
+                # FOREGROUND STATE #
                 ####################
 
-                if self.game_event_handler.is_mmb_just_pressed:
-                    ##################
-                    # NONE TILE TYPE #
-                    ##################
+                elif selected_sprite_type == "foreground":
+                    # Get background layer collision map
+                    selected_foreground_layer_collision_map: list = self.foreground_collision_map_list[
+                        selected_sprite_layer_index
+                    ]
 
-                    if selected_sprite_tile_type == "none":
+                    ####################
+                    # Mmb just pressed #
+                    ####################
 
-                        def _flood_fill_callback(world_tu_x: int, world_tu_y: int, collision_map_list: list) -> None:
+                    if self.game_event_handler.is_mmb_just_pressed:
+                        ##################
+                        # NONE TILE TYPE #
+                        ##################
+
+                        if selected_sprite_tile_type == "none":
+
+                            def _flood_fill_callback(world_tu_x: int, world_tu_y: int, collision_map_list: list) -> None:
+                                self._on_lmb_just_pressed_none_tile_type(
+                                    # The selected collision map
+                                    collision_map_list,
+                                    # Other dynamic data this needs
+                                    selected_sprite_x,
+                                    selected_sprite_y,
+                                    selected_sprite_name,
+                                    # Then subsequent callbacks are from neighbor pos
+                                    world_tu_x=world_tu_x,
+                                    world_tu_y=world_tu_y,
+                                )
+
+                            self._on_mmb_pressed(
+                                # Initiate with world mouse position
+                                world_tu_x=self.world_mouse_tu_x,
+                                world_tu_y=self.world_mouse_tu_y,
+                                # Set this selected collision map
+                                collision_map_list=selected_foreground_layer_collision_map,
+                                # The recursive callback
+                                callback=_flood_fill_callback,
+                            )
+
+                        ##################
+                        # BLOB TILE TYPE #
+                        ##################
+
+                        if selected_sprite_tile_type != "none":
+
+                            def _flood_fill_callback(world_tu_x: int, world_tu_y: int, collision_map_list: list) -> None:
+                                # Really slow but it works
+                                self._on_lmb_just_pressed_blob_tile_type(
+                                    # The selected collision map
+                                    collision_map_list,
+                                    # Other dynamic data this needs
+                                    selected_sprite_x,
+                                    selected_sprite_y,
+                                    selected_sprite_tile_type,
+                                    selected_sprite_name,
+                                    # Then subsequent callbacks are from neighbor pos
+                                    world_tu_x=world_tu_x,
+                                    world_tu_y=world_tu_y,
+                                )
+
+                            self._on_mmb_pressed(
+                                # Initiate with world mouse position
+                                world_tu_x=self.world_mouse_tu_x,
+                                world_tu_y=self.world_mouse_tu_y,
+                                # Set this selected collision map
+                                collision_map_list=selected_foreground_layer_collision_map,
+                                # The recursive callback
+                                callback=_flood_fill_callback,
+                            )
+
+                    ###############
+                    # Lmb pressed #
+                    ###############
+
+                    if self.game_event_handler.is_lmb_pressed:
+                        ##################
+                        # NONE TILE TYPE #
+                        ##################
+
+                        if selected_sprite_tile_type == "none":
                             self._on_lmb_just_pressed_none_tile_type(
-                                # The selected collision map
-                                collision_map_list,
-                                # Other dynamic data this needs
+                                selected_foreground_layer_collision_map,
                                 selected_sprite_x,
                                 selected_sprite_y,
                                 selected_sprite_name,
-                                # Then subsequent callbacks are from neighbor pos
-                                world_tu_x=world_tu_x,
-                                world_tu_y=world_tu_y,
+                                world_tu_x=self.world_mouse_tu_x,
+                                world_tu_y=self.world_mouse_tu_y,
                             )
 
-                        self._on_mmb_pressed(
-                            # Initiate with world mouse position
-                            world_tu_x=self.world_mouse_tu_x,
-                            world_tu_y=self.world_mouse_tu_y,
-                            # Set this selected collision map
-                            collision_map_list=self.solid_collision_map_list,
-                            # The recursive callback
-                            callback=_flood_fill_callback,
-                        )
+                        ##################
+                        # BLOB TILE TYPE #
+                        ##################
 
-                    ##################
-                    # BLOB TILE TYPE #
-                    ##################
-
-                    if selected_sprite_tile_type != "none":
-
-                        def _flood_fill_callback(world_tu_x: int, world_tu_y: int, collision_map_list: list) -> None:
-                            # Really slow but it works
+                        if selected_sprite_tile_type != "none":
                             self._on_lmb_just_pressed_blob_tile_type(
-                                # The selected collision map
-                                collision_map_list,
-                                # Other dynamic data this needs
+                                selected_foreground_layer_collision_map,
                                 selected_sprite_x,
                                 selected_sprite_y,
                                 selected_sprite_tile_type,
                                 selected_sprite_name,
-                                # Then subsequent callbacks are from neighbor pos
-                                world_tu_x=world_tu_x,
-                                world_tu_y=world_tu_y,
+                                world_tu_x=self.world_mouse_tu_x,
+                                world_tu_y=self.world_mouse_tu_y,
                             )
 
-                        self._on_mmb_pressed(
-                            # Initiate with world mouse position
-                            world_tu_x=self.world_mouse_tu_x,
-                            world_tu_y=self.world_mouse_tu_y,
-                            # Set this selected collision map
-                            collision_map_list=self.solid_collision_map_list,
-                            # The recursive callback
-                            callback=_flood_fill_callback,
-                        )
+                    ###############
+                    # Rmb pressed #
+                    ###############
 
-                ###############
-                # Lmb pressed #
-                ###############
+                    if self.game_event_handler.is_rmb_pressed:
+                        ##################
+                        # NONE TILE TYPE #
+                        ##################
 
-                if self.game_event_handler.is_lmb_pressed:
-                    ##################
-                    # NONE TILE TYPE #
-                    ##################
-
-                    if selected_sprite_tile_type == "none":
-                        self._on_lmb_just_pressed_none_tile_type(
-                            self.solid_collision_map_list,
-                            selected_sprite_x,
-                            selected_sprite_y,
-                            selected_sprite_name,
-                            world_tu_x=self.world_mouse_tu_x,
-                            world_tu_y=self.world_mouse_tu_y,
-                        )
-
-                    ##################
-                    # BLOB TILE TYPE #
-                    ##################
-
-                    if selected_sprite_tile_type != "none":
-                        self._on_lmb_just_pressed_blob_tile_type(
-                            self.solid_collision_map_list,
-                            selected_sprite_x,
-                            selected_sprite_y,
-                            selected_sprite_tile_type,
-                            selected_sprite_name,
-                            world_tu_x=self.world_mouse_tu_x,
-                            world_tu_y=self.world_mouse_tu_y,
-                        )
-
-                ###############
-                # Rmb pressed #
-                ###############
-
-                if self.game_event_handler.is_rmb_pressed:
-                    ##################
-                    # NONE TILE TYPE #
-                    ##################
-
-                    if selected_sprite_tile_type == "none":
-                        self._on_rmb_just_pressed_none_tile_type(
-                            self.solid_collision_map_list,
-                        )
-
-                    ##################
-                    # BLOB TILE TYPE #
-                    ##################
-
-                    if selected_sprite_tile_type != "none":
-                        self._on_rmb_just_pressed_blob_tile_type(
-                            self.solid_collision_map_list,
-                        )
-
-            ####################
-            # FOREGROUND STATE #
-            ####################
-
-            elif selected_sprite_type == "foreground":
-                # Get background layer collision map
-                selected_foreground_layer_collision_map: list = self.foreground_collision_map_list[selected_sprite_layer_index]
-
-                ####################
-                # Mmb just pressed #
-                ####################
-
-                if self.game_event_handler.is_mmb_just_pressed:
-                    ##################
-                    # NONE TILE TYPE #
-                    ##################
-
-                    if selected_sprite_tile_type == "none":
-
-                        def _flood_fill_callback(world_tu_x: int, world_tu_y: int, collision_map_list: list) -> None:
-                            self._on_lmb_just_pressed_none_tile_type(
-                                # The selected collision map
-                                collision_map_list,
-                                # Other dynamic data this needs
-                                selected_sprite_x,
-                                selected_sprite_y,
-                                selected_sprite_name,
-                                # Then subsequent callbacks are from neighbor pos
-                                world_tu_x=world_tu_x,
-                                world_tu_y=world_tu_y,
+                        if selected_sprite_tile_type == "none":
+                            self._on_rmb_just_pressed_none_tile_type(
+                                selected_foreground_layer_collision_map,
                             )
 
-                        self._on_mmb_pressed(
-                            # Initiate with world mouse position
-                            world_tu_x=self.world_mouse_tu_x,
-                            world_tu_y=self.world_mouse_tu_y,
-                            # Set this selected collision map
-                            collision_map_list=selected_foreground_layer_collision_map,
-                            # The recursive callback
-                            callback=_flood_fill_callback,
-                        )
+                        ##################
+                        # BLOB TILE TYPE #
+                        ##################
 
-                    ##################
-                    # BLOB TILE TYPE #
-                    ##################
-
-                    if selected_sprite_tile_type != "none":
-
-                        def _flood_fill_callback(world_tu_x: int, world_tu_y: int, collision_map_list: list) -> None:
-                            # Really slow but it works
-                            self._on_lmb_just_pressed_blob_tile_type(
-                                # The selected collision map
-                                collision_map_list,
-                                # Other dynamic data this needs
-                                selected_sprite_x,
-                                selected_sprite_y,
-                                selected_sprite_tile_type,
-                                selected_sprite_name,
-                                # Then subsequent callbacks are from neighbor pos
-                                world_tu_x=world_tu_x,
-                                world_tu_y=world_tu_y,
+                        if selected_sprite_tile_type != "none":
+                            self._on_rmb_just_pressed_blob_tile_type(
+                                selected_foreground_layer_collision_map,
                             )
 
-                        self._on_mmb_pressed(
-                            # Initiate with world mouse position
-                            world_tu_x=self.world_mouse_tu_x,
-                            world_tu_y=self.world_mouse_tu_y,
-                            # Set this selected collision map
-                            collision_map_list=selected_foreground_layer_collision_map,
-                            # The recursive callback
-                            callback=_flood_fill_callback,
-                        )
+                # Update pre render
+                if self.is_mutate:
+                    self._update_pre_render()
 
-                ###############
-                # Lmb pressed #
-                ###############
+                # Jump just pressed, go to pallete
+                if self.game_event_handler.is_jump_just_pressed:
+                    self.is_from_edit_pressed_jump = True
+                    self.curtain.go_to_opaque()
 
-                if self.game_event_handler.is_lmb_pressed:
-                    ##################
-                    # NONE TILE TYPE #
-                    ##################
+            elif self.is_play_test_mode:
+                # Move player with input
+                self._move_player_rect(dt)
 
-                    if selected_sprite_tile_type == "none":
-                        self._on_lmb_just_pressed_none_tile_type(
-                            selected_foreground_layer_collision_map,
-                            selected_sprite_x,
-                            selected_sprite_y,
-                            selected_sprite_name,
-                            world_tu_x=self.world_mouse_tu_x,
-                            world_tu_y=self.world_mouse_tu_y,
-                        )
-
-                    ##################
-                    # BLOB TILE TYPE #
-                    ##################
-
-                    if selected_sprite_tile_type != "none":
-                        self._on_lmb_just_pressed_blob_tile_type(
-                            selected_foreground_layer_collision_map,
-                            selected_sprite_x,
-                            selected_sprite_y,
-                            selected_sprite_tile_type,
-                            selected_sprite_name,
-                            world_tu_x=self.world_mouse_tu_x,
-                            world_tu_y=self.world_mouse_tu_y,
-                        )
-
-                ###############
-                # Rmb pressed #
-                ###############
-
-                if self.game_event_handler.is_rmb_pressed:
-                    ##################
-                    # NONE TILE TYPE #
-                    ##################
-
-                    if selected_sprite_tile_type == "none":
-                        self._on_rmb_just_pressed_none_tile_type(
-                            selected_foreground_layer_collision_map,
-                        )
-
-                    ##################
-                    # BLOB TILE TYPE #
-                    ##################
-
-                    if selected_sprite_tile_type != "none":
-                        self._on_rmb_just_pressed_blob_tile_type(
-                            selected_foreground_layer_collision_map,
-                        )
-
-            # Jump just pressed, go to pallete
-            if self.game_event_handler.is_jump_just_pressed:
-                self.is_from_edit_pressed_jump = True
-                self.curtain.go_to_opaque()
-
-        # Update pre render
-        if self.is_mutate:
-            self._update_pre_render()
+            # Enter just pressed, go to play test state
+            if self.game_event_handler.is_enter_just_pressed:
+                # TODO: Enter a save or test mode later
+                self.is_play_test_mode = not self.is_play_test_mode
 
         # Update curtain
         self.curtain.update(dt)
@@ -2014,6 +2122,7 @@ class RoomJsonGenerator:
         cursor_width: int,
         cursor_height: int,
         cell_size: int,
+        is_world: bool,
     ) -> None:
         # Draw cursor
         # Get mouse position
@@ -2059,13 +2168,28 @@ class RoomJsonGenerator:
         self.world_mouse_snapped_y = self.world_mouse_tu_y * cell_size
         self.screen_mouse_x = self.world_mouse_snapped_x - self.camera.rect.x
         self.screen_mouse_y = self.world_mouse_snapped_y - self.camera.rect.y
+        # If this is dynamic actor, add offset
+        mid_bottom_offset_x = 0
+        mid_bottom_offset_y = 0
+        # Only have actors in room edit not world
+        if not is_world:
+            # Get sprite metadata from reformat with selected sprite name
+            sprite_metadata_instance: SpriteMetadata = get_one_target_dict_value(
+                self.selected_sprite_name,
+                self.sprite_name_to_sprite_metadata,
+            )
+            selected_sprite_type: str = sprite_metadata_instance.sprite_type
+            # Handle dynamic_actor offset
+            if selected_sprite_type == "dynamic_actor":
+                mid_bottom_offset_x = cursor_width // 2
+                mid_bottom_offset_y = cursor_height - TILE_SIZE
         # Draw cursor
         pg.draw.rect(
             NATIVE_SURF,
             "green",
             [
-                self.screen_mouse_x,
-                self.screen_mouse_y,
+                self.screen_mouse_x - mid_bottom_offset_x,
+                self.screen_mouse_y - mid_bottom_offset_y,
                 cursor_width,
                 cursor_height,
             ],
@@ -2539,7 +2663,24 @@ class RoomJsonGenerator:
 
         return found_occupied
 
-    def _move_camera(self, dt: int) -> None:
+    def _move_player_rect(self, dt: int) -> None:
+        # Get direction_horizontal
+        direction_horizontal: int = self.game_event_handler.is_right_pressed - self.game_event_handler.is_left_pressed
+        # Update camera anchor position with direction and speed
+        self.player_rect.x += direction_horizontal * self.camera_speed * dt
+        # Get direction_vertical
+        direction_vertical: int = self.game_event_handler.is_down_pressed - self.game_event_handler.is_up_pressed
+        # Update camera anchor position with direction and speed
+        self.player_rect.y += direction_vertical * self.camera_speed * dt
+
+        # TODO: use player prop target vector, set that to camera, for now I move the vector to player rect
+        self.camera_anchor_vector.x = self.player_rect.centerx
+        self.camera_anchor_vector.y = self.player_rect.centery
+
+        # Lerp camera position to target camera anchor
+        self.camera.update(dt)
+
+    def _move_camera_anchor_vector(self, dt: int) -> None:
         # Get direction_horizontal
         direction_horizontal: int = self.game_event_handler.is_right_pressed - self.game_event_handler.is_left_pressed
         # Update camera anchor position with direction and speed
