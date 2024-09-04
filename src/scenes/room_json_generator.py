@@ -124,6 +124,9 @@ class RoomJsonGenerator:
         # TODO: move this to a func
         self.is_play_test_mode: bool = False
 
+        # Testing
+        self.test_frect: pg.FRect = pg.FRect(176, 176, 32, 32)
+
     ##########
     # SETUPS #
     ##########
@@ -1804,6 +1807,80 @@ class RoomJsonGenerator:
                 # Move player with input
                 self._move_player_rect(dt)
 
+                # Test the ray vs rect
+                ray_point: pg.Vector2 = pg.Vector2(16, 16)
+                ray_direction: pg.Vector2 = pg.Vector2(
+                    self.player_rect.x,
+                    self.player_rect.y,
+                )
+                ray_direction -= ray_point
+                contact_point = [pg.Vector2(0, 0)]
+                contact_normal = [pg.Vector2(0, 0)]
+                t_hit_near = [0.0]
+                hit = self._ray_vs_rect(
+                    ray_point,
+                    ray_direction,
+                    self.test_frect,
+                    contact_point,
+                    contact_normal,
+                    t_hit_near,
+                )
+
+                # Test the point vs rect func
+                color: str = "red"
+                if hit and t_hit_near[0] < 1.0:
+                    color = "green"
+
+                # Draw the test frect
+                pg.draw.rect(
+                    NATIVE_SURF,
+                    color,
+                    (
+                        self.test_frect.x - self.camera.rect.x,
+                        self.test_frect.y - self.camera.rect.y,
+                        self.test_frect.width,
+                        self.test_frect.height,
+                    ),
+                    1,
+                )
+                # Draw ray line
+                pg.draw.line(
+                    NATIVE_SURF,
+                    "red",
+                    (
+                        ray_point.x - self.camera.rect.x,
+                        ray_point.y - self.camera.rect.y,
+                    ),
+                    (
+                        self.player_rect.x - self.camera.rect.x,
+                        self.player_rect.y - self.camera.rect.y,
+                    ),
+                )
+                if hit and t_hit_near[0] < 1.0:
+                    # Draw contact point
+                    pg.draw.circle(
+                        NATIVE_SURF,
+                        "red",
+                        (
+                            contact_point[0].x - self.camera.rect.x,
+                            contact_point[0].y - self.camera.rect.y,
+                        ),
+                        3,
+                    )
+                    # Draw normal
+                    pg.draw.line(
+                        NATIVE_SURF,
+                        "red",
+                        (
+                            contact_point[0].x - self.camera.rect.x,
+                            contact_point[0].y - self.camera.rect.y,
+                        ),
+                        (
+                            contact_point[0].x + contact_normal[0].x * 16 - self.camera.rect.x,
+                            contact_point[0].y + contact_normal[0].y * 16 - self.camera.rect.y,
+                        ),
+                    )
+
             # Enter just pressed, go to play test state
             if self.game_event_handler.is_enter_just_pressed:
                 # TODO: Enter a save or test mode later
@@ -3080,3 +3157,47 @@ class RoomJsonGenerator:
                         self._set_input_text(new_value)
                         # Play text
                         self.game_sound_manager.play_sound("text_1.ogg", 0, 0, 0)
+
+    # TODO: Move this to its own class later for collision
+    def _point_vs_rect(self, p: pg.Vector2, r: pg.FRect) -> bool:
+        return p.x >= r.x and p.y >= r.y and p.x < r.x + r.width and p.y < r.y + r.height
+
+    def _rect_vs_rect(self, r1: pg.FRect, r2: pg.FRect) -> bool:
+        return r1.x < r2.x + r2.width and r1.x + r1.width > r2.x and r1.y < r2.y + r2.height and r1.y + r1.height > r2.y
+
+    def _ray_vs_rect(
+        self,
+        ray_origin: pg.Vector2,
+        ray_dir: pg.Vector2,
+        target: pg.FRect,
+        contact_point: list,
+        contact_normal: list,
+        t_hit_near: list,
+    ) -> bool:
+        t_near = pg.Vector2((target.x - ray_origin.x) / ray_dir.x, (target.y - ray_origin.y) / ray_dir.y)
+        t_far = pg.Vector2(
+            (target.x + target.width - ray_origin.x) / ray_dir.x, (target.y + target.height - ray_origin.y) / ray_dir.y
+        )
+
+        if t_near.x > t_far.x:
+            t_near.x, t_far.x = t_far.x, t_near.x
+        if t_near.y > t_far.y:
+            t_near.y, t_far.y = t_far.y, t_near.y
+
+        if t_near.x > t_far.y or t_near.y > t_far.x:
+            return False
+
+        t_hit_near[0] = max(t_near.x, t_near.y)
+        t_hit_far: float = min(t_far.x, t_far.y)
+
+        if t_hit_far < 0:
+            return False
+
+        contact_point[0] = ray_origin + t_hit_near[0] * ray_dir
+
+        if t_near.x > t_near.y:
+            contact_normal[0].x, contact_normal[0].y = (1, 0) if ray_dir.x < 0 else (-1, 0)
+        else:
+            contact_normal[0].x, contact_normal[0].y = (0, 1) if ray_dir.y < 0 else (0, -1)
+
+        return True
