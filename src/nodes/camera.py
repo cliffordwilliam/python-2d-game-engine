@@ -1,4 +1,3 @@
-from math import exp
 from typing import TYPE_CHECKING
 
 from constants import NATIVE_HALF_HEIGHT
@@ -9,6 +8,7 @@ from constants import NATIVE_WIDTH
 from constants import pg
 from pygame.math import clamp
 from typeguard import typechecked
+from utils import exp_decay
 
 
 if TYPE_CHECKING:
@@ -113,7 +113,7 @@ class Camera:
         # Camera rect center x not on target vector x tolerance?
         if not is_within_distance_tolerance_x:
             # Lerp it to target horizontally
-            self.rect.centerx = self._exp_decay(self.rect.centerx, self.target_vector.x, self.decay, dt)
+            self.rect.centerx = exp_decay(self.rect.centerx, self.target_vector.x, self.decay, dt)
         # Snap to target horizontally
         else:
             self.rect.centerx = self.target_vector.x
@@ -121,7 +121,7 @@ class Camera:
         # Camera rect center y not on target vector y tolerance?
         if not is_within_distance_tolerance_y:
             # Lerp it to target vertically
-            self.rect.centery = self._exp_decay(self.rect.centery, self.target_vector.y, self.decay, dt)
+            self.rect.centery = exp_decay(self.rect.centery, self.target_vector.y, self.decay, dt)
         # Snap to target vertically
         else:
             self.rect.centery = self.target_vector.y
@@ -154,7 +154,3 @@ class Camera:
                     "radius": 2,
                 }
             )
-
-    # Helper
-    def _exp_decay(self, a: float, b: float, decay: float, dt: int) -> float:
-        return b + (a - b) * exp(-decay * dt)

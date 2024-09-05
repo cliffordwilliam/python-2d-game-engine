@@ -7,6 +7,7 @@ from typing import Any
 from typing import Callable
 from typing import TYPE_CHECKING
 
+from actors.player import Player
 from constants import FONT
 from constants import FONT_HEIGHT
 from constants import JSONS_ROOMS_DIR_PATH
@@ -111,25 +112,15 @@ class RoomJsonGenerator:
         self._setup_pallete()
         self._setup_reformat_sprite_sheet_json_metadata()
         self._setup_second_rect_region_feature_room()
-
-        # TODO: move this somewhere else
-        # Indicate to when to update the pre render
-        self.is_mutate = False
-
-        # TODO: Temporary player for now
-        self.player_rect = pg.FRect(0, 0, 6, 31)
-        self.player_surf = pg.Surface((6, 31))
-        self.player_surf.fill("red")
-
-        # TODO: move this to a func
-        self.is_play_test_mode: bool = False
-
-        # Testing
-        self.test_frect: pg.FRect = pg.FRect(176, 176, 32, 32)
+        self._setup_player()
 
     ##########
     # SETUPS #
     ##########
+    def _setup_player(self) -> None:
+        self.player: Player = Player(self.camera, self.game_event_handler)
+        self.is_play_test_mode: bool = False
+
     def _setup_reformat_sprite_sheet_json_metadata(self) -> None:
         """Key is sprite name, value is its metadata. Used for selected button state."""
         self.sprite_name_to_sprite_metadata: dict[str, SpriteMetadata] = {}
@@ -316,6 +307,9 @@ class RoomJsonGenerator:
         # World surf
         self.world_surf: pg.Surface = pg.Surface((WORLD_WIDTH, WORLD_HEIGHT))
         self.world_surf.fill(self.clear_color)
+
+        # Indicate when to update pre render
+        self.is_pre_render_collision_map_list_mutated = False
 
     def _setup_mouse_positions(self) -> None:
         self.world_mouse_x: float = 0.0
@@ -510,14 +504,8 @@ class RoomJsonGenerator:
 
         # TODO: Draw enemies first?
 
-        # TODO: This is temp draw player
-        NATIVE_SURF.blit(
-            self.player_surf,
-            (
-                self.player_rect.x - self.camera.rect.x,
-                self.player_rect.y - self.camera.rect.y,
-            ),
-        )
+        # Draw player
+        self.player.draw()
 
         # Draw the pre render solid foreground
         NATIVE_SURF.blit(
@@ -1046,7 +1034,7 @@ class RoomJsonGenerator:
         self.curtain.update(dt)
 
     def _EDIT_ROOM(self, dt: int) -> None:
-        self.is_mutate = False
+        self.is_pre_render_collision_map_list_mutated = False
         # Wait for curtain to be fully invisible
         if self.curtain.is_done:
             # Update static actors
@@ -1056,6 +1044,8 @@ class RoomJsonGenerator:
             if not self.is_play_test_mode:
                 # Move camera with input
                 self._move_camera_anchor_vector(dt)
+                # Lerp camera position to target camera anchor
+                self.camera.update(dt)
 
                 # TODO: Turn the block to a func and use the name as key
 
@@ -1087,8 +1077,8 @@ class RoomJsonGenerator:
                         world_mouse_bottom_left_x = world_mouse_x
                         world_mouse_bottom_left_y = world_mouse_y + TILE_SIZE
                         # Place player mid bottom, to the clicked cell bottom left
-                        self.player_rect.left = world_mouse_bottom_left_x - (self.player_rect.width // 2)
-                        self.player_rect.bottom = world_mouse_bottom_left_y
+                        self.player.rect.left = world_mouse_bottom_left_x - (self.player.rect.width // 2)
+                        self.player.rect.bottom = world_mouse_bottom_left_y
 
                 ######################
                 # STATIC ACTOR STATE #
@@ -1795,7 +1785,7 @@ class RoomJsonGenerator:
                             )
 
                 # Update pre render
-                if self.is_mutate:
+                if self.is_pre_render_collision_map_list_mutated:
                     self._update_pre_render()
 
                 # Jump just pressed, go to pallete
@@ -1805,86 +1795,18 @@ class RoomJsonGenerator:
 
             elif self.is_play_test_mode:
                 # Move player with input
-                self._move_player_rect(dt)
-
-                # Test the ray vs rect
-                ray_point: pg.Vector2 = pg.Vector2(16, 16)
-                ray_direction: pg.Vector2 = pg.Vector2(
-                    self.player_rect.x,
-                    self.player_rect.y,
-                )
-                ray_direction -= ray_point
-                contact_point = [pg.Vector2(0, 0)]
-                contact_normal = [pg.Vector2(0, 0)]
-                t_hit_near = [0.0]
-                hit = self._ray_vs_rect(
-                    ray_point,
-                    ray_direction,
-                    self.test_frect,
-                    contact_point,
-                    contact_normal,
-                    t_hit_near,
-                )
-
-                # Test the point vs rect func
-                color: str = "red"
-                if hit and t_hit_near[0] < 1.0:
-                    color = "green"
-
-                # Draw the test frect
-                pg.draw.rect(
-                    NATIVE_SURF,
-                    color,
-                    (
-                        self.test_frect.x - self.camera.rect.x,
-                        self.test_frect.y - self.camera.rect.y,
-                        self.test_frect.width,
-                        self.test_frect.height,
-                    ),
-                    1,
-                )
-                # Draw ray line
-                pg.draw.line(
-                    NATIVE_SURF,
-                    "red",
-                    (
-                        ray_point.x - self.camera.rect.x,
-                        ray_point.y - self.camera.rect.y,
-                    ),
-                    (
-                        self.player_rect.x - self.camera.rect.x,
-                        self.player_rect.y - self.camera.rect.y,
-                    ),
-                )
-                if hit and t_hit_near[0] < 1.0:
-                    # Draw contact point
-                    pg.draw.circle(
-                        NATIVE_SURF,
-                        "red",
-                        (
-                            contact_point[0].x - self.camera.rect.x,
-                            contact_point[0].y - self.camera.rect.y,
-                        ),
-                        3,
-                    )
-                    # Draw normal
-                    pg.draw.line(
-                        NATIVE_SURF,
-                        "red",
-                        (
-                            contact_point[0].x - self.camera.rect.x,
-                            contact_point[0].y - self.camera.rect.y,
-                        ),
-                        (
-                            contact_point[0].x + contact_normal[0].x * 16 - self.camera.rect.x,
-                            contact_point[0].y + contact_normal[0].y * 16 - self.camera.rect.y,
-                        ),
-                    )
+                self.player.update(dt)
+                # Lerp camera position to target camera anchor
+                self.camera.update(dt)
 
             # Enter just pressed, go to play test state
             if self.game_event_handler.is_enter_just_pressed:
                 # TODO: Enter a save or test mode later
                 self.is_play_test_mode = not self.is_play_test_mode
+                if self.is_play_test_mode:
+                    self.camera.set_target_vector(self.player.camera_anchor_vector)
+                else:
+                    self.camera.set_target_vector(self.camera_anchor_vector)
 
         # Update curtain
         self.curtain.update(dt)
@@ -2740,23 +2662,6 @@ class RoomJsonGenerator:
 
         return found_occupied
 
-    def _move_player_rect(self, dt: int) -> None:
-        # Get direction_horizontal
-        direction_horizontal: int = self.game_event_handler.is_right_pressed - self.game_event_handler.is_left_pressed
-        # Update camera anchor position with direction and speed
-        self.player_rect.x += direction_horizontal * self.camera_speed * dt
-        # Get direction_vertical
-        direction_vertical: int = self.game_event_handler.is_down_pressed - self.game_event_handler.is_up_pressed
-        # Update camera anchor position with direction and speed
-        self.player_rect.y += direction_vertical * self.camera_speed * dt
-
-        # TODO: use player prop target vector, set that to camera, for now I move the vector to player rect
-        self.camera_anchor_vector.x = self.player_rect.centerx
-        self.camera_anchor_vector.y = self.player_rect.centery
-
-        # Lerp camera position to target camera anchor
-        self.camera.update(dt)
-
     def _move_camera_anchor_vector(self, dt: int) -> None:
         # Get direction_horizontal
         direction_horizontal: int = self.game_event_handler.is_right_pressed - self.game_event_handler.is_left_pressed
@@ -2766,8 +2671,6 @@ class RoomJsonGenerator:
         direction_vertical: int = self.game_event_handler.is_down_pressed - self.game_event_handler.is_up_pressed
         # Update camera anchor position with direction and speed
         self.camera_anchor_vector.y += direction_vertical * self.camera_speed * dt
-        # Lerp camera position to target camera anchor
-        self.camera.update(dt)
 
     def _draw_world_grid(self) -> None:
         blit_sequence = []
@@ -2878,7 +2781,7 @@ class RoomJsonGenerator:
         Because camera needs extra 1 and thus may get out of bound.
         """
         # TODO: create a condition for this
-        self.is_mutate = True
+        self.is_pre_render_collision_map_list_mutated = True
         if 0 <= world_tu_x < self.room_width_tu and 0 <= world_tu_y < self.room_height_tu:
             collision_map_list[world_tu_y * self.room_width_tu + world_tu_x] = value
             return None
@@ -3157,47 +3060,3 @@ class RoomJsonGenerator:
                         self._set_input_text(new_value)
                         # Play text
                         self.game_sound_manager.play_sound("text_1.ogg", 0, 0, 0)
-
-    # TODO: Move this to its own class later for collision
-    def _point_vs_rect(self, p: pg.Vector2, r: pg.FRect) -> bool:
-        return p.x >= r.x and p.y >= r.y and p.x < r.x + r.width and p.y < r.y + r.height
-
-    def _rect_vs_rect(self, r1: pg.FRect, r2: pg.FRect) -> bool:
-        return r1.x < r2.x + r2.width and r1.x + r1.width > r2.x and r1.y < r2.y + r2.height and r1.y + r1.height > r2.y
-
-    def _ray_vs_rect(
-        self,
-        ray_origin: pg.Vector2,
-        ray_dir: pg.Vector2,
-        target: pg.FRect,
-        contact_point: list,
-        contact_normal: list,
-        t_hit_near: list,
-    ) -> bool:
-        t_near = pg.Vector2((target.x - ray_origin.x) / ray_dir.x, (target.y - ray_origin.y) / ray_dir.y)
-        t_far = pg.Vector2(
-            (target.x + target.width - ray_origin.x) / ray_dir.x, (target.y + target.height - ray_origin.y) / ray_dir.y
-        )
-
-        if t_near.x > t_far.x:
-            t_near.x, t_far.x = t_far.x, t_near.x
-        if t_near.y > t_far.y:
-            t_near.y, t_far.y = t_far.y, t_near.y
-
-        if t_near.x > t_far.y or t_near.y > t_far.x:
-            return False
-
-        t_hit_near[0] = max(t_near.x, t_near.y)
-        t_hit_far: float = min(t_far.x, t_far.y)
-
-        if t_hit_far < 0:
-            return False
-
-        contact_point[0] = ray_origin + t_hit_near[0] * ray_dir
-
-        if t_near.x > t_near.y:
-            contact_normal[0].x, contact_normal[0].y = (1, 0) if ray_dir.x < 0 else (-1, 0)
-        else:
-            contact_normal[0].x, contact_normal[0].y = (0, 1) if ray_dir.y < 0 else (0, -1)
-
-        return True
