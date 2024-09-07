@@ -73,8 +73,84 @@ class Player:
         # Update vel y
         self.velocity.y = exp_decay(self.velocity.y, direction_vertical * self.max_run, self.decay, dt)
 
+        z: list[tuple[int, list[float]]] = []
+
         # Handle each rects
-        for rect in self.collision_map_list_test:
+        for i in range(len(self.collision_map_list_test)):
+            rect = self.collision_map_list_test[i]
+            # Collision query with test rect
+            contact_point = [pg.Vector2(0, 0)]
+            contact_normal = [pg.Vector2(0, 0)]
+            t_hit_near = [0.0]
+            hit = dynamic_rect_vs_rect(
+                self,
+                rect,
+                contact_point,
+                contact_normal,
+                t_hit_near,
+                dt,
+            )
+            # Hit?
+            if hit:
+                # Collect
+                z.append((i, t_hit_near))
+                # Draw the test rect green
+                pg.draw.rect(
+                    NATIVE_SURF,
+                    "green",
+                    (
+                        rect.x - self.camera.rect.x,
+                        rect.y - self.camera.rect.y,
+                        rect.width,
+                        rect.height,
+                    ),
+                    1,
+                )
+                # # Draw contact point
+                # pg.draw.circle(
+                #     NATIVE_SURF,
+                #     "blue",
+                #     (
+                #         contact_point[0].x - self.camera.rect.x,
+                #         contact_point[0].y - self.camera.rect.y,
+                #     ),
+                #     3,
+                # )
+                # # Draw normal
+                # pg.draw.line(
+                #     NATIVE_SURF,
+                #     "yellow",
+                #     (
+                #         contact_point[0].x - self.camera.rect.x,
+                #         contact_point[0].y - self.camera.rect.y,
+                #     ),
+                #     (
+                #         contact_point[0].x + contact_normal[0].x * 16 - self.camera.rect.x,
+                #         contact_point[0].y + contact_normal[0].y * 16 - self.camera.rect.y,
+                #     ),
+                # )
+            # No hit?
+            else:
+                # Draw the test rect green
+                pg.draw.rect(
+                    NATIVE_SURF,
+                    "red",
+                    (
+                        rect.x - self.camera.rect.x,
+                        rect.y - self.camera.rect.y,
+                        rect.width,
+                        rect.height,
+                    ),
+                    1,
+                )
+
+        # Sort it
+        z.sort(key=lambda x: x[1][0])
+
+        # Do the real iter
+        for j in range(len(z)):
+            index = z[j][0]
+            rect = self.collision_map_list_test[index]
             # Collision query with test rect
             contact_point = [pg.Vector2(0, 0)]
             contact_normal = [pg.Vector2(0, 0)]
@@ -92,55 +168,6 @@ class Player:
                 # Resolve velocity
                 self.velocity.x += contact_normal[0].x * abs(self.velocity.x) * (1 - t_hit_near[0])
                 self.velocity.y += contact_normal[0].y * abs(self.velocity.y) * (1 - t_hit_near[0])
-                # Draw the test rect green
-                pg.draw.rect(
-                    NATIVE_SURF,
-                    "green",
-                    (
-                        rect.x - self.camera.rect.x,
-                        rect.y - self.camera.rect.y,
-                        rect.width,
-                        rect.height,
-                    ),
-                    1,
-                )
-                # Draw contact point
-                pg.draw.circle(
-                    NATIVE_SURF,
-                    "blue",
-                    (
-                        contact_point[0].x - self.camera.rect.x,
-                        contact_point[0].y - self.camera.rect.y,
-                    ),
-                    3,
-                )
-                # Draw normal
-                pg.draw.line(
-                    NATIVE_SURF,
-                    "yellow",
-                    (
-                        contact_point[0].x - self.camera.rect.x,
-                        contact_point[0].y - self.camera.rect.y,
-                    ),
-                    (
-                        contact_point[0].x + contact_normal[0].x * 16 - self.camera.rect.x,
-                        contact_point[0].y + contact_normal[0].y * 16 - self.camera.rect.y,
-                    ),
-                )
-            # No hit?
-            else:
-                # Draw the test rect green
-                pg.draw.rect(
-                    NATIVE_SURF,
-                    "red",
-                    (
-                        rect.x - self.camera.rect.x,
-                        rect.y - self.camera.rect.y,
-                        rect.width,
-                        rect.height,
-                    ),
-                    1,
-                )
 
         # Vel is correct here
         # Update pos x
