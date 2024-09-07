@@ -286,6 +286,7 @@ NONE_OR_BLOB_SPRITE_METADATA_SCHEMA = {
 @dataclass
 class NoneOrBlobSpriteMetadata:
     name: str
+    type: str
     x: int
     y: int
     region_x: int
@@ -300,6 +301,7 @@ def instance_none_or_blob_sprite_metadata(data: dict) -> NoneOrBlobSpriteMetadat
     # If safe then create instance
     return NoneOrBlobSpriteMetadata(
         name=data["name"],
+        type=data["type"],
         x=data["x"],
         y=data["y"],
         region_x=data["region_x"],

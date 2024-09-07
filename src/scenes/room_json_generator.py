@@ -89,6 +89,8 @@ class RoomJsonGenerator:
         self.game_event_handler = self.game.event_handler
         self.game_sound_manager = self.game.sound_manager
         self.game_music_manager = self.game.music_manager
+        # REMOVE IN BUILD
+        self.game_debug_draw = self.game.debug_draw
 
         # Colors
         self.clear_color: str = "#7f7f7f"
@@ -118,7 +120,15 @@ class RoomJsonGenerator:
     # SETUPS #
     ##########
     def _setup_player(self) -> None:
-        self.player: Player = Player(self.camera, self.game_event_handler)
+        self.player: Player = Player(
+            self.camera,
+            self.game_event_handler,
+            self.solid_collision_map_list,
+            self.room_width_tu,
+            self.room_height_tu,
+            # REMOVE IN BUILD
+            self.game_debug_draw,
+        )
         self.is_play_test_mode: bool = False
 
     def _setup_reformat_sprite_sheet_json_metadata(self) -> None:
@@ -175,16 +185,16 @@ class RoomJsonGenerator:
             is_invisible=False,
             color="#000000",
         )
-        self.curtain.add_event_listener(self.on_curtain_invisible, Curtain.INVISIBLE_END)
-        self.curtain.add_event_listener(self.on_curtain_opaque, Curtain.OPAQUE_END)
+        self.curtain.add_event_listener(self._on_curtain_invisible, Curtain.INVISIBLE_END)
+        self.curtain.add_event_listener(self._on_curtain_opaque, Curtain.OPAQUE_END)
 
     def _setup_timers(self) -> None:
         """Setup timers with event listeners."""
         self.entry_delay_timer: Timer = Timer(duration=self.SLOW_FADE_DURATION)
-        self.entry_delay_timer.add_event_listener(self.on_entry_delay_timer_end, Timer.END)
+        self.entry_delay_timer.add_event_listener(self._on_entry_delay_timer_end, Timer.END)
 
         self.exit_delay_timer: Timer = Timer(duration=self.SLOW_FADE_DURATION)
-        self.exit_delay_timer.add_event_listener(self.on_exit_delay_timer_end, Timer.END)
+        self.exit_delay_timer.add_event_listener(self._on_exit_delay_timer_end, Timer.END)
 
     def _setup_texts(self) -> None:
         """Setup text for title and tips."""
@@ -275,7 +285,7 @@ class RoomJsonGenerator:
         self.camera: Camera = Camera(
             self.camera_anchor_vector,
             # REMOVE IN BUILD
-            self.game.debug_draw,
+            self.game_debug_draw,
         )
         self.camera_speed: float = 0.09  # Px / ms
 
@@ -701,6 +711,9 @@ class RoomJsonGenerator:
                         float(self.room_width),
                     )
                     self.curtain.go_to_opaque()
+                    # Update dynamic actors room size tu
+                    self.player.set_room_height_tu(self.room_height_tu)
+                    self.player.set_room_width_tu(self.room_width_tu)
 
         # Update curtain
         self.curtain.update(dt)
@@ -857,6 +870,8 @@ class RoomJsonGenerator:
 
                 # Init collision map for solid actor
                 self.solid_collision_map_list = [0 for _ in range(self.room_width_tu * self.room_height_tu)]
+                # Update dynamic actors solid collision map list
+                self.player.set_solid_collision_map_list(self.solid_collision_map_list)
 
                 # Init collision map for each foreground layers
                 for _ in range(self.foreground_total_layers):
@@ -1002,7 +1017,7 @@ class RoomJsonGenerator:
                     game_event_handler=self.game_event_handler,
                     game_sound_manager=self.game.sound_manager,
                 )
-                self.button_container.add_event_listener(self.on_button_selected, ButtonContainer.BUTTON_SELECTED)
+                self.button_container.add_event_listener(self._on_button_selected, ButtonContainer.BUTTON_SELECTED)
                 # Init the first selected name
                 self.selected_sprite_name = buttons[0].text
                 # Init the cursor size
@@ -1077,8 +1092,8 @@ class RoomJsonGenerator:
                         world_mouse_bottom_left_x = world_mouse_x
                         world_mouse_bottom_left_y = world_mouse_y + TILE_SIZE
                         # Place player mid bottom, to the clicked cell bottom left
-                        self.player.rect.left = world_mouse_bottom_left_x - (self.player.rect.width // 2)
-                        self.player.rect.bottom = world_mouse_bottom_left_y
+                        self.player.collider_rect.left = world_mouse_bottom_left_x - (self.player.collider_rect.width // 2)
+                        self.player.collider_rect.bottom = world_mouse_bottom_left_y
 
                 ######################
                 # STATIC ACTOR STATE #
@@ -1436,6 +1451,8 @@ class RoomJsonGenerator:
                                 # The recursive callback
                                 callback=_flood_fill_callback,
                             )
+                            # Update dynamic actors solid collision map list
+                            self.player.set_solid_collision_map_list(self.solid_collision_map_list)
 
                         ##################
                         # BLOB TILE TYPE #
@@ -1467,6 +1484,8 @@ class RoomJsonGenerator:
                                 # The recursive callback
                                 callback=_flood_fill_callback,
                             )
+                            # Update dynamic actors solid collision map list
+                            self.player.set_solid_collision_map_list(self.solid_collision_map_list)
 
                     ###############
                     # Lmb pressed #
@@ -1486,6 +1505,8 @@ class RoomJsonGenerator:
                                 world_tu_x=self.world_mouse_tu_x,
                                 world_tu_y=self.world_mouse_tu_y,
                             )
+                            # Update dynamic actors solid collision map list
+                            self.player.set_solid_collision_map_list(self.solid_collision_map_list)
 
                         ##################
                         # BLOB TILE TYPE #
@@ -1501,6 +1522,8 @@ class RoomJsonGenerator:
                                 world_tu_x=self.world_mouse_tu_x,
                                 world_tu_y=self.world_mouse_tu_y,
                             )
+                            # Update dynamic actors solid collision map list
+                            self.player.set_solid_collision_map_list(self.solid_collision_map_list)
 
                     ###############
                     # Rmb pressed #
@@ -1515,6 +1538,8 @@ class RoomJsonGenerator:
                             self._on_rmb_just_pressed_none_tile_type(
                                 self.solid_collision_map_list,
                             )
+                            # Update dynamic actors solid collision map list
+                            self.player.set_solid_collision_map_list(self.solid_collision_map_list)
 
                         ##################
                         # BLOB TILE TYPE #
@@ -1524,6 +1549,8 @@ class RoomJsonGenerator:
                             self._on_rmb_just_pressed_blob_tile_type(
                                 self.solid_collision_map_list,
                             )
+                            # Update dynamic actors solid collision map list
+                            self.player.set_solid_collision_map_list(self.solid_collision_map_list)
 
                 ##############
                 # THIN STATE #
@@ -1563,6 +1590,8 @@ class RoomJsonGenerator:
                                 # The recursive callback
                                 callback=_flood_fill_callback,
                             )
+                            # Update dynamic actors solid collision map list
+                            self.player.set_solid_collision_map_list(self.solid_collision_map_list)
 
                         ##################
                         # BLOB TILE TYPE #
@@ -1594,6 +1623,8 @@ class RoomJsonGenerator:
                                 # The recursive callback
                                 callback=_flood_fill_callback,
                             )
+                            # Update dynamic actors solid collision map list
+                            self.player.set_solid_collision_map_list(self.solid_collision_map_list)
 
                     ###############
                     # Lmb pressed #
@@ -1613,6 +1644,8 @@ class RoomJsonGenerator:
                                 world_tu_x=self.world_mouse_tu_x,
                                 world_tu_y=self.world_mouse_tu_y,
                             )
+                            # Update dynamic actors solid collision map list
+                            self.player.set_solid_collision_map_list(self.solid_collision_map_list)
 
                         ##################
                         # BLOB TILE TYPE #
@@ -1628,6 +1661,8 @@ class RoomJsonGenerator:
                                 world_tu_x=self.world_mouse_tu_x,
                                 world_tu_y=self.world_mouse_tu_y,
                             )
+                            # Update dynamic actors solid collision map list
+                            self.player.set_solid_collision_map_list(self.solid_collision_map_list)
 
                     ###############
                     # Rmb pressed #
@@ -1642,6 +1677,8 @@ class RoomJsonGenerator:
                             self._on_rmb_just_pressed_none_tile_type(
                                 self.solid_collision_map_list,
                             )
+                            # Update dynamic actors solid collision map list
+                            self.player.set_solid_collision_map_list(self.solid_collision_map_list)
 
                         ##################
                         # BLOB TILE TYPE #
@@ -1651,6 +1688,8 @@ class RoomJsonGenerator:
                             self._on_rmb_just_pressed_blob_tile_type(
                                 self.solid_collision_map_list,
                             )
+                            # Update dynamic actors solid collision map list
+                            self.player.set_solid_collision_map_list(self.solid_collision_map_list)
 
                 ####################
                 # FOREGROUND STATE #
@@ -1798,6 +1837,9 @@ class RoomJsonGenerator:
                 self.player.update(dt)
                 # Lerp camera position to target camera anchor
                 self.camera.update(dt)
+                # Move my camera anchor to where player is for convenience
+                self.camera_anchor_vector.x = self.player.collider_rect.x
+                self.camera_anchor_vector.y = self.player.collider_rect.y
 
             # Enter just pressed, go to play test state
             if self.game_event_handler.is_enter_just_pressed:
@@ -1949,23 +1991,23 @@ class RoomJsonGenerator:
     #############
     # CALLBACKS #
     #############
-    def on_entry_delay_timer_end(self) -> None:
+    def _on_entry_delay_timer_end(self) -> None:
         self._change_update_and_draw_state_machine(RoomJsonGenerator.State.OPENING_SCENE_CURTAIN)
 
-    def on_exit_delay_timer_end(self) -> None:
+    def _on_exit_delay_timer_end(self) -> None:
         # Load title screen music. Played in my set state
         self.game_music_manager.set_current_music_path(OGGS_PATHS_DICT["xdeviruchi_title_theme.ogg"])
         self.game_music_manager.play_music(-1, 0.0, 0)
         self.game.set_scene("MainMenu")
 
-    def on_curtain_invisible(self) -> None:
+    def _on_curtain_invisible(self) -> None:
         if self.state_machine_update.state == RoomJsonGenerator.State.OPENING_SCENE_CURTAIN:
             self._change_update_and_draw_state_machine(RoomJsonGenerator.State.OPENED_SCENE_CURTAIN)
         elif self.state_machine_update.state == RoomJsonGenerator.State.SPRITE_PALETTE:
             if self.button_container is not None:
                 self.button_container.set_is_input_allowed(True)
 
-    def on_curtain_opaque(self) -> None:
+    def _on_curtain_opaque(self) -> None:
         if self.state_machine_update.state == RoomJsonGenerator.State.ADD_OTHER_SPRITES:
             self._change_update_and_draw_state_machine(RoomJsonGenerator.State.FILE_NAME_QUERY)
             self.curtain.go_to_invisible()
@@ -1984,7 +2026,7 @@ class RoomJsonGenerator:
                 self._change_update_and_draw_state_machine(RoomJsonGenerator.State.EDIT_ROOM)
                 self.curtain.go_to_invisible()
 
-    def on_button_selected(self, selected_button: Button) -> None:
+    def _on_button_selected(self, selected_button: Button) -> None:
         # Update selected name
         self.selected_sprite_name = selected_button.text
         # Update cursor size
@@ -2020,7 +2062,7 @@ class RoomJsonGenerator:
     ##########
     def update(self, dt: int) -> None:
         # REMOVE IN BUILD
-        self.game.debug_draw.add(
+        self.game_debug_draw.add(
             {
                 "type": "text",
                 "layer": 6,
@@ -2431,6 +2473,7 @@ class RoomJsonGenerator:
             world_snapped_y = world_tu_y * TILE_SIZE
             new_none_or_blob_sprite_metadata_dict: dict = {
                 "name": selected_sprite_name,
+                "type": self.sprite_name_to_sprite_metadata[self.selected_sprite_name].sprite_type,
                 "x": world_snapped_x,
                 "y": world_snapped_y,
                 "region_x": selected_sprite_x,
@@ -2557,6 +2600,7 @@ class RoomJsonGenerator:
         # Construct sprite metadata
         new_none_or_blob_sprite_metadata_dict: dict = {
             "name": sprite_name,
+            "type": self.sprite_name_to_sprite_metadata[self.selected_sprite_name].sprite_type,
             "x": sprite_snapped_x,
             "y": sprite_snapped_y,
             "region_x": sprite_x_with_offset,
@@ -2612,6 +2656,7 @@ class RoomJsonGenerator:
                 # Construct sprite metadata
                 new_none_or_blob_sprite_metadata_dict: dict = {
                     "name": sprite_name,
+                    "type": self.sprite_name_to_sprite_metadata[self.selected_sprite_name].sprite_type,
                     "x": world_mouse_x_snapped,
                     "y": world_mouse_y_snapped,
                     "region_x": region_x_with_offset,

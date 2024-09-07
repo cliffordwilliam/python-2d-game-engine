@@ -9,7 +9,8 @@ from os.path import join
 from platform import system
 from typing import Any
 
-from constants import pg
+import pygame as pg
+from schemas import NoneOrBlobSpriteMetadata
 from schemas import validate_json
 
 
@@ -98,60 +99,73 @@ def get_one_target_dict_value(key: str, target_dict: dict) -> Any:
     return target_dict.get(key, None)
 
 
-def point_vs_rect(p: pg.Vector2, r: pg.FRect) -> bool:
-    """
-    True if point in a rect.
-    Parameter needs a point and a rect.
-    """
-    return p.x >= r.x and p.y >= r.y and p.x < r.x + r.width and p.y < r.y + r.height
-
-
-def rect_vs_rect(r1: pg.FRect, r2: pg.FRect) -> bool:
-    """
-    True if rect in a rect. Needs to overlap.
-    Parameter needs a rect and a rect.
-    """
-    return r1.x < r2.x + r2.width and r1.x + r1.width > r2.x and r1.y < r2.y + r2.height and r1.y + r1.height > r2.y
-
-
 def ray_vs_rect(
     ray_origin: pg.Vector2,
     ray_dir: pg.Vector2,
-    target: pg.FRect,
+    target_rect: pg.FRect,
     contact_point: list[pg.Vector2],
     contact_normal: list[pg.Vector2],
     t_hit_near: list,
 ) -> bool:
     """
     True if light ray hits rect.
-    Parameter needs ray origin, ray dir, target rect
+    Parameter needs ray origin, ray dir, target_rect
     Need immutable list for extra info after computation.
     contact_point, contact_normal, t_hit_near
     """
-    if ray_dir.y == 0 or ray_dir.x == 0:
-        return False
-    # TODO: Cache division?
-    t_near = pg.Vector2((target.x - ray_origin.x) / ray_dir.x, (target.y - ray_origin.y) / ray_dir.y)
+
+    # Cache division
+    one_over_ray_dir_x: float = 0.0
+    one_over_ray_dir_y: float = 0.0
+    sign: float = -1.0
+
+    # Handle infinity
+    if abs(ray_dir.x) < 0.1:
+        if ray_dir.x > 0:
+            sign = 1.0
+        one_over_ray_dir_x = float("inf") * sign
+    else:
+        one_over_ray_dir_x = 1 / ray_dir.x
+
+    # Handle infinity
+    if abs(ray_dir.y) < 0.1:
+        if ray_dir.y > 0:
+            sign = 1.0
+        one_over_ray_dir_y = float("inf") * sign
+    else:
+        one_over_ray_dir_y = 1 / ray_dir.y
+
+    # Get near far time
+    t_near = pg.Vector2(
+        (target_rect.x - ray_origin.x) * one_over_ray_dir_x,
+        (target_rect.y - ray_origin.y) * one_over_ray_dir_y,
+    )
     t_far = pg.Vector2(
-        (target.x + target.width - ray_origin.x) / ray_dir.x, (target.y + target.height - ray_origin.y) / ray_dir.y
+        (target_rect.x + target_rect.width - ray_origin.x) * one_over_ray_dir_x,
+        (target_rect.y + target_rect.height - ray_origin.y) * one_over_ray_dir_y,
     )
 
+    # Sort near far time
     if t_near.x > t_far.x:
         t_near.x, t_far.x = t_far.x, t_near.x
     if t_near.y > t_far.y:
         t_near.y, t_far.y = t_far.y, t_near.y
 
+    # COLLISION RULE
     if t_near.x > t_far.y or t_near.y > t_far.x:
         return False
 
+    # Get near far time
     t_hit_near[0] = max(t_near.x, t_near.y)
     t_hit_far: float = min(t_far.x, t_far.y)
 
     if t_hit_far < 0:
         return False
 
+    # Compute contact point
     contact_point[0] = ray_origin + t_hit_near[0] * ray_dir
 
+    # Compute contact normal
     if t_near.x > t_near.y:
         contact_normal[0].x, contact_normal[0].y = (1, 0) if ray_dir.x < 0 else (-1, 0)
     elif t_near.x < t_near.y:
@@ -161,27 +175,31 @@ def ray_vs_rect(
 
 
 def dynamic_rect_vs_rect(
-    dynamic_actor: Any,
-    target: pg.FRect,
+    input_velocity: pg.Vector2,
+    collider_rect: pg.FRect,
+    target_rect: pg.FRect,
     contact_point: list[pg.Vector2],
     contact_normal: list[pg.Vector2],
     t_hit_near: list[float],
     dt: int,
 ) -> bool:
-    if dynamic_actor.velocity.x == 0 and dynamic_actor.velocity.y == 0:
+    """
+    If dynamic actor is not moving, returns False.
+    """
+    if input_velocity.x == 0 and input_velocity.y == 0:
         return False
     expanded_target: pg.FRect = pg.FRect(
-        target.x - dynamic_actor.rect.width / 2,
-        target.y - dynamic_actor.rect.height / 2,
-        target.width + dynamic_actor.rect.width,
-        target.height + dynamic_actor.rect.height,
+        target_rect.x - collider_rect.width / 2,
+        target_rect.y - collider_rect.height / 2,
+        target_rect.width + collider_rect.width,
+        target_rect.height + collider_rect.height,
     )
     hit = ray_vs_rect(
         pg.Vector2(
-            dynamic_actor.rect.x + dynamic_actor.rect.width / 2,
-            dynamic_actor.rect.y + dynamic_actor.rect.height / 2,
+            collider_rect.x + collider_rect.width / 2,
+            collider_rect.y + collider_rect.height / 2,
         ),
-        dynamic_actor.velocity * dt,
+        input_velocity * dt,
         expanded_target,
         contact_point,
         contact_normal,
@@ -195,3 +213,20 @@ def dynamic_rect_vs_rect(
 
 def exp_decay(a: float, b: float, decay: float, dt: int) -> float:
     return b + (a - b) * exp(-decay * dt)
+
+
+def get_tile_from_collision_map_list(
+    world_tu_x: int,
+    world_tu_y: int,
+    room_width_tu: int,
+    room_height_tu: int,
+    collision_map_list: list,
+) -> Any | int | NoneOrBlobSpriteMetadata:
+    """
+    Returns -1 if out of bounds
+    Because camera needs extra 1 and thus may get out of bound.
+    """
+    if 0 <= world_tu_x < room_width_tu and 0 <= world_tu_y < room_height_tu:
+        return collision_map_list[world_tu_y * room_width_tu + world_tu_x]
+    else:
+        return -1
