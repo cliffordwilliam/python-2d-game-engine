@@ -22,10 +22,16 @@ class Stage1Glow:
     Or if it moves on its own like elevator or moving train
     """
 
-    # Need to use this before instancing
+    # Need to use this "sprite_layer" before instancing
     # To check if there is an instance or not in this index
     # If got instance then no need to instace
     # If empty then we instance this
+    # TODO: move this to the sprite sheet metadata json
+    # TODO: so that I have to read then fill in the constructor here instead of hard coding it
+    # TODO: Create new arguments here, take in the
+    # TODO: Name, width, height, region x and y, from the sprte name to sprite metadata in the rooms editor
+    # TODO: So here you are flexible in how you construct the background, where you stamp the trees and so on
+    # TODO: The sprite_layer is not being used in there, you get it from the json, so why have it here
     sprite_layer: int = 5
 
     def __init__(
@@ -38,11 +44,14 @@ class Stage1Glow:
         self.camera: "Camera" = camera
 
         # My constants metadata
+        # TODO: Get from room name to metadata dict later
         self.sprite_name: str = "glow"
         self.sprite_width: int = 16
         self.sprite_height: int = 128
         self.sprite_x: int = 96
         self.sprite_y: int = 288
+
+        # Flexible for me to set however this is going to be
         self.draw_scale_x: float = 0.0
         self.draw_scale_y: float = 0.0
         self.sprite_region: tuple[int, int, int, int] = (
@@ -56,7 +65,7 @@ class Stage1Glow:
         self.surf: pg.Surface = pg.Surface((NATIVE_WIDTH, NATIVE_HEIGHT), pg.SRCALPHA)
         # Fill with fully transparent color
         self.surf.fill((0, 0, 0, 0))
-        # Draw on it, construct the whole thing here by stamping the regions
+        # Draw on it, construct the whole thing here by stamping the regions (Flexible)
         for i in range(NATIVE_WIDTH_TU):
             self.surf.blit(
                 self.sprite_sheet_surf,
@@ -73,6 +82,10 @@ class Stage1Glow:
         # List of tuples. Tuple -> (surf, tuple coord)
         tuple[pg.Surface, tuple[float, float]]
     ]:
+        """
+        This takes existing blit sequence, adds my surf pre renders to it and returns it.
+        """
+
         # Bottom Right
         blit_sequence.append(
             (

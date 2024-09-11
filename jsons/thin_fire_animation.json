@@ -1,1 +1,76 @@
-{"burn":{"animation_is_loop":1,"next_animation_name":"none","animation_duration":50,"animation_sprite_height":16,"animation_sprite_width":16,"sprite_sheet_png_name":"thin_fire_sprite_sheet.png","animation_sprites_list":[{"x":0,"y":0},{"x":16,"y":0},{"x":32,"y":0},{"x":48,"y":0},{"x":64,"y":0},{"x":80,"y":0},{"x":96,"y":0},{"x":112,"y":0},{"x":128,"y":0},{"x":144,"y":0},{"x":160,"y":0},{"x":176,"y":0},{"x":192,"y":0},{"x":208,"y":0},{"x":224,"y":0},{"x":240,"y":0}]}}
+{
+    "burn": {
+        "animation_is_loop": 1,
+        "next_animation_name": "none",
+        "animation_duration": 50,
+        "animation_sprite_height": 16,
+        "animation_sprite_width": 16,
+        "sprite_sheet_png_name": "thin_fire_sprite_sheet.png",
+        "animation_sprites_list": [
+            {
+                "x": 0,
+                "y": 0
+            },
+            {
+                "x": 16,
+                "y": 0
+            },
+            {
+                "x": 32,
+                "y": 0
+            },
+            {
+                "x": 48,
+                "y": 0
+            },
+            {
+                "x": 64,
+                "y": 0
+            },
+            {
+                "x": 80,
+                "y": 0
+            },
+            {
+                "x": 96,
+                "y": 0
+            },
+            {
+                "x": 112,
+                "y": 0
+            },
+            {
+                "x": 128,
+                "y": 0
+            },
+            {
+                "x": 144,
+                "y": 0
+            },
+            {
+                "x": 160,
+                "y": 0
+            },
+            {
+                "x": 176,
+                "y": 0
+            },
+            {
+                "x": 192,
+                "y": 0
+            },
+            {
+                "x": 208,
+                "y": 0
+            },
+            {
+                "x": 224,
+                "y": 0
+            },
+            {
+                "x": 240,
+                "y": 0
+            }
+        ]
+    }
+}

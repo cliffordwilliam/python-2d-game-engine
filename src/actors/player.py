@@ -18,7 +18,9 @@ if TYPE_CHECKING:
 @typechecked
 class Player:
     """
-    TODO: write doc for this actor
+    Listens to input events.
+    Mainly for updating its position in the world.
+    Has the ability to spawn other actors (like bullets)
     """
 
     def __init__(
@@ -27,7 +29,7 @@ class Player:
         camera: "Camera",
         # Listen to input
         game_event_handler: "EventHandler",
-        # Room metadata
+        # Room metadata for collision
         solid_collision_map_list: list,
         room_width_tu: int,
         room_height_tu: int,
@@ -35,36 +37,59 @@ class Player:
         # For debug draw
         game_debug_draw: "DebugDraw",
     ):
+        # Initialize game dependencies
+        self.game_event_handler: "EventHandler" = game_event_handler
         # REMOVE IN BUILD
-        self.game_debug_draw = game_debug_draw
+        self.game_debug_draw: "DebugDraw" = game_debug_draw
 
-        # Init room metadata
-        self.solid_collision_map_list = solid_collision_map_list
+        # Initialize room metadata
+        self.solid_collision_map_list: list = solid_collision_map_list
         self.room_width_tu: int = room_width_tu
         self.room_height_tu: int = room_height_tu
-
-        # Initialize game
-        self.game_event_handler = game_event_handler
 
         # To offset draw
         self.camera: "Camera" = camera
 
-        # My rect and surf
+        self._setup_rects_and_surfs()
+        self._setup_movement_metadata()
+        self._setup_camera_anchor()
+        self._setup_kinematic()
+
+    ##########
+    # SETUPS #
+    ##########
+    def _setup_rects_and_surfs(self) -> None:
+        """
+        Setup rects and surfs.
+        """
+
         self.surf: pg.Surface = pg.Surface((6, 31))
         self.surf.fill("red")
         self.collider_rect: pg.FRect = self.surf.get_frect()
 
-        # Movement
+    def _setup_movement_metadata(self) -> None:
+        """
+        Setup my movement magic numbers.
+        """
+
         self.max_run: float = 0.09  # Px / ms
         self.run_acceleration: float = 0.000533  # Px / ms2
         self.velocity: pg.Vector2 = pg.Vector2(0.0, 0.0)
         self.decay: float = 0.01
 
-        # My camera anchor
+    def _setup_camera_anchor(self) -> None:
+        """
+        Setup my camera anchor vector.
+        """
+
         self.camera_anchor_vector: Vector2 = Vector2(0.0, 0.0)
 
-        # My kinematic
-        self.kinematic = Kinematic(
+    def _setup_kinematic(self) -> None:
+        """
+        Setup kinematic.
+        """
+
+        self.kinematic: Kinematic = Kinematic(
             self.collider_rect,
             self.solid_collision_map_list,
             self.room_width_tu,
@@ -78,7 +103,8 @@ class Player:
     #################
     def set_solid_collision_map_list(self, value: list) -> None:
         """
-        Call when room collision map list updates
+        Call when room collision map list updates.
+        Content changes.
         """
 
         self.solid_collision_map_list = value
@@ -86,7 +112,8 @@ class Player:
 
     def set_room_width_tu(self, value: int) -> None:
         """
-        Call when room collision map list updates
+        Call when room collision map list updates.
+        Width changes.
         """
 
         self.room_width_tu = value
@@ -94,7 +121,8 @@ class Player:
 
     def set_room_height_tu(self, value: int) -> None:
         """
-        Call when room collision map list updates
+        Call when room collision map list updates.
+        Height changes.
         """
 
         self.room_height_tu = value
@@ -125,9 +153,9 @@ class Player:
         self.velocity.y = exp_decay(self.velocity.y, direction_vertical * self.max_run, self.decay, dt)
 
         # TODO: STATE MACHINE HERE
-        # TODO: State machine mutates direction input and velocity here
+        # TODO: State machine mutates direction input and velocity here (when crouching dir x set to 0)
 
-        # RESOLVE NEW VEL
+        # RESOLVE NEW VEL (like godot move and slide)
         self.velocity = self.kinematic.resolve_vel_against_solid_tiles(dt, self.velocity)
 
         # Update collider rect pos with RESOLVE VEL
@@ -136,5 +164,5 @@ class Player:
         self.collider_rect.y += self.velocity.y * dt
         # Clamp my collider rect pos to be in camera rect
         self.collider_rect.clamp_ip(self.camera.rect)
-        # Move camera anchor to my collider rect pos
+        # Move my camera anchor to my collider rect pos center
         self.camera_anchor_vector.y = self.collider_rect.centery

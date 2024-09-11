@@ -45,6 +45,7 @@ class Kinematic:
         self.game_debug_draw = game_debug_draw
 
         # Init room metadata
+        # TODO: Make the solid collision map list be safe
         self.solid_collision_map_list = solid_collision_map_list
         self.room_width_tu: int = room_width_tu
         self.room_height_tu: int = room_height_tu
