@@ -20,27 +20,28 @@ class Stage1PineTrees:
     Or if it moves on its own like elevator or moving train
     """
 
-    # Need to use this before instancing
-    # To check if there is an instance or not in this index
-    # If got instance then no need to instace
-    # If empty then we instance this
-    sprite_layer: int = 4
-
     def __init__(
         self,
         sprite_sheet_surf: pg.Surface,
         camera: "Camera",
+        sprite_name: str,
+        sprite_width: int,
+        sprite_height: int,
+        sprite_x: int,
+        sprite_y: int,
     ):
         # Load and instanced the sprite sheet and camera for me to use here
         self.sprite_sheet_surf: pg.Surface = sprite_sheet_surf
         self.camera: "Camera" = camera
 
         # My constants metadata
-        self.sprite_name: str = "pine_trees"
-        self.sprite_width: int = 80
-        self.sprite_height: int = 144
-        self.sprite_x: int = 304
-        self.sprite_y: int = 336
+        self.sprite_name: str = sprite_name
+        self.sprite_width: int = sprite_width
+        self.sprite_height: int = sprite_height
+        self.sprite_x: int = sprite_x
+        self.sprite_y: int = sprite_y
+
+        # Flexible for me to set however this is going to be
         self.draw_scale_x: float = 0.5
         self.draw_scale_y: float = 0.0
         self.sprite_region: tuple[int, int, int, int] = (self.sprite_x, self.sprite_y, self.sprite_width, self.sprite_height)
@@ -90,27 +91,31 @@ class Stage1PineTrees:
         # List of tuples. Tuple -> (surf, tuple coord)
         tuple[pg.Surface, tuple[float, float]]
     ]:
+        """
+        This takes existing blit sequence, adds my surf pre renders to it and returns it.
+        """
+
         x = (-self.camera.rect.x * self.draw_scale_x) % NATIVE_WIDTH
 
-        # Bottom Right
-        blit_sequence.append(
-            (
-                self.surf,
+        blit_sequence.extend(
+            [
+                # Bottom Right
                 (
-                    x,
-                    0,
+                    self.surf,
+                    (
+                        x,
+                        0,
+                    ),
                 ),
-            )
-        )
-        # Bottom Left
-        blit_sequence.append(
-            (
-                self.surf,
+                # Bottom Left
                 (
-                    x - NATIVE_WIDTH,
-                    0,
+                    self.surf,
+                    (
+                        x - NATIVE_WIDTH,
+                        0,
+                    ),
                 ),
-            )
+            ]
         )
 
         return blit_sequence

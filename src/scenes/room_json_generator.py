@@ -45,6 +45,7 @@ from schemas import instance_sprite_metadata
 from schemas import instance_sprite_sheet_metadata
 from schemas import NoneOrBlobSpriteMetadata
 from schemas import SpriteMetadata
+from schemas import SpriteSheetMetadata
 from typeguard import typechecked
 from utils import get_one_target_dict_value
 
@@ -68,6 +69,8 @@ class RoomJsonGenerator:
     # animation seen counter, each animation based on their name has a condition if they should appear or not
     # based on the player cutscene counter that was saved
     # TODO: Implement Quadtree, fire animation first
+
+    # TODO: Move this to const later?
     SLOW_FADE_DURATION = 1000.0
     FAST_FADE_DURATION = 250.0
 
@@ -75,7 +78,7 @@ class RoomJsonGenerator:
         JUST_ENTERED_SCENE = auto()
         OPENING_SCENE_CURTAIN = auto()
         OPENED_SCENE_CURTAIN = auto()
-        ADD_OTHER_SPRITES = auto()
+        ADD_OTHER_ROOM = auto()
         FILE_NAME_QUERY = auto()
         SPRITE_SHEET_JSON_PATH_QUERY = auto()
         EDIT_ROOM = auto()
@@ -84,7 +87,7 @@ class RoomJsonGenerator:
         CLOSED_SCENE_CURTAIN = auto()
 
     def __init__(self, game: "Game"):
-        # Initialize game
+        # Initialize game dependencies
         self.game = game
         self.game_event_handler = self.game.event_handler
         self.game_sound_manager = self.game.sound_manager
@@ -120,6 +123,11 @@ class RoomJsonGenerator:
     # SETUPS #
     ##########
     def _setup_player(self) -> None:
+        """
+        Instance the player.
+        The play test mode flag.
+        """
+
         self.player: Player = Player(
             self.camera,
             self.game_event_handler,
@@ -129,28 +137,43 @@ class RoomJsonGenerator:
             # REMOVE IN BUILD
             self.game_debug_draw,
         )
+
         self.is_play_test_mode: bool = False
 
     def _setup_reformat_sprite_sheet_json_metadata(self) -> None:
-        """Key is sprite name, value is its metadata. Used for selected button state."""
+        """
+        Key is sprite name, value is its metadata. Used for selected button state.
+        """
+
         self.sprite_name_to_sprite_metadata: dict[str, SpriteMetadata] = {}
 
     def _setup_pallete(self) -> None:
-        """For opaque curtain to know where to go next."""
+        """
+        For opaque curtain to know where to go next (pallete or edit mode).
+        The button container.
+        The currently selected sprite name.
+        """
+
         self.is_from_edit_pressed_jump: bool = False
         self.is_from_pallete_pressed_jump: bool = False
         self.button_container: (ButtonContainer | None) = None
         self.selected_sprite_name: str = ""
 
     def _setup_cursor(self) -> None:
-        """Room cursor init."""
+        """
+        Setup room cursor.
+        """
+
         self.cursor_width: int = TILE_SIZE
         self.cursor_height: int = TILE_SIZE
         self.cursor_width_tu: int = 1
         self.cursor_height_tu: int = 1
 
     def _setup_second_rect_region_feature_room(self) -> None:
-        """Room combined cursor init."""
+        """
+        Setup room combined cursor.
+        """
+
         self.first_room_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
         self.second_room_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
         self.combined_room_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
@@ -160,11 +183,15 @@ class RoomJsonGenerator:
         self.combined_room_selected_tile_rect_height_ru = 0
         self.combined_room_selected_tile_rect_x_ru = 0
         self.combined_room_selected_tile_rect_y_ru = 0
-        # There is no state here so it uses flag
+
+        # There is no dedicated state here so it uses flag
         self.is_lmb_was_just_pressed: bool = False
 
     def _setup_second_rect_region_feature(self) -> None:
-        """World cursor init."""
+        """
+        Setup world cursor.
+        """
+
         self.first_world_selected_tile_rect = pg.FRect(0.0, 0.0, WORLD_CELL_SIZE, WORLD_CELL_SIZE)
         self.second_world_selected_tile_rect = pg.FRect(0.0, 0.0, WORLD_CELL_SIZE, WORLD_CELL_SIZE)
         self.combined_world_selected_tile_rect = pg.FRect(0.0, 0.0, WORLD_CELL_SIZE, WORLD_CELL_SIZE)
@@ -176,20 +203,26 @@ class RoomJsonGenerator:
         self.combined_world_selected_tile_rect_y_ru = 0
 
     def _setup_curtain(self) -> None:
-        """Setup curtain with event listeners."""
+        """
+        Setup curtain with event listeners.
+        """
+
         self.curtain: Curtain = Curtain(
             duration=self.SLOW_FADE_DURATION,
             start_state=Curtain.OPAQUE,
             max_alpha=255,
             surf_size_tuple=(NATIVE_WIDTH, NATIVE_HEIGHT),
             is_invisible=False,
-            color="#000000",
+            color="black",
         )
         self.curtain.add_event_listener(self._on_curtain_invisible, Curtain.INVISIBLE_END)
         self.curtain.add_event_listener(self._on_curtain_opaque, Curtain.OPAQUE_END)
 
     def _setup_timers(self) -> None:
-        """Setup timers with event listeners."""
+        """
+        Setup timers with event listeners.
+        """
+
         self.entry_delay_timer: Timer = Timer(duration=self.SLOW_FADE_DURATION)
         self.entry_delay_timer.add_event_listener(self._on_entry_delay_timer_end, Timer.END)
 
@@ -197,7 +230,10 @@ class RoomJsonGenerator:
         self.exit_delay_timer.add_event_listener(self._on_exit_delay_timer_end, Timer.END)
 
     def _setup_texts(self) -> None:
-        """Setup text for title and tips."""
+        """
+        Setup text for title and tips.
+        """
+
         self.prompt_text: str = ""
         self.prompt_rect: pg.Rect = FONT.get_rect(self.prompt_text)
 
@@ -206,7 +242,10 @@ class RoomJsonGenerator:
         self.input_rect.center = NATIVE_RECT.center
 
     def _setup_user_input_store(self) -> None:
-        """Store user inputs"""
+        """
+        Store user inputs.
+        """
+
         # Room metadata
         self.room_height: int = ROOM_HEIGHT
         self.room_height_tu: int = self.room_height // TILE_SIZE
@@ -215,7 +254,7 @@ class RoomJsonGenerator:
         self.room_topleft_x: int = 0
         self.room_topleft_y: int = 0
 
-        # Sprite sheet surf
+        # Sprite sheet name and surf
         self.sprite_sheet_png_name: str = ""
         self.sprite_sheet_surf: (None | pg.Surface) = None
 
@@ -240,18 +279,19 @@ class RoomJsonGenerator:
             str,
             Any,
         ] = {}
+        self.sprite_sheet_parallax_background_mems_dict: dict[
+            # Parallax name : parallax instance
+            str,
+            Any,
+        ] = {}
 
-        # Sprite sheet binded parallax background mems
-        self.sprite_sheet_parallax_background_mems_dict: dict[str, Any] = {}
-
-        # Parallax drawing layer data
+        # Drawing layer data
+        # Parallax
         self.parallax_background_instances_list: list[(None | Any)] = []
-
-        # Background drawing layer data
+        # Background
         self.background_total_layers: int = 0
         self.background_collision_map_list: list[list[(int | NoneOrBlobSpriteMetadata)]] = []
-
-        # Static actor layer data
+        # Static actor
         self.static_actor_collision_map_list: list[int] = [0 for _ in range(self.room_width_tu * self.room_height_tu)]
 
         # TODO: item actors layer (things that player interact with like twin goddess, item drop, door, teleported etc)
@@ -259,12 +299,11 @@ class RoomJsonGenerator:
         # TODO: player layer
         # TODO: explosions effects are like static actors but they do not need collision or stored in map, just add them in gameplay list
 
-        # Solid drawing layer data
+        # Solid
         self.solid_collision_map_list: list[(int | NoneOrBlobSpriteMetadata)] = [
             0 for _ in range(self.room_width_tu * self.room_height_tu)
         ]
-
-        # Foreground drawing layer data
+        # Foreground
         self.foreground_total_layers: int = 0
         self.foreground_collision_map_list: list[list[(int | NoneOrBlobSpriteMetadata)]] = []
 
@@ -277,23 +316,43 @@ class RoomJsonGenerator:
         self.pre_render_foreground_surf.set_colorkey("red")
         self.pre_render_foreground_surf.fill("red")
 
+        # Indicate when to update pre render surf (when collision map is PATCHED).
+        self.is_pre_render_collision_map_list_mutated = False
+
         # To be saved JSON, file name is room name
         self.file_name: str = ""
 
     def _setup_camera(self) -> None:
+        """
+        Store user inputs.
+        """
+
+        # The "player" in editing mode
         self.camera_anchor_vector: Vector2 = Vector2(0.0, 0.0)
+
+        # Offset drawn things based on where this is
         self.camera: Camera = Camera(
             self.camera_anchor_vector,
             # REMOVE IN BUILD
             self.game_debug_draw,
         )
+
+        # The "player" speed in editing mode
         self.camera_speed: float = 0.09  # Px / ms
 
     def _setup_collision_map(self) -> None:
+        """
+        The whole world size is fixed, this is a constnat.
+        """
+
         # World
         self.world_collision_map_list: list[Any] = [0 for _ in range(WORLD_WIDTH_RU * WORLD_HEIGHT_RU)]
 
     def _setup_surfs(self) -> None:
+        """
+        Surfaces for selection marker, grids and pre render world.
+        """
+
         # Selected surf marker
         self.selected_surf_marker: pg.Surface = pg.Surface((WORLD_CELL_SIZE, WORLD_CELL_SIZE))
         self.selected_surf_marker.fill("red")
@@ -318,10 +377,11 @@ class RoomJsonGenerator:
         self.world_surf: pg.Surface = pg.Surface((WORLD_WIDTH, WORLD_HEIGHT))
         self.world_surf.fill(self.clear_color)
 
-        # Indicate when to update pre render
-        self.is_pre_render_collision_map_list_mutated = False
-
     def _setup_mouse_positions(self) -> None:
+        """
+        Mouse positions, world and screen version.
+        """
+
         self.world_mouse_x: float = 0.0
         self.world_mouse_y: float = 0.0
         self.world_mouse_tu_x: int = 0
@@ -332,7 +392,10 @@ class RoomJsonGenerator:
         self.screen_mouse_y: float = 0.0
 
     def _setup_music(self) -> None:
-        # Load editor screen music. Played in my set state
+        """
+        Load editor screen music. Played in my set state.
+        """
+
         self.game_music_manager.set_current_music_path(OGGS_PATHS_DICT["xdeviruchi_take_some_rest_and_eat_some_food.ogg"])
         self.game_music_manager.play_music(-1, 0.0, 0)
 
@@ -347,7 +410,7 @@ class RoomJsonGenerator:
                 RoomJsonGenerator.State.JUST_ENTERED_SCENE: self._JUST_ENTERED_SCENE,
                 RoomJsonGenerator.State.OPENING_SCENE_CURTAIN: self._OPENING_SCENE_CURTAIN,
                 RoomJsonGenerator.State.OPENED_SCENE_CURTAIN: self._OPENED_SCENE_CURTAIN,
-                RoomJsonGenerator.State.ADD_OTHER_SPRITES: self._ADD_OTHER_SPRITES,
+                RoomJsonGenerator.State.ADD_OTHER_ROOM: self._ADD_OTHER_SPRITES,
                 RoomJsonGenerator.State.FILE_NAME_QUERY: self._FILE_NAME_QUERY,
                 RoomJsonGenerator.State.SPRITE_SHEET_JSON_PATH_QUERY: self._SPRITE_SHEET_JSON_PATH_QUERY,
                 RoomJsonGenerator.State.EDIT_ROOM: self._EDIT_ROOM,
@@ -366,10 +429,10 @@ class RoomJsonGenerator:
                 ): self._OPENING_SCENE_CURTAIN_to_OPENED_SCENE_CURTAIN,
                 (
                     RoomJsonGenerator.State.OPENED_SCENE_CURTAIN,
-                    RoomJsonGenerator.State.ADD_OTHER_SPRITES,
+                    RoomJsonGenerator.State.ADD_OTHER_ROOM,
                 ): self._OPENED_SCENE_CURTAIN_to_ADD_OTHER_SPRITES,
                 (
-                    RoomJsonGenerator.State.ADD_OTHER_SPRITES,
+                    RoomJsonGenerator.State.ADD_OTHER_ROOM,
                     RoomJsonGenerator.State.FILE_NAME_QUERY,
                 ): self._ADD_OTHER_SPRITES_to_FILE_NAME_QUERY,
                 (
@@ -406,7 +469,7 @@ class RoomJsonGenerator:
                 RoomJsonGenerator.State.JUST_ENTERED_SCENE: self._NOTHING,
                 RoomJsonGenerator.State.OPENING_SCENE_CURTAIN: self._QUERIES,
                 RoomJsonGenerator.State.OPENED_SCENE_CURTAIN: self._ADD_ROOM_DRAW,
-                RoomJsonGenerator.State.ADD_OTHER_SPRITES: self._ADD_OTHER_SPRITES_DRAW,
+                RoomJsonGenerator.State.ADD_OTHER_ROOM: self._ADD_OTHER_ROOM_DRAW,
                 RoomJsonGenerator.State.FILE_NAME_QUERY: self._QUERIES,
                 RoomJsonGenerator.State.SPRITE_SHEET_JSON_PATH_QUERY: self._QUERIES,
                 RoomJsonGenerator.State.EDIT_ROOM: self._EDIT_ROOM_DRAW,
@@ -421,18 +484,28 @@ class RoomJsonGenerator:
     # STATE DRAW LOGICS #
     #####################
     def _NOTHING(self, _dt: int) -> None:
+        """
+        When there is nothing to draw.
+        """
+
         pass
 
     def _QUERIES(self, _dt: int) -> None:
+        """
+        Draws prompt and user typing input.
+        """
+
         # Clear
         NATIVE_SURF.fill(self.clear_color)
-        # Draw promt
+
+        # Draw prompt
         FONT.render_to(
             NATIVE_SURF,
             self.prompt_rect,
             self.prompt_text,
             self.font_color,
         )
+
         # Draw input
         FONT.render_to(
             NATIVE_SURF,
@@ -440,10 +513,15 @@ class RoomJsonGenerator:
             self.input_text,
             self.font_color,
         )
+
         # Draw curtain
         self.curtain.draw(NATIVE_SURF, 0)
 
     def _ADD_ROOM_DRAW(self, _dt: int) -> None:
+        """
+        For world map room selection mode.
+        """
+
         # Clear
         NATIVE_SURF.fill(self.clear_color)
 
@@ -470,15 +548,58 @@ class RoomJsonGenerator:
         # Curtain
         self.curtain.draw(NATIVE_SURF, 0)
 
+    def _ADD_OTHER_ROOM_DRAW(self, _dt: int) -> None:
+        """
+        Second select in world room selection mode.
+        """
+
+        # Clear
+        NATIVE_SURF.fill(self.clear_color)
+
+        # Draw world surf
+        NATIVE_SURF.blit(self.world_surf, (0, 0))
+
+        # Draw world grid
+        self._draw_world_grid()
+
+        # When it is done only, so that it does not mess with combined cursor size
+        if self.curtain.is_done:
+            # Draw cursor
+            updated_data = self._process_mouse_cursor(
+                self.first_world_selected_tile_rect,
+                self.second_world_selected_tile_rect,
+                self.combined_world_selected_tile_rect,
+                self.screen_combined_world_selected_tile_rect_x,
+                self.screen_combined_world_selected_tile_rect_y,
+                WORLD_WIDTH,
+                WORLD_HEIGHT,
+                WORLD_CELL_SIZE,
+                True,
+            )
+            # Update the data after cursor
+            self.first_world_selected_tile_rect = updated_data["first_rect"]
+            self.second_world_selected_tile_rect = updated_data["second_rect"]
+            self.combined_world_selected_tile_rect = updated_data["combined_rect"]
+            self.screen_combined_world_selected_tile_rect_x = updated_data["screen_combined_rect_x"]
+            self.screen_combined_world_selected_tile_rect_y = updated_data["screen_combined_rect_y"]
+
+        # Curtain
+        self.curtain.draw(NATIVE_SURF, 0)
+
     def _EDIT_ROOM_DRAW(self, _dt: int) -> None:
+        """
+        For room editing mode.
+        """
+
         # Clear
         NATIVE_SURF.fill(self.clear_color)
 
         # Store surfs to be drawn with fblits
         blit_sequence: list[
-            # List of tuples. Tuple -> (surf, tuple coord)
+            # List of tuples = (surf, coord)
             tuple[pg.Surface, tuple[float, float]]
         ] = []
+
         # Collect parallax background surf
         for parallax_background in self.parallax_background_instances_list:
             # If it is not None, it is a parallax background instance
@@ -496,18 +617,9 @@ class RoomJsonGenerator:
             )
         )
 
-        # Draw static actor (these are extra moving bg in front of the bg, fire and waterfall and so on)
+        # Collect static actor pre renders (these are extra moving 1 layer bg in front of the bg, fire and waterfall and so on)
         for static_actor_instance in self.sprite_sheet_static_actor_instance_dict.values():
-            static_actor_instance_pre_render_surf = static_actor_instance.draw()
-            blit_sequence.append(
-                (
-                    static_actor_instance_pre_render_surf,
-                    (
-                        -self.camera.rect.x,
-                        -self.camera.rect.y,
-                    ),
-                )
-            )
+            static_actor_instance.draw(blit_sequence)
 
         # Draw parallax background and pre render background collection
         NATIVE_SURF.fblits(blit_sequence)
@@ -517,7 +629,7 @@ class RoomJsonGenerator:
         # Draw player
         self.player.draw()
 
-        # Draw the pre render solid foreground
+        # Draw the pre render foreground
         NATIVE_SURF.blit(
             self.pre_render_foreground_surf,
             (
@@ -526,15 +638,14 @@ class RoomJsonGenerator:
             ),
         )
 
-        # Draw grid and cursor in editor only, not play test
+        # In editing mode?
         if not self.is_play_test_mode:
             # Draw grid
             self._draw_grid()
 
             # Filter only some sprite types
 
-            # Combine rect fill
-            # Only some can turn this to true
+            # Combine rect fill (only some can turn this to true).
             if self.is_lmb_was_just_pressed:
                 #################
                 # Second select #
@@ -557,7 +668,7 @@ class RoomJsonGenerator:
                 self.combined_room_selected_tile_rect = updated_data["combined_rect"]
                 self.screen_combined_room_selected_tile_rect_x = updated_data["screen_combined_rect_x"]
                 self.screen_combined_room_selected_tile_rect_y = updated_data["screen_combined_rect_y"]
-            # Paint, erase and flood fill
+            # Normal paint, erase and flood fill
             else:
                 # Draw cursor
                 self._draw_cursor(
@@ -577,47 +688,16 @@ class RoomJsonGenerator:
         self.curtain.draw(NATIVE_SURF, 0)
 
     def _SPRITE_PALLETE_DRAW(self, _dt: int) -> None:
+        """
+        In pallete menu open.
+        """
+
         # Clear
         NATIVE_SURF.fill("black")
 
         # Draw button container
         if self.button_container is not None:
             self.button_container.draw(NATIVE_SURF)
-
-        # Curtain
-        self.curtain.draw(NATIVE_SURF, 0)
-
-    def _ADD_OTHER_SPRITES_DRAW(self, _dt: int) -> None:
-        # Clear
-        NATIVE_SURF.fill(self.clear_color)
-
-        # Draw world surf
-        NATIVE_SURF.blit(self.world_surf, (0, 0))
-
-        # Draw world grid
-        self._draw_world_grid()
-
-        # Draw and update cursor position
-        # When it is done only, so that it does not mess with saving
-        if self.curtain.is_done:
-            # Draw cursor
-            updated_data = self._process_mouse_cursor(
-                self.first_world_selected_tile_rect,
-                self.second_world_selected_tile_rect,
-                self.combined_world_selected_tile_rect,
-                self.screen_combined_world_selected_tile_rect_x,
-                self.screen_combined_world_selected_tile_rect_y,
-                WORLD_WIDTH,
-                WORLD_HEIGHT,
-                WORLD_CELL_SIZE,
-                True,
-            )
-            # Update the data after cursor
-            self.first_world_selected_tile_rect = updated_data["first_rect"]
-            self.second_world_selected_tile_rect = updated_data["second_rect"]
-            self.combined_world_selected_tile_rect = updated_data["combined_rect"]
-            self.screen_combined_world_selected_tile_rect_x = updated_data["screen_combined_rect_x"]
-            self.screen_combined_world_selected_tile_rect_y = updated_data["screen_combined_rect_y"]
 
         # Curtain
         self.curtain.draw(NATIVE_SURF, 0)
@@ -642,11 +722,10 @@ class RoomJsonGenerator:
     def _OPENED_SCENE_CURTAIN(self, dt: int) -> None:
         # Wait for curtain to be fully invisible
         if self.curtain.is_done:
-            # Sprite selection
-            # Lmb just pressed
             # TODO: If click on a room, Load the room
             # TODO: So collision store the file name
             # TODO: If click on empty then make new one
+            # Sprite selection
             if self.game_event_handler.is_lmb_just_pressed:
                 # Get what is clicked
                 found_tile_lmb_pressed = self._get_tile_from_world_collision_map_list(
@@ -658,18 +737,16 @@ class RoomJsonGenerator:
                     # Remember first selected tile rect
                     self.first_world_selected_tile_rect.x = self.world_mouse_snapped_x
                     self.first_world_selected_tile_rect.y = self.world_mouse_snapped_y
-                    # Go to ADD_OTHER_SPRITES
-                    self.state_machine_update.change_state(RoomJsonGenerator.State.ADD_OTHER_SPRITES)
-                    self.state_machine_draw.change_state(RoomJsonGenerator.State.ADD_OTHER_SPRITES)
+                    # Go to ADD_OTHER_ROOM
+                    self.state_machine_update.change_state(RoomJsonGenerator.State.ADD_OTHER_ROOM)
+                    self.state_machine_draw.change_state(RoomJsonGenerator.State.ADD_OTHER_ROOM)
 
     def _ADD_OTHER_SPRITES(self, dt: int) -> None:
         # Wait for curtain to be fully invisible
         if self.curtain.is_done:
-            # Sprite selection
             # Lmb just pressed
             if self.game_event_handler.is_lmb_just_pressed:
-                # Check if selection is all empty cells
-                # Iterate size to check all empty
+                # Check if selection is all empty cells, iterate size to check all empty
                 self.combined_world_selected_tile_rect_width_ru = int(
                     self.combined_world_selected_tile_rect.width // WORLD_CELL_SIZE
                 )
@@ -685,7 +762,6 @@ class RoomJsonGenerator:
                     for world_mouse_tu_yi in range(self.combined_world_selected_tile_rect_height_ru):
                         world_mouse_tu_x = self.combined_world_selected_tile_rect_x_ru + world_mouse_tu_xi
                         world_mouse_tu_y = self.combined_world_selected_tile_rect_y_ru + world_mouse_tu_yi
-                        # Get each one in room_collision_map_list
                         found_tile_lmb_pressed = self._get_tile_from_world_collision_map_list(
                             world_mouse_tu_x,
                             world_mouse_tu_y,
@@ -710,10 +786,11 @@ class RoomJsonGenerator:
                         float(0),
                         float(self.room_width),
                     )
-                    self.curtain.go_to_opaque()
                     # Update dynamic actors room size tu
                     self.player.set_room_height_tu(self.room_height_tu)
                     self.player.set_room_width_tu(self.room_width_tu)
+                    # Close curtain
+                    self.curtain.go_to_opaque()
 
         # Update curtain
         self.curtain.update(dt)
@@ -729,6 +806,7 @@ class RoomJsonGenerator:
             if self.input_text != "":
                 # Update room name / file name metadata
                 self.file_name = self.input_text
+                # Close curtain
                 self.curtain.go_to_opaque()
 
         # Typing logic
@@ -747,20 +825,25 @@ class RoomJsonGenerator:
         def _accept_callback() -> None:
             if exists(self.input_text) and self.input_text.endswith(".json"):
                 # GET from disk, sprite sheet JSON metadata
-                data: dict = self.game.GET_file_from_disk_dynamic_path(self.input_text)
-
+                input_dict: dict = self.game.GET_file_from_disk_dynamic_path(self.input_text)
                 # Turn into sprite sheet metadata instance
-                sprite_sheet_metadata_instance = instance_sprite_sheet_metadata(data)
+                sprite_sheet_metadata_instance = instance_sprite_sheet_metadata(input_dict)
+                # TODO: Validate all dict interactions in this script and anywhere else that uses dicts
+                # Make sure value is NOT a NoneOrBlobSpriteMetadata
+                if not isinstance(sprite_sheet_metadata_instance, SpriteSheetMetadata):
+                    raise ValueError(
+                        "Exception occured, read sprite sheet metadata instance is not instanced of SpriteSheetMetadata"
+                    )
 
                 # Get sprite sheet name
                 self.sprite_sheet_png_name = sprite_sheet_metadata_instance.sprite_sheet_png_name
 
                 # Use name as key to get the full path to resource
                 existing_path: str = get_one_target_dict_value(self.sprite_sheet_png_name, PNGS_PATHS_DICT)
-                # Use full path -> load sprite sheet surf
+                # Use full path to load sprite sheet surf
                 self.sprite_sheet_surf = pg.image.load(existing_path).convert_alpha()
 
-                # Get stage binded static actor data
+                # Get stage binded static actor data with sprite_sheet_png_name
                 self.sprite_sheet_static_actor_mems_dict = self.game.get_sprite_sheet_static_actor_mems_dict(
                     self.sprite_sheet_png_name
                 )
@@ -807,13 +890,12 @@ class RoomJsonGenerator:
                     # Make sure value is a SpriteMetadata
                     if not isinstance(sprite_metadata_instance, SpriteMetadata):
                         raise ValueError("Invalid sprite metadata JSON data against schema")
-
                     # Make sure key is a string
                     if not isinstance(sprite_metadata_instance.sprite_name, str):
                         raise TypeError("sprite_name should be a string")
-
                     # Validated here, POST key val to sprite_name_to_sprite_metadata
                     self.sprite_name_to_sprite_metadata[sprite_metadata_instance.sprite_name] = sprite_metadata_instance
+
                     # Create button
                     button: Button = Button(
                         surf_size_tuple=(264, 19),
@@ -844,15 +926,13 @@ class RoomJsonGenerator:
                     if sprite_metadata_instance.sprite_type == "parallax_background":
                         # Fill parallax layer with None for every layer found
                         self.parallax_background_instances_list.append(None)
-
                     # Init background
-                    if sprite_metadata_instance.sprite_type == "background":
+                    elif sprite_metadata_instance.sprite_type == "background":
                         # Count total background layers
                         if self.background_total_layers < sprite_metadata_instance.sprite_layer:
                             self.background_total_layers = sprite_metadata_instance.sprite_layer
-
                     # Init foreground
-                    if sprite_metadata_instance.sprite_type == "foreground":
+                    elif sprite_metadata_instance.sprite_type == "foreground":
                         # Count total foreground layers
                         if self.foreground_total_layers < sprite_metadata_instance.sprite_layer:
                             self.foreground_total_layers = sprite_metadata_instance.sprite_layer
@@ -864,15 +944,12 @@ class RoomJsonGenerator:
                     self.background_collision_map_list.append(
                         [0 for _ in range(self.room_width_tu * self.room_height_tu)],
                     )
-
                 # Init collision map for static actor
                 self.static_actor_collision_map_list = [0 for _ in range(self.room_width_tu * self.room_height_tu)]
-
                 # Init collision map for solid actor
                 self.solid_collision_map_list = [0 for _ in range(self.room_width_tu * self.room_height_tu)]
                 # Update dynamic actors solid collision map list
                 self.player.set_solid_collision_map_list(self.solid_collision_map_list)
-
                 # Init collision map for each foreground layers
                 for _ in range(self.foreground_total_layers):
                     self.foreground_collision_map_list.append(
@@ -890,8 +967,6 @@ class RoomJsonGenerator:
 
                 # Iterate binded sprite sheet actors names
                 for static_actor_name in self.sprite_sheet_static_actor_surfs_dict:
-                    # Use this iter name to get this iter surf and JSON
-
                     # Get surf
                     static_actor_surf = get_one_target_dict_value(static_actor_name, self.sprite_sheet_static_actor_surfs_dict)
 
@@ -900,15 +975,13 @@ class RoomJsonGenerator:
                         str, AnimationMetadata
                     ] = get_one_target_dict_value(static_actor_name, self.sprite_sheet_static_actor_jsons_dict)
                     # Unpack animation metadata instance
-                    static_actor_first_animation_name: str = list(
-                        static_actor_animation_name_to_animation_metadata_instance.keys()
-                    )[0]
+                    static_actor_animation_name: str = list(static_actor_animation_name_to_animation_metadata_instance.keys())[0]
                     # Get the values for each animation name
-                    static_actor_first_animation_metadata: AnimationMetadata = get_one_target_dict_value(
-                        static_actor_first_animation_name, static_actor_animation_name_to_animation_metadata_instance
+                    static_actor_animation_metadata: AnimationMetadata = get_one_target_dict_value(
+                        static_actor_animation_name, static_actor_animation_name_to_animation_metadata_instance
                     )
-                    static_actor_width: int = static_actor_first_animation_metadata.animation_sprite_width
-                    static_actor_height: int = static_actor_first_animation_metadata.animation_sprite_height
+                    static_actor_width: int = static_actor_animation_metadata.animation_sprite_width
+                    static_actor_height: int = static_actor_animation_metadata.animation_sprite_height
 
                     # Construct sprite metadata
                     new_sprite_metadata_dict: dict = {
@@ -922,18 +995,14 @@ class RoomJsonGenerator:
                         "x": 0,
                         "y": 0,
                     }
-
                     # Turn into sprite metadata instance
                     sprite_metadata_instance = instance_sprite_metadata(new_sprite_metadata_dict)
-
                     # Make sure value is a SpriteMetadata
                     if not isinstance(sprite_metadata_instance, SpriteMetadata):
                         raise ValueError("Invalid sprite metadata JSON data against schema")
-
                     # Make sure key is a string
                     if not isinstance(static_actor_name, str):
                         raise TypeError("static_actor_name should be a string")
-
                     # POST sprite metadata instance to sprite_name_to_sprite_metadata
                     self.sprite_name_to_sprite_metadata[static_actor_name] = sprite_metadata_instance
 
@@ -964,7 +1033,7 @@ class RoomJsonGenerator:
                     buttons.append(button)
 
                 # Init player
-                # For now its a button to let you place rect
+                # For now its a button to let you update its collider pos
 
                 # Construct sprite metadata
                 player_name = "player"
@@ -980,18 +1049,14 @@ class RoomJsonGenerator:
                     "x": 0,
                     "y": 0,
                 }
-
                 # Turn into sprite metadata instance
                 sprite_metadata_instance = instance_sprite_metadata(new_sprite_metadata_dict)
-
                 # Make sure value is a SpriteMetadata
                 if not isinstance(sprite_metadata_instance, SpriteMetadata):
                     raise ValueError("Invalid sprite metadata JSON data against schema")
-
                 # Make sure key is a string
                 if not isinstance(player_name, str):
                     raise TypeError("player_name should be a string")
-
                 # POST sprite metadata instance to sprite_name_to_sprite_metadata
                 self.sprite_name_to_sprite_metadata[player_name] = sprite_metadata_instance
 
@@ -1033,6 +1098,12 @@ class RoomJsonGenerator:
                     self.cursor_height_tu = self.cursor_height // TILE_SIZE
                 # Blob cursor size is 1 tile
                 else:
+                    self.cursor_width = TILE_SIZE
+                    self.cursor_height = TILE_SIZE
+                    self.cursor_width_tu = 1
+                    self.cursor_height_tu = 1
+                # Override the above, if it is parallax set to 1 by 1 too
+                if sprite_metadata_instance.sprite_type == "parallax_background":
                     self.cursor_width = TILE_SIZE
                     self.cursor_height = TILE_SIZE
                     self.cursor_width_tu = 1
@@ -1163,6 +1234,11 @@ class RoomJsonGenerator:
                             new_parallax_background_instance = parallax_background_mem(
                                 self.sprite_sheet_surf,
                                 self.camera,
+                                selected_sprite_name,
+                                sprite_metadata_instance.width,
+                                sprite_metadata_instance.height,
+                                selected_sprite_x,
+                                selected_sprite_y,
                             )
                             # Fill with new parallax background instance
                             self.parallax_background_instances_list[
@@ -2008,7 +2084,7 @@ class RoomJsonGenerator:
                 self.button_container.set_is_input_allowed(True)
 
     def _on_curtain_opaque(self) -> None:
-        if self.state_machine_update.state == RoomJsonGenerator.State.ADD_OTHER_SPRITES:
+        if self.state_machine_update.state == RoomJsonGenerator.State.ADD_OTHER_ROOM:
             self._change_update_and_draw_state_machine(RoomJsonGenerator.State.FILE_NAME_QUERY)
             self.curtain.go_to_invisible()
         elif self.state_machine_update.state == RoomJsonGenerator.State.FILE_NAME_QUERY:
@@ -2041,6 +2117,12 @@ class RoomJsonGenerator:
             self.cursor_height_tu = self.cursor_height // TILE_SIZE
         # Blob cursor size is 1 tile
         else:
+            self.cursor_width = TILE_SIZE
+            self.cursor_height = TILE_SIZE
+            self.cursor_width_tu = 1
+            self.cursor_height_tu = 1
+        # Override the above, if it is parallax set to 1 by 1 too
+        if sprite_sheet_metadata_instance.sprite_type == "parallax_background":
             self.cursor_width = TILE_SIZE
             self.cursor_height = TILE_SIZE
             self.cursor_width_tu = 1

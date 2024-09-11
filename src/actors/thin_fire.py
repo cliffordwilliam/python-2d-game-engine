@@ -118,9 +118,27 @@ class ThinFire:
                         ),
                     )
 
-    def draw(self) -> pg.Surface:
-        # Return the current pre render frame for fblits
-        return self.pre_render_frame_surfs_list[self.frame_index]
+    def draw(
+        self, blit_sequence: list[tuple[pg.Surface, tuple[float, float]]]
+    ) -> list[
+        # List of tuples. Tuple -> (surf, tuple coord)
+        tuple[pg.Surface, tuple[float, float]]
+    ]:
+        """
+        This takes existing blit sequence, adds my current pre render frame to it and returns it.
+        """
+
+        blit_sequence.append(
+            (
+                self.pre_render_frame_surfs_list[self.frame_index],
+                (
+                    -self.camera.rect.x,
+                    -self.camera.rect.y,
+                ),
+            )
+        )
+
+        return blit_sequence
 
     def update(self, dt: int) -> None:
         # Update animation counter

@@ -4,12 +4,10 @@
     - Create a global error handler, to centralize where exceptions are all thrown (Do not immediately crash also maybe create a log or screen for it)
 - [x] ./actors/player.py
 - [x] ./actors/stage_1_glow.py
-    - Make sure that this takes the layer and other region data from the json
-    - So that the only thing being hardcoded is how the pre render background is constructed
-- [ ] ./actors/stage_1_sky.py
-- [ ] ./actors/stage_1_pine_trees.py
-- [ ] ./actors/stage_1_colonnade.py
-- [ ] ./actors/stage_1_clouds.py
+- [x] ./actors/stage_1_sky.py
+- [x] ./actors/stage_1_pine_trees.py
+- [x] ./actors/stage_1_colonnade.py
+- [x] ./actors/stage_1_clouds.py
 - [ ] ./actors/thin_fire.py
 - [ ] ./scenes/made_with_splash_screen.py
 - [ ] ./scenes/animation_json_generator.py
