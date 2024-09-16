@@ -823,27 +823,25 @@ class RoomJsonGenerator:
 
         # Accept logic
         def _accept_callback() -> None:
+            # Input json path exists?
             if exists(self.input_text) and self.input_text.endswith(".json"):
-                # GET from disk, sprite sheet JSON metadata
+                # GET sprite sheet JSON metadata dict from disk
                 input_dict: dict = self.game.GET_file_from_disk_dynamic_path(self.input_text)
-                # Turn into sprite sheet metadata instance
+                # Turn dict into sprite sheet metadata instance
                 sprite_sheet_metadata_instance = instance_sprite_sheet_metadata(input_dict)
-                # TODO: Validate all dict interactions in this script and anywhere else that uses dicts
-                # Make sure value is NOT a NoneOrBlobSpriteMetadata
+                # Make sure value is a SpriteSheetMetadata
                 if not isinstance(sprite_sheet_metadata_instance, SpriteSheetMetadata):
-                    raise ValueError(
-                        "Exception occured, read sprite sheet metadata instance is not instanced of SpriteSheetMetadata"
-                    )
+                    raise ValueError("Exception occured, sprite_sheet_metadata_instance is not instanced of SpriteSheetMetadata")
 
-                # Get sprite sheet name
+                # Get SpriteSheetMetadata name prop
                 self.sprite_sheet_png_name = sprite_sheet_metadata_instance.sprite_sheet_png_name
 
-                # Use name as key to get the full path to resource
+                # Use name as key to get the full path to image png
                 existing_path: str = get_one_target_dict_value(self.sprite_sheet_png_name, PNGS_PATHS_DICT)
-                # Use full path to load sprite sheet surf
+                # Use full png path to create sprite sheet surf, convert alpha since it has transparent pixels
                 self.sprite_sheet_surf = pg.image.load(existing_path).convert_alpha()
 
-                # Get stage binded static actor data with sprite_sheet_png_name
+                # Get stage binded data with sprite_sheet_png_name
                 self.sprite_sheet_static_actor_mems_dict = self.game.get_sprite_sheet_static_actor_mems_dict(
                     self.sprite_sheet_png_name
                 )
@@ -879,13 +877,13 @@ class RoomJsonGenerator:
                         self.room_width_tu,
                         self.room_height_tu,
                     )
-                    # Add to name to instance dict
+                    # Add to dict (name key instance value)
                     self.sprite_sheet_static_actor_instance_dict[static_actor_name] = new_static_actor_instance
 
                 # Prepare button list to feed button container
                 buttons: list[Button] = []
 
-                # Iterate sprite metadata
+                # Iterate SpriteSheetMetadata sprites_list prop
                 for sprite_metadata_instance in sprite_sheet_metadata_instance.sprites_list:
                     # Make sure value is a SpriteMetadata
                     if not isinstance(sprite_metadata_instance, SpriteMetadata):
@@ -893,10 +891,10 @@ class RoomJsonGenerator:
                     # Make sure key is a string
                     if not isinstance(sprite_metadata_instance.sprite_name, str):
                         raise TypeError("sprite_name should be a string")
-                    # Validated here, POST key val to sprite_name_to_sprite_metadata
+                    # Validated here, get SpriteMetadata name prop set it as key, value is the entire SpriteMetadata itself
                     self.sprite_name_to_sprite_metadata[sprite_metadata_instance.sprite_name] = sprite_metadata_instance
 
-                    # Create button
+                    # Create button for this SpriteMetadata
                     button: Button = Button(
                         surf_size_tuple=(264, 19),
                         topleft=(29, 14),
@@ -904,7 +902,7 @@ class RoomJsonGenerator:
                         text_topleft=(53, 2),
                         description_text=sprite_metadata_instance.sprite_type,
                     )
-                    # Create button icon from sprite sheet surf with metadata region
+                    # Create button icon from SpriteSheetMetadata surf with this SpriteMetadata region
                     subsurf: pg.Surface = self.sprite_sheet_surf.subsurface(
                         (
                             sprite_metadata_instance.x,
@@ -922,39 +920,38 @@ class RoomJsonGenerator:
                     # Collect button
                     buttons.append(button)
 
-                    # Init parallax background
+                    # This SpriteMetadata is a parallax background?
                     if sprite_metadata_instance.sprite_type == "parallax_background":
-                        # Fill parallax layer with None for every layer found
+                        # Fill parallax layer with None for every parallax background found
                         self.parallax_background_instances_list.append(None)
-                    # Init background
+                    # This SpriteMetadata is a background?
                     elif sprite_metadata_instance.sprite_type == "background":
                         # Count total background layers
                         if self.background_total_layers < sprite_metadata_instance.sprite_layer:
                             self.background_total_layers = sprite_metadata_instance.sprite_layer
-                    # Init foreground
+                    # This SpriteMetadata is a foreground?
                     elif sprite_metadata_instance.sprite_type == "foreground":
                         # Count total foreground layers
                         if self.foreground_total_layers < sprite_metadata_instance.sprite_layer:
                             self.foreground_total_layers = sprite_metadata_instance.sprite_layer
-
-                # Total background and foreground layer count is ready here
 
                 # Init collision map for each background layers
                 for _ in range(self.background_total_layers):
                     self.background_collision_map_list.append(
                         [0 for _ in range(self.room_width_tu * self.room_height_tu)],
                     )
-                # Init collision map for static actor
+                # Init collision map for static actor (1 layer only FOR NOW for fire anim, waterfall anim, ...)
                 self.static_actor_collision_map_list = [0 for _ in range(self.room_width_tu * self.room_height_tu)]
-                # Init collision map for solid actor
+                # Init collision map for solids (1 layer only for ceramic floor, cave floor, ...)
                 self.solid_collision_map_list = [0 for _ in range(self.room_width_tu * self.room_height_tu)]
-                # Update dynamic actors solid collision map list
-                self.player.set_solid_collision_map_list(self.solid_collision_map_list)
                 # Init collision map for each foreground layers
                 for _ in range(self.foreground_total_layers):
                     self.foreground_collision_map_list.append(
                         [0 for _ in range(self.room_width_tu * self.room_height_tu)],
                     )
+
+                # Update dynamic actors's solid collision map list (dynamic needs ref to solids)
+                self.player.set_solid_collision_map_list(self.solid_collision_map_list)
 
                 # Init pre render background surf
                 self.pre_render_background_surf = pg.Surface((self.room_width, self.room_height))
@@ -965,21 +962,32 @@ class RoomJsonGenerator:
                 self.pre_render_foreground_surf.set_colorkey("red")
                 self.pre_render_foreground_surf.fill("red")
 
-                # Iterate binded sprite sheet actors names
+                # Iterate static actors names that is binded to this sprite sheet
                 for static_actor_name in self.sprite_sheet_static_actor_surfs_dict:
-                    # Get surf
+                    # Get this static actor surf
                     static_actor_surf = get_one_target_dict_value(static_actor_name, self.sprite_sheet_static_actor_surfs_dict)
 
-                    # Get animation metadata instance
+                    # Get dict {str, AnimationMetadata} == static actor name : {anim name: anim meta data like next_anim_name, anim_is_loop, ...}
                     static_actor_animation_name_to_animation_metadata_instance: dict[
                         str, AnimationMetadata
                     ] = get_one_target_dict_value(static_actor_name, self.sprite_sheet_static_actor_jsons_dict)
-                    # Unpack animation metadata instance
+                    # Get this static actor animation name
                     static_actor_animation_name: str = list(static_actor_animation_name_to_animation_metadata_instance.keys())[0]
-                    # Get the values for each animation name
+                    # Get the values anim meta data like next_anim_name, anim_is_loop, ...
                     static_actor_animation_metadata: AnimationMetadata = get_one_target_dict_value(
                         static_actor_animation_name, static_actor_animation_name_to_animation_metadata_instance
                     )
+                    # Add raise exception here if the sprite sheet name is not the same as what is selected here
+                    chosen_png_name: str = sprite_sheet_metadata_instance.sprite_sheet_png_name
+                    static_actor_png_name: str = static_actor_animation_metadata.sprite_sheet_png_name
+                    if chosen_png_name == static_actor_png_name:
+                        # TODO: Create a new sprite type called static actor in the sprite sheet json metadata (with layer data), the ones with rocks and trees
+                        # TODO: Then count layer, also collect the static actor metadata in a list, later use that list in here iter it
+                        # TODO: For each iter item, check its layer, same like how it is done here right now
+                        # TODO: Try with the big fire for this testing
+                        raise ValueError(
+                            "Update hard coding, this json metadata is not for this sprite sheet, wrong hard code binding."
+                        )
                     static_actor_width: int = static_actor_animation_metadata.animation_sprite_width
                     static_actor_height: int = static_actor_animation_metadata.animation_sprite_height
 
@@ -1003,7 +1011,7 @@ class RoomJsonGenerator:
                     # Make sure key is a string
                     if not isinstance(static_actor_name, str):
                         raise TypeError("static_actor_name should be a string")
-                    # POST sprite metadata instance to sprite_name_to_sprite_metadata
+                    # Validated here, set static_actor_name as key, value is sprite_metadata_instance
                     self.sprite_name_to_sprite_metadata[static_actor_name] = sprite_metadata_instance
 
                     # Create button

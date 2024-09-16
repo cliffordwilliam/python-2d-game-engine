@@ -136,6 +136,7 @@ class Game:
     def _update_dynamic_paths_dict(self) -> None:
         """
         Called by POST or DELETE to disk dir.
+
         Reread edited disk dir content, repopulate dynamic paths dict.
         """
 
@@ -146,9 +147,38 @@ class Game:
     # Abilities
     def get_sprite_sheet_static_actor_jsons_dict(self, stage_sprite_sheet_name: str) -> dict[str, dict[str, AnimationMetadata]]:
         """
-        Surfs are binded to their stages.
-        Pass the stage sprite sheet name to get its surfs.
-        You get a dict, key is surf actor str name, value is actor surf.
+        Animation metadata are binded to their stages.
+
+        Pass the stage sprite sheet name.
+
+        I get a dict of {actor_name, json_name}.
+
+        I use the json_name to get the full json path.
+
+        I use full json path to get JSON dict from disk dynamic path.
+
+        I create instance of the JSON dict.
+
+        You get a dict, key is actor str name, value is the following dict:
+
+        dict = {
+            "animation_string_name_1": {
+                AnimationMetadata: {
+                    "animation_is_loop": 1
+                    ...: ...
+                    "animation_sprites_list": list[AnimationSpriteMetadata]
+                }
+            },
+            "animation_string_name_2": {
+                AnimationMetadata: {
+                    "animation_is_loop": 0
+                    ...: ...
+                    "animation_sprites_list": list[AnimationSpriteMetadata]
+                }
+            }
+            "animation_string_name_3": ...
+        }
+
         It is easy to read this way.
         """
 
@@ -165,8 +195,17 @@ class Game:
     def get_sprite_sheet_static_actor_surfs_dict(self, stage_sprite_sheet_name: str) -> dict[str, pg.Surface]:
         """
         Surfs are binded to their stages.
+
         Pass the stage sprite sheet name to get its surfs.
-        You get a dict, key is surf actor str name, value is actor surf.
+
+        I use the stage sprite sheet name as key to get the binded surf full path.
+
+        I raise exception when key is not valid.
+
+        I use valid full path to get the surf.
+
+        I give you a dict, key is actor str name, value is actor surf.
+
         It is easy to read this way.
         """
 
@@ -179,8 +218,11 @@ class Game:
     def get_sprite_sheet_parallax_mems_dict(self, stage_sprite_sheet_name: str) -> dict[str, Any]:
         """
         Actors are binded to their stages.
+
         Pass the stage sprite sheet name to get its actors mem.
+
         You get a dict, key is actor str name, value is actor mem.
+
         It is easy to read this way.
         """
 
@@ -189,8 +231,11 @@ class Game:
     def get_sprite_sheet_static_actor_mems_dict(self, stage_sprite_sheet_name: str) -> dict[str, Any]:
         """
         Actors are binded to their stages.
+
         Pass the stage sprite sheet name to get its actors mem.
+
         You get a dict, key is actor str name, value is actor mem.
+
         It is easy to read this way.
         """
 
@@ -199,7 +244,9 @@ class Game:
     def GET_or_POST_settings_json_from_disk(self) -> None:
         """
         GET prev saved disk settings, then overwrites local settings with disk.
+
         Or.
+
         POST default settings to disk. local settings is already default at start.
         """
 
@@ -217,7 +264,10 @@ class Game:
     def GET_file_from_disk_dynamic_path(self, existing_dynamic_path_dict_value: str) -> Any:
         """
         GET file from user disk.
+
         Use the dynamic paths dict path.
+
+        Raises path does not exist exception.
         """
 
         # Handle not found path 404
@@ -237,7 +287,10 @@ class Game:
     def PATCH_file_to_disk_dynamic_path(self, existing_dynamic_path_dict_value: str, file_content: Any) -> None:
         """
         POST file to user disk.
+
         Use the dynamic paths dict path.
+
+        Raises path does not exist exception.
         """
 
         # Handle not found path 404
@@ -259,6 +312,7 @@ class Game:
     def POST_file_to_disk_dynamic_path(self, new_dynamic_path: str, file_content: Any) -> None:
         """
         POST file to user disk.
+
         Use new path with join to be added to dynamic paths dict.
         """
 
@@ -276,6 +330,8 @@ class Game:
     def overwriting_local_settings_dict(self, new_settings: dict) -> None:
         """
         Overwrite local settings dict, need exact same shape.
+
+        Raises invalid new settings JSON against schema.
         """
 
         if not validate_json(new_settings, SETTINGS_SCHEMA):
@@ -290,6 +346,8 @@ class Game:
     def set_one_local_settings_dict_value(self, key: str, value: Any) -> None:
         """
         Set a value to local settings dict. Need to be same type.
+
+        Raises invalid new settings JSON against schema.
         """
 
         # Set the new value
@@ -304,6 +362,8 @@ class Game:
     def get_one_local_settings_dict_value(self, key: str) -> Any:
         """
         Get a value from local settings dict.
+
+        Raises invalid key.
         """
 
         # Check if the key exists in the self.local_settings_dict
@@ -323,6 +383,7 @@ class Game:
     def set_is_options_menu_active(self, value: bool) -> None:
         """
         Toggle options screen on / off.
+
         If options screen is active, current scene is not updated.
         """
 
@@ -331,7 +392,9 @@ class Game:
     def set_resolution_index(self, value: int) -> None:
         """
         Sets the resolution scale of the window.
+
         Takes int parameter, 0 - 6 only.
+
         Updates:
         - window surf prop.
         - window size prop.

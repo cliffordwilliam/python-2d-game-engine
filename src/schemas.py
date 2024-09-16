@@ -159,7 +159,7 @@ def instance_animation_metadata(input_dict: dict) -> dict[str, AnimationMetadata
     """
     Factory method, validates dict and returns instance dataclass version of it.
 
-    Input = animation metadata json
+    Input = animation metadata json.
 
     Output = dict = {
         "animation_string_name_1": {
@@ -178,6 +178,8 @@ def instance_animation_metadata(input_dict: dict) -> dict[str, AnimationMetadata
         }
         "animation_string_name_3": ...
     }
+
+    I Raise invalid given animation dict against schema exception.
     """
 
     # Validate the given dict against the schema
@@ -379,9 +381,11 @@ def instance_sprite_sheet_metadata(input_dict: dict) -> SpriteSheetMetadata:
     """
     Factory method, validates dict and returns instance dataclass version of it.
 
-    Input = sprite sheet metadata json
+    Input = sprite sheet metadata json.
 
-    Output = SpriteSheetMetadata with list[SpriteMetadata]
+    Output = SpriteSheetMetadata with list[SpriteMetadata].
+
+    I Raise invalid sprite sheet dict against schema exception.
     """
 
     # Validate the given dict against the schema
@@ -415,9 +419,11 @@ def instance_sprite_metadata(input_dict: dict) -> SpriteMetadata:
     """
     Factory method, validates dict and returns instance dataclass version of it.
 
-    Input = sprite sheet's sprite metadata json
+    Input = sprite sheet's sprite metadata json.
 
-    Output = SpriteMetadata
+    Output = SpriteMetadata.
+
+    I Raise invalid sprite dict against schema exception.
     """
 
     # Validate the given dict against the schema
@@ -594,9 +600,11 @@ def instance_none_or_blob_sprite_metadata(input_dict: dict) -> NoneOrBlobSpriteM
     """
     Factory method, validates dict and returns instance dataclass version of it.
 
-    Input = dict for collision map item
+    Input = dict for collision map item.
 
-    Output = NoneOrBlobSpriteMetadata
+    Output = NoneOrBlobSpriteMetadata.
+
+    I Raise invalid sprite dict against schema exception.
     """
 
     # Validate first
@@ -663,9 +671,11 @@ def instance_adjacent_tile_metadata(input_dict: dict) -> AdjacentTileMetadata:
     """
     Factory method, validates dict and returns instance dataclass version of it.
 
-    Input = dict for _get_adjacent_tiles helper func output
+    Input = dict for _get_adjacent_tiles helper func output.
 
-    Output = NoneOrBlobSpriteMetadata
+    Output = NoneOrBlobSpriteMetadata.
+
+    I Raise invalid sprite dict against schema exception.
     """
 
     # Validate first
@@ -684,9 +694,9 @@ def validate_json(input_dict: dict, schema: Any) -> bool:
     """
     Check if a dict is valid against a schema.
 
-    Input: dict and schema
+    Input: dict and schema.
 
-    Output: boolean
+    Output: boolean.
     """
 
     try:

@@ -17,9 +17,12 @@ from schemas import validate_json
 def create_paths_dict(directory: str) -> dict[str, str]:
     """
     Reads a dir.
+
     Loop over its content, get files only.
     Create a dict.
+
     Key is file name.
+
     Value is file path.
     """
 
@@ -33,6 +36,7 @@ def create_paths_dict(directory: str) -> dict[str, str]:
 def get_os_specific_directory(app_name: Any) -> str:
     """
     Pass a dir name.
+
     Returns the dir full path to APPDATA or config and so on
     """
 
@@ -60,7 +64,9 @@ def get_os_specific_directory(app_name: Any) -> str:
 def overwriting_target_dict(new_dict: dict, target_dict: dict, target_dict_schema: Any) -> None:
     """
     Overwrite dict, need exact same shape.
+
     Do not use this on local settings dict.
+
     Use the game setter and getter method.
     """
 
@@ -73,7 +79,9 @@ def overwriting_target_dict(new_dict: dict, target_dict: dict, target_dict_schem
 def set_one_target_dict_value(key: str, value: Any, target_dict: dict, target_dict_schema: Any) -> None:
     """
     Set a value to local settings dict. Need to be same type. For POST and PATCH.
+
     Do not use this on local settings dict.
+
     Use the game setter and getter method.
     """
 
@@ -86,9 +94,13 @@ def set_one_target_dict_value(key: str, value: Any, target_dict: dict, target_di
 
 def get_one_target_dict_value(key: str, target_dict: dict) -> Any:
     """
-    Get a value from local settings dict.
+    Get a value from target dict.
+
     Do not use this on local settings dict.
+
     Use the game setter and getter method.
+
+    Raises exception on invalid key.
     """
 
     # Check if the key exists in the target_dict
@@ -109,9 +121,12 @@ def ray_vs_rect(
 ) -> bool:
     """
     True if light ray hits rect.
-    Parameter needs ray origin, ray dir, target_rect
+
+    Parameter needs ray origin, ray dir, target_rect.
+
     Need immutable list for extra info after computation.
-    contact_point, contact_normal, t_hit_near
+
+    contact_point, contact_normal, t_hit_near.
     """
 
     # Cache division
@@ -223,7 +238,8 @@ def get_tile_from_collision_map_list(
     collision_map_list: list,
 ) -> Any | int | NoneOrBlobSpriteMetadata:
     """
-    Returns -1 if out of bounds
+    Returns -1 if out of bounds.
+
     Because camera needs extra 1 and thus may get out of bound.
     """
     if 0 <= world_tu_x < room_width_tu and 0 <= world_tu_y < room_height_tu:
