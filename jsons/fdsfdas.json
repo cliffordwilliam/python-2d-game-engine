@@ -1,1 +1,40 @@
-{"fdafdas":{"animation_is_loop":0,"next_animation_name":"fdsfda","animation_duration":11,"animation_sprite_height":16,"animation_sprite_width":16,"sprite_sheet_png_name":"stage_1_sprite_sheet.png","animation_sprites_list":[{"x":64,"y":64},{"x":80,"y":64},{"x":96,"y":64},{"x":96,"y":80},{"x":80,"y":80},{"x":80,"y":96},{"x":96,"y":96}]}}
+{
+    "fdafdas": {
+        "animation_is_loop": 0,
+        "next_animation_name": "fdsfda",
+        "animation_duration": 11,
+        "animation_sprite_height": 16,
+        "animation_sprite_width": 16,
+        "sprite_sheet_png_name": "stage_1_sprite_sheet.png",
+        "animation_sprites_list": [
+            {
+                "x": 64,
+                "y": 64
+            },
+            {
+                "x": 80,
+                "y": 64
+            },
+            {
+                "x": 96,
+                "y": 64
+            },
+            {
+                "x": 96,
+                "y": 80
+            },
+            {
+                "x": 80,
+                "y": 80
+            },
+            {
+                "x": 80,
+                "y": 96
+            },
+            {
+                "x": 96,
+                "y": 96
+            }
+        ]
+    }
+}

@@ -421,6 +421,28 @@
             "height": 32,
             "x": 384,
             "y": 304
+        },
+        {
+            "sprite_name": "thin_waterfall",
+            "sprite_layer": 1,
+            "sprite_tile_type": "none",
+            "sprite_type": "static_actor",
+            "sprite_is_tile_mix": 0,
+            "width": 16,
+            "height": 160,
+            "x": 384,
+            "y": 336
+        },
+        {
+            "sprite_name": "thin_fire",
+            "sprite_layer": 2,
+            "sprite_tile_type": "none",
+            "sprite_type": "static_actor",
+            "sprite_is_tile_mix": 0,
+            "width": 16,
+            "height": 16,
+            "x": 496,
+            "y": 224
         }
     ]
 }

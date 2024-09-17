@@ -92,7 +92,7 @@ def set_one_target_dict_value(key: str, value: Any, target_dict: dict, target_di
         raise ValueError("Invalid new dict JSON against target dict schema")
 
 
-def get_one_target_dict_value(key: str, target_dict: dict) -> Any:
+def get_one_target_dict_value(key: str, target_dict: dict, target_dict_name: str) -> Any:
     """
     Get a value from target dict.
 
@@ -105,7 +105,7 @@ def get_one_target_dict_value(key: str, target_dict: dict) -> Any:
 
     # Check if the key exists in the target_dict
     if key not in target_dict:
-        raise KeyError(f"Invalid key: '{key}'")
+        raise KeyError(f"{key} is not in {target_dict_name}")
 
     # Return the value for the key
     return target_dict.get(key, None)

@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 
 @typechecked
-class ThinFire:
+class StaticActor:
     """
     TODO: write doc for this actor
     """
@@ -33,7 +33,7 @@ class ThinFire:
         self.aniamtion_data: dict[str, AnimationMetadata] = animation_data
 
         # Get metadata from animation to init rect and region
-        self.initial_animation: str = "burn"
+        self.initial_animation: str = list(animation_data.keys())[0]
         self.animation_sprite_width: int = self.aniamtion_data[self.initial_animation].animation_sprite_width
         self.animation_sprite_height: int = self.aniamtion_data[self.initial_animation].animation_sprite_height
         self.frame_index: int = 0

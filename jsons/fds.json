@@ -1,0 +1,16 @@
+{
+    "flow": {
+        "animation_is_loop": 1,
+        "next_animation_name": "none",
+        "animation_duration": 50,
+        "animation_sprite_height": 160,
+        "animation_sprite_width": 16,
+        "sprite_sheet_png_name": "stage_1_sprite_sheet.png",
+        "animation_sprites_list": [
+            {
+                "x": 384,
+                "y": 336
+            }
+        ]
+    }
+}

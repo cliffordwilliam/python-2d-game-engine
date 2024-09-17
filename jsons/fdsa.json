@@ -1,0 +1,19 @@
+{
+    "sprite_sheet_png_name": "stage_1_sprite_sheet.png",
+    "sprite_room_map_body_color": "#ffffff",
+    "sprite_room_map_sub_division_color": "#ffffff",
+    "sprite_room_map_border_color": "#ffffff",
+    "sprites_list": [
+        {
+            "sprite_name": "fat_fire",
+            "sprite_layer": 2,
+            "sprite_tile_type": "static_actor",
+            "sprite_type": "none",
+            "sprite_is_tile_mix": 0,
+            "width": 16,
+            "height": 16,
+            "x": 496,
+            "y": 240
+        }
+    ]
+}

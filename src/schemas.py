@@ -7,6 +7,8 @@ from jsonschema import ValidationError
 # How schema works
 # This is the same like how you get json res, then you instance a class to represent it
 # But here json res is either from reading a file or from hardcoded dict
+# So use this to validate WRITe / READ JSON FROM DISK
+# Validate when you GET / POST to or from disk
 
 # You want this because
 # After validating dict against schema

@@ -8,7 +8,6 @@ from actors.stage_1_colonnade import Stage1Colonnade
 from actors.stage_1_glow import Stage1Glow
 from actors.stage_1_pine_trees import Stage1PineTrees
 from actors.stage_1_sky import Stage1Sky
-from actors.thin_fire import ThinFire
 from constants import DEFAULT_SETTINGS_DICT
 from constants import JSONS_REPO_DIR_PATH
 from constants import JSONS_ROOMS_DIR_PATH
@@ -82,19 +81,12 @@ class Game:
         for ogg_name, ogg_path in OGGS_PATHS_DICT.items():
             self.sound_manager.load_sound(ogg_name, ogg_path)
 
-        # Map actor memory to stage sprite sheet name
-        self.sprite_sheet_static_actor_mems_dict: dict[str, dict[str, Any]] = {
-            "stage_1_sprite_sheet.png": {
-                # Static actor name : static actor mem
-                "ThinFire": ThinFire,
-            }
-        }
-
         # Map sprite sheet names to stage sprite sheet name
         self.sprite_sheet_static_actor_surfs_dict: dict[str, dict[str, str]] = {
             "stage_1_sprite_sheet.png": {
                 # Static actor name : static actor surf name
-                "ThinFire": "thin_fire_sprite_sheet.png"
+                "thin_fire": "thin_fire_sprite_sheet.png",
+                "thin_waterfall": "thin_waterfall_sprite_sheet.png",
             }
         }
 
@@ -102,7 +94,8 @@ class Game:
         self.sprite_sheet_static_actor_jsons_dict: dict[str, dict[str, str]] = {
             "stage_1_sprite_sheet.png": {
                 # Static actor name : static actor JSON name
-                "ThinFire": "thin_fire_animation.json"
+                "thin_fire": "thin_fire_animation.json",
+                "thin_waterfall": "thin_waterfall_animation.json",
             }
         }
 
@@ -182,11 +175,19 @@ class Game:
         It is easy to read this way.
         """
 
-        data = get_one_target_dict_value(stage_sprite_sheet_name, self.sprite_sheet_static_actor_jsons_dict)
+        data = get_one_target_dict_value(
+            stage_sprite_sheet_name,
+            self.sprite_sheet_static_actor_jsons_dict,
+            "self.sprite_sheet_static_actor_jsons_dict",
+        )
         # Actor name, animation name, animation metadata
         out: dict[str, dict[str, AnimationMetadata]] = {}
         for actor_name, json_name in data.items():
-            existing_json_dynamic_path: str = get_one_target_dict_value(json_name, self.jsons_repo_pahts_dict)
+            existing_json_dynamic_path: str = get_one_target_dict_value(
+                json_name,
+                self.jsons_repo_pahts_dict,
+                "self.jsons_repo_pahts_dict",
+            )
             data = self.GET_file_from_disk_dynamic_path(existing_json_dynamic_path)
             # Convert the dictionary to the data class, this validates it too
             out[actor_name] = instance_animation_metadata(data)
@@ -209,10 +210,20 @@ class Game:
         It is easy to read this way.
         """
 
-        data = get_one_target_dict_value(stage_sprite_sheet_name, self.sprite_sheet_static_actor_surfs_dict)
+        data = get_one_target_dict_value(
+            stage_sprite_sheet_name,
+            self.sprite_sheet_static_actor_surfs_dict,
+            "self.sprite_sheet_static_actor_surfs_dict",
+        )
         out: dict[str, Any] = {}
         for actor_name, surf_name in data.items():
-            out[actor_name] = pg.image.load(get_one_target_dict_value(surf_name, PNGS_PATHS_DICT)).convert_alpha()
+            out[actor_name] = pg.image.load(
+                get_one_target_dict_value(
+                    surf_name,
+                    PNGS_PATHS_DICT,
+                    "PNGS_PATHS_DICT",
+                )
+            ).convert_alpha()
         return out
 
     def get_sprite_sheet_parallax_mems_dict(self, stage_sprite_sheet_name: str) -> dict[str, Any]:
@@ -226,20 +237,11 @@ class Game:
         It is easy to read this way.
         """
 
-        return get_one_target_dict_value(stage_sprite_sheet_name, self.sprite_sheet_parallax_background_mems_dict)
-
-    def get_sprite_sheet_static_actor_mems_dict(self, stage_sprite_sheet_name: str) -> dict[str, Any]:
-        """
-        Actors are binded to their stages.
-
-        Pass the stage sprite sheet name to get its actors mem.
-
-        You get a dict, key is actor str name, value is actor mem.
-
-        It is easy to read this way.
-        """
-
-        return get_one_target_dict_value(stage_sprite_sheet_name, self.sprite_sheet_static_actor_mems_dict)
+        return get_one_target_dict_value(
+            stage_sprite_sheet_name,
+            self.sprite_sheet_parallax_background_mems_dict,
+            "self.sprite_sheet_parallax_background_mems_dict",
+        )
 
     def GET_or_POST_settings_json_from_disk(self) -> None:
         """

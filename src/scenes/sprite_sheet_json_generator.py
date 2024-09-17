@@ -608,7 +608,7 @@ class SpriteSheetJsonGenerator:
                     # Close curtain
                     self.curtain.go_to_opaque()
                 else:
-                    raise ValueError(f"Invalid hex color code: '{self.input_text}'")
+                    self._set_input_text("Invalid hex color code!")
 
         # Typing logic
         self._handle_query_input(_accept_callback)
@@ -631,7 +631,7 @@ class SpriteSheetJsonGenerator:
                     # Close curtain
                     self.curtain.go_to_opaque()
                 else:
-                    raise ValueError(f"Invalid hex color code: '{self.input_text}'")
+                    self._set_input_text("Invalid hex color code!")
 
         # Typing logic
         self._handle_query_input(_accept_callback)
@@ -654,7 +654,7 @@ class SpriteSheetJsonGenerator:
                     # Close curtain
                     self.curtain.go_to_opaque()
                 else:
-                    raise ValueError(f"Invalid hex color code: '{self.input_text}'")
+                    self._set_input_text("Invalid hex color code!")
 
         # Typing logic
         self._handle_query_input(_accept_callback)

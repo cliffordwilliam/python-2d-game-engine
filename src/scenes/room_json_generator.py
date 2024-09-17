@@ -8,6 +8,7 @@ from typing import Callable
 from typing import TYPE_CHECKING
 
 from actors.player import Player
+from actors.static_actor import StaticActor
 from constants import FONT
 from constants import FONT_HEIGHT
 from constants import JSONS_ROOMS_DIR_PATH
@@ -47,7 +48,6 @@ from schemas import NoneOrBlobSpriteMetadata
 from schemas import SpriteMetadata
 from schemas import SpriteSheetMetadata
 from typeguard import typechecked
-from utils import get_one_target_dict_value
 
 if TYPE_CHECKING:
     from nodes.game import Game
@@ -56,7 +56,6 @@ if TYPE_CHECKING:
 @typechecked
 class RoomJsonGenerator:
     # TODO: Do better algo for the flood fill and rect combined fill, do the auto tile update at the very end after all POST
-    # TODO: Add player, then be able to switch between edit and test mode
     # Add plyaer to collide to room limits first, spawn it like a tree, enter toggle edit to test mode
     # TODO: Add Enemies, when go back to edit, reset to their initial position
     # TODO: Save and load room, then that is it for now
@@ -259,11 +258,6 @@ class RoomJsonGenerator:
         self.sprite_sheet_surf: (None | pg.Surface) = None
 
         # Sprite sheet binded things
-        self.sprite_sheet_static_actor_mems_dict: dict[
-            # Static actor name : static actor mem
-            str,
-            Any,
-        ] = {}
         self.sprite_sheet_static_actor_surfs_dict: dict[
             # Static actor name : static actor surf
             str,
@@ -292,7 +286,8 @@ class RoomJsonGenerator:
         self.background_total_layers: int = 0
         self.background_collision_map_list: list[list[(int | NoneOrBlobSpriteMetadata)]] = []
         # Static actor
-        self.static_actor_collision_map_list: list[int] = [0 for _ in range(self.room_width_tu * self.room_height_tu)]
+        self.static_actor_total_layers: int = 0
+        self.static_actor_collision_map_list: list[list[(int | Any)]] = []
 
         # TODO: item actors layer (things that player interact with like twin goddess, item drop, door, teleported etc)
         # TODO: dynamic actors layer (anything that moves under the player like goblins, bullets)
@@ -837,14 +832,11 @@ class RoomJsonGenerator:
                 self.sprite_sheet_png_name = sprite_sheet_metadata_instance.sprite_sheet_png_name
 
                 # Use name as key to get the full path to image png
-                existing_path: str = get_one_target_dict_value(self.sprite_sheet_png_name, PNGS_PATHS_DICT)
+                existing_path: str = PNGS_PATHS_DICT[self.sprite_sheet_png_name]
                 # Use full png path to create sprite sheet surf, convert alpha since it has transparent pixels
                 self.sprite_sheet_surf = pg.image.load(existing_path).convert_alpha()
 
                 # Get stage binded data with sprite_sheet_png_name
-                self.sprite_sheet_static_actor_mems_dict = self.game.get_sprite_sheet_static_actor_mems_dict(
-                    self.sprite_sheet_png_name
-                )
                 self.sprite_sheet_static_actor_surfs_dict = self.game.get_sprite_sheet_static_actor_surfs_dict(
                     self.sprite_sheet_png_name
                 )
@@ -854,31 +846,6 @@ class RoomJsonGenerator:
                 self.sprite_sheet_parallax_background_mems_dict = self.game.get_sprite_sheet_parallax_mems_dict(
                     self.sprite_sheet_png_name
                 )
-
-                # Loop over static actor key name and value mem
-                for static_actor_name, static_actor_mem in self.sprite_sheet_static_actor_mems_dict.items():
-                    # Get static actor surf
-                    static_actor_surf: pg.Surface = get_one_target_dict_value(
-                        static_actor_name,
-                        self.sprite_sheet_static_actor_surfs_dict,
-                    )
-                    # Get static actor json
-                    static_actor_animation_metadata_instance: dict[str, AnimationMetadata] = get_one_target_dict_value(
-                        static_actor_name,
-                        self.sprite_sheet_static_actor_jsons_dict,
-                    )
-                    # Instance a new static actor
-                    new_static_actor_instance = static_actor_mem(
-                        static_actor_surf,
-                        self.camera,
-                        static_actor_animation_metadata_instance,
-                        self.room_width,
-                        self.room_height,
-                        self.room_width_tu,
-                        self.room_height_tu,
-                    )
-                    # Add to dict (name key instance value)
-                    self.sprite_sheet_static_actor_instance_dict[static_actor_name] = new_static_actor_instance
 
                 # Prepare button list to feed button container
                 buttons: list[Button] = []
@@ -922,6 +889,12 @@ class RoomJsonGenerator:
 
                     # This SpriteMetadata is a parallax background?
                     if sprite_metadata_instance.sprite_type == "parallax_background":
+                        # If this parallax is not in binded, raise exception
+                        # TODO: Update the get utils func to do this instead
+                        if sprite_metadata_instance.sprite_name not in self.sprite_sheet_parallax_background_mems_dict:
+                            raise ValueError(
+                                f"{sprite_metadata_instance.sprite_name} is not in sprite_sheet_parallax_background_mems_dict"
+                            )
                         # Fill parallax layer with None for every parallax background found
                         self.parallax_background_instances_list.append(None)
                     # This SpriteMetadata is a background?
@@ -934,14 +907,57 @@ class RoomJsonGenerator:
                         # Count total foreground layers
                         if self.foreground_total_layers < sprite_metadata_instance.sprite_layer:
                             self.foreground_total_layers = sprite_metadata_instance.sprite_layer
+                    # This SpriteMetadata is a static_actor?
+                    elif sprite_metadata_instance.sprite_type == "static_actor":
+                        # If this parallax is not in binded, raise exception
+                        if sprite_metadata_instance.sprite_name not in self.sprite_sheet_static_actor_surfs_dict:
+                            raise ValueError(
+                                f"{sprite_metadata_instance.sprite_name} is not in sprite_sheet_static_actor_surfs_dict"
+                            )
+                        # If this parallax is not in binded, raise exception
+                        if sprite_metadata_instance.sprite_name not in self.sprite_sheet_static_actor_jsons_dict:
+                            raise ValueError(
+                                f"{sprite_metadata_instance.sprite_name} is not in sprite_sheet_static_actor_jsons_dict"
+                            )
+                        # Count total static_actor layers
+                        if self.static_actor_total_layers < sprite_metadata_instance.sprite_layer:
+                            self.static_actor_total_layers = sprite_metadata_instance.sprite_layer
+
+                        # Get this static actor surf
+                        static_actor_surf: pg.Surface = self.sprite_sheet_static_actor_surfs_dict[
+                            sprite_metadata_instance.sprite_name
+                        ]
+                        # Get this static actor json dict {str, AnimationMetadata} == static actor name : {anim name: anim meta data like next_anim_name, anim_is_loop, ...}
+                        static_actor_animation_metadata_instance: dict[
+                            str, AnimationMetadata
+                        ] = self.sprite_sheet_static_actor_jsons_dict[sprite_metadata_instance.sprite_name]
+                        # Instance a this new static actor
+                        new_static_actor_instance = StaticActor(
+                            static_actor_surf,
+                            self.camera,
+                            static_actor_animation_metadata_instance,
+                            self.room_width,
+                            self.room_height,
+                            self.room_width_tu,
+                            self.room_height_tu,
+                        )
+                        # Add this new static actor to dict (name key instance value)
+                        self.sprite_sheet_static_actor_instance_dict[
+                            sprite_metadata_instance.sprite_name
+                        ] = new_static_actor_instance
+
+                # Beyond this point, sprite sheet metadata names and binding dict are correct
 
                 # Init collision map for each background layers
                 for _ in range(self.background_total_layers):
                     self.background_collision_map_list.append(
                         [0 for _ in range(self.room_width_tu * self.room_height_tu)],
                     )
-                # Init collision map for static actor (1 layer only FOR NOW for fire anim, waterfall anim, ...)
-                self.static_actor_collision_map_list = [0 for _ in range(self.room_width_tu * self.room_height_tu)]
+                # Init collision map for each static actor layers
+                for _ in range(self.static_actor_total_layers):
+                    self.static_actor_collision_map_list.append(
+                        [0 for _ in range(self.room_width_tu * self.room_height_tu)],
+                    )
                 # Init collision map for solids (1 layer only for ceramic floor, cave floor, ...)
                 self.solid_collision_map_list = [0 for _ in range(self.room_width_tu * self.room_height_tu)]
                 # Init collision map for each foreground layers
@@ -961,84 +977,6 @@ class RoomJsonGenerator:
                 self.pre_render_foreground_surf = pg.Surface((self.room_width, self.room_height))
                 self.pre_render_foreground_surf.set_colorkey("red")
                 self.pre_render_foreground_surf.fill("red")
-
-                # Iterate static actors names that is binded to this sprite sheet
-                for static_actor_name in self.sprite_sheet_static_actor_surfs_dict:
-                    # Get this static actor surf
-                    static_actor_surf = get_one_target_dict_value(static_actor_name, self.sprite_sheet_static_actor_surfs_dict)
-
-                    # Get dict {str, AnimationMetadata} == static actor name : {anim name: anim meta data like next_anim_name, anim_is_loop, ...}
-                    static_actor_animation_name_to_animation_metadata_instance: dict[
-                        str, AnimationMetadata
-                    ] = get_one_target_dict_value(static_actor_name, self.sprite_sheet_static_actor_jsons_dict)
-                    # Get this static actor animation name
-                    static_actor_animation_name: str = list(static_actor_animation_name_to_animation_metadata_instance.keys())[0]
-                    # Get the values anim meta data like next_anim_name, anim_is_loop, ...
-                    static_actor_animation_metadata: AnimationMetadata = get_one_target_dict_value(
-                        static_actor_animation_name, static_actor_animation_name_to_animation_metadata_instance
-                    )
-                    # Add raise exception here if the sprite sheet name is not the same as what is selected here
-                    chosen_png_name: str = sprite_sheet_metadata_instance.sprite_sheet_png_name
-                    static_actor_png_name: str = static_actor_animation_metadata.sprite_sheet_png_name
-                    if chosen_png_name == static_actor_png_name:
-                        # TODO: Create a new sprite type called static actor in the sprite sheet json metadata (with layer data), the ones with rocks and trees
-                        # TODO: Then count layer, also collect the static actor metadata in a list, later use that list in here iter it
-                        # TODO: For each iter item, check its layer, same like how it is done here right now
-                        # TODO: Try with the big fire for this testing
-                        raise ValueError(
-                            "Update hard coding, this json metadata is not for this sprite sheet, wrong hard code binding."
-                        )
-                    static_actor_width: int = static_actor_animation_metadata.animation_sprite_width
-                    static_actor_height: int = static_actor_animation_metadata.animation_sprite_height
-
-                    # Construct sprite metadata
-                    new_sprite_metadata_dict: dict = {
-                        "sprite_name": static_actor_name,
-                        "sprite_layer": 1,
-                        "sprite_tile_type": "none",
-                        "sprite_type": "static_actor",
-                        "sprite_is_tile_mix": 0,
-                        "width": static_actor_width,
-                        "height": static_actor_height,
-                        "x": 0,
-                        "y": 0,
-                    }
-                    # Turn into sprite metadata instance
-                    sprite_metadata_instance = instance_sprite_metadata(new_sprite_metadata_dict)
-                    # Make sure value is a SpriteMetadata
-                    if not isinstance(sprite_metadata_instance, SpriteMetadata):
-                        raise ValueError("Invalid sprite metadata JSON data against schema")
-                    # Make sure key is a string
-                    if not isinstance(static_actor_name, str):
-                        raise TypeError("static_actor_name should be a string")
-                    # Validated here, set static_actor_name as key, value is sprite_metadata_instance
-                    self.sprite_name_to_sprite_metadata[static_actor_name] = sprite_metadata_instance
-
-                    # Create button
-                    button = Button(
-                        surf_size_tuple=(264, 19),
-                        topleft=(29, 14),
-                        text=static_actor_name,
-                        text_topleft=(53, 2),
-                        description_text="static_actor",
-                    )
-                    # Create button icon from sprite sheet surf with metadata region
-                    subsurf = static_actor_surf.subsurface(
-                        (
-                            0,
-                            0,
-                            static_actor_width,
-                            static_actor_height,
-                        )
-                    )
-                    button = self._create_button_icons(
-                        subsurf,
-                        static_actor_width,
-                        static_actor_height,
-                        button,
-                    )
-                    # Collect button
-                    buttons.append(button)
 
                 # Init player
                 # For now its a button to let you update its collider pos
@@ -1094,10 +1032,7 @@ class RoomJsonGenerator:
                 # Init the first selected name
                 self.selected_sprite_name = buttons[0].text
                 # Init the cursor size
-                sprite_metadata_instance = get_one_target_dict_value(
-                    self.selected_sprite_name,
-                    self.sprite_name_to_sprite_metadata,
-                )
+                sprite_metadata_instance = self.sprite_name_to_sprite_metadata[self.selected_sprite_name]
                 # None has cursor size
                 if sprite_metadata_instance.sprite_tile_type == "none":
                     self.cursor_width = sprite_metadata_instance.width
@@ -1144,10 +1079,7 @@ class RoomJsonGenerator:
                 # TODO: Turn the block to a func and use the name as key
 
                 # Get sprite metadata from reformat with selected sprite name
-                sprite_metadata_instance: SpriteMetadata = get_one_target_dict_value(
-                    self.selected_sprite_name,
-                    self.sprite_name_to_sprite_metadata,
-                )
+                sprite_metadata_instance: SpriteMetadata = self.sprite_name_to_sprite_metadata[self.selected_sprite_name]
                 selected_sprite_type: str = sprite_metadata_instance.sprite_type
                 selected_sprite_layer_index: int = sprite_metadata_instance.sprite_layer - 1
                 selected_sprite_tile_type: str = sprite_metadata_instance.sprite_tile_type
@@ -1179,6 +1111,10 @@ class RoomJsonGenerator:
                 ######################
 
                 if selected_sprite_type == "static_actor":
+                    # Get static_actor collision map LAYER
+                    selected_static_actor_layer_collision_map: list = self.static_actor_collision_map_list[
+                        selected_sprite_layer_index
+                    ]
                     # Get the selected static actor
                     selected_static_actor_instance = self.sprite_sheet_static_actor_instance_dict[selected_sprite_name]
                     ###############
@@ -1189,6 +1125,7 @@ class RoomJsonGenerator:
                             selected_static_actor_instance=selected_static_actor_instance,
                             world_mouse_tu_x=self.world_mouse_tu_x,
                             world_mouse_tu_y=self.world_mouse_tu_y,
+                            collision_map_list=selected_static_actor_layer_collision_map,
                         )
 
                     ###############
@@ -1199,7 +1136,7 @@ class RoomJsonGenerator:
                         found_tile = self._get_tile_from_collision_map_list(
                             self.world_mouse_tu_x,
                             self.world_mouse_tu_y,
-                            self.static_actor_collision_map_list,
+                            selected_static_actor_layer_collision_map,
                         )
 
                         # Make sure value is NOT a NoneOrBlobSpriteMetadata
@@ -1215,11 +1152,11 @@ class RoomJsonGenerator:
                                 world_tu_x=self.world_mouse_tu_x,
                                 world_tu_y=self.world_mouse_tu_y,
                                 value=0,
-                                collision_map_list=self.static_actor_collision_map_list,
+                                collision_map_list=selected_static_actor_layer_collision_map,
                             )
                             # Update pre render frame surfs based on collision map
                             selected_static_actor_instance.update_pre_render_frame_surfs(
-                                collision_map_list=self.static_actor_collision_map_list,
+                                collision_map_list=selected_static_actor_layer_collision_map,
                             )
 
                 #############################
@@ -1234,10 +1171,7 @@ class RoomJsonGenerator:
                         # This layer is None?
                         if self.parallax_background_instances_list[selected_sprite_layer_index] is None:
                             # Get binded mem with name
-                            parallax_background_mem = get_one_target_dict_value(
-                                self.selected_sprite_name,
-                                self.sprite_sheet_parallax_background_mems_dict,
-                            )
+                            parallax_background_mem = self.sprite_sheet_parallax_background_mems_dict[self.selected_sprite_name]
                             # Create new parallax background instance
                             new_parallax_background_instance = parallax_background_mem(
                                 self.sprite_sheet_surf,
@@ -2114,9 +2048,7 @@ class RoomJsonGenerator:
         # Update selected name
         self.selected_sprite_name = selected_button.text
         # Update cursor size
-        sprite_sheet_metadata_instance: SpriteMetadata = get_one_target_dict_value(
-            self.selected_sprite_name, self.sprite_name_to_sprite_metadata
-        )
+        sprite_sheet_metadata_instance: SpriteMetadata = self.sprite_name_to_sprite_metadata[self.selected_sprite_name]
         # None has cursor size
         if sprite_sheet_metadata_instance.sprite_tile_type == "none":
             self.cursor_width = sprite_sheet_metadata_instance.width
@@ -2200,19 +2132,19 @@ class RoomJsonGenerator:
             )
 
             for adjacent_empty_tile in adjacent_empty_tiles_list:
-                tu_x = adjacent_empty_tile["adjacent_world_tu_x"]
-                tu_y = adjacent_empty_tile["adjacent_world_tu_y"]
+                tu_x = adjacent_empty_tile[0]
+                tu_y = adjacent_empty_tile[1]
                 if (tu_x, tu_y) not in processed:
                     stack.append((tu_x, tu_y))
 
     def _on_static_actor_lmb_pressed(
-        self, selected_static_actor_instance: Any, world_mouse_tu_x: int, world_mouse_tu_y: int
+        self, selected_static_actor_instance: Any, world_mouse_tu_x: int, world_mouse_tu_y: int, collision_map_list: list
     ) -> None:
         # Get clicked cell
         found_tile = self._get_tile_from_collision_map_list(
             world_mouse_tu_x,
             world_mouse_tu_y,
-            self.static_actor_collision_map_list,
+            collision_map_list,
         )
 
         # Make sure value is NOT a NoneOrBlobSpriteMetadata
@@ -2228,11 +2160,11 @@ class RoomJsonGenerator:
                 world_tu_x=world_mouse_tu_x,
                 world_tu_y=world_mouse_tu_y,
                 value=1,
-                collision_map_list=self.static_actor_collision_map_list,
+                collision_map_list=collision_map_list,
             )
             # Update pre render frame surfs based on collision map
             selected_static_actor_instance.update_pre_render_frame_surfs(
-                collision_map_list=self.static_actor_collision_map_list,
+                collision_map_list=collision_map_list,
             )
 
     def _change_update_and_draw_state_machine(self, value: Enum) -> None:
@@ -2305,10 +2237,7 @@ class RoomJsonGenerator:
         # Only have actors in room edit not world
         if not is_world:
             # Get sprite metadata from reformat with selected sprite name
-            sprite_metadata_instance: SpriteMetadata = get_one_target_dict_value(
-                self.selected_sprite_name,
-                self.sprite_name_to_sprite_metadata,
-            )
+            sprite_metadata_instance: SpriteMetadata = self.sprite_name_to_sprite_metadata[self.selected_sprite_name]
             selected_sprite_type: str = sprite_metadata_instance.sprite_type
             # Handle dynamic_actor offset
             if selected_sprite_type == "dynamic_actor":
@@ -2994,12 +2923,15 @@ class RoomJsonGenerator:
         world_tu_x: int,
         world_tu_y: int,
         collision_map_list: list,
-    ) -> list[dict[str, int]]:
+    ) -> list[list[int]]:
         """
         Returns a list of 4 adjacent empty tiles coord world tu around the specified coordinates.
-        It is a list of dict -> {adjacent_world_tu_x: value}.
+
+        Index 0 = adjacent_world_tu_x
+
+        Index 1 = adjacent_world_tu_y
         """
-        adjacent_tiles: list[dict[str, int]] = []
+        adjacent_tiles: list[list[int]] = []
         # Directions: top, left, right, bottom
         directions = [(0, -1), (-1, 0), (1, 0), (0, 1)]
 
@@ -3017,10 +2949,10 @@ class RoomJsonGenerator:
             if tile == 0:
                 # I do not care what it is here, just need the coord of the empty neighbor
                 adjacent_tiles.append(
-                    {
-                        "adjacent_world_tu_x": adjacent_world_tu_x,
-                        "adjacent_world_tu_y": adjacent_world_tu_y,
-                    }
+                    [
+                        adjacent_world_tu_x,
+                        adjacent_world_tu_y,
+                    ]
                 )
 
         return adjacent_tiles
