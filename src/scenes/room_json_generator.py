@@ -67,9 +67,12 @@ class RoomJsonGenerator:
     # So since cutscenes are binded to each room, name them with numbers, when player finished a cutscene += 1 to their
     # animation seen counter, each animation based on their name has a condition if they should appear or not
     # based on the player cutscene counter that was saved
-    # TODO: Implement Quadtree, fire animation first
+    # TODO: Implement Quadtree, goblin, twin goddess first
 
-    # TODO: Move this to const later?
+    # TODO: Do this on ALL RUNTIME DICT WITH INSTANCE VALUE
+    # VALIDATE RUNTIME DICT WITH INSTANCE VALUE
+    # POST
+
     SLOW_FADE_DURATION = 1000.0
     FAST_FADE_DURATION = 250.0
 
@@ -111,7 +114,7 @@ class RoomJsonGenerator:
         self._setup_music()
         self._setup_state_machine_update()
         self._setup_state_machine_draw()
-        self._setup_second_rect_region_feature()
+        self._setup_second_rect_region_feature_world()
         self._setup_cursor()
         self._setup_pallete()
         self._setup_reformat_sprite_sheet_json_metadata()
@@ -124,24 +127,25 @@ class RoomJsonGenerator:
     def _setup_player(self) -> None:
         """
         Instance the player.
-        The play test mode flag.
+        The editor / play test mode flag.
         """
 
         self.player: Player = Player(
-            self.camera,
-            self.game_event_handler,
-            self.solid_collision_map_list,
-            self.room_width_tu,
-            self.room_height_tu,
+            camera=self.camera,
+            game_event_handler=self.game_event_handler,
+            solid_collision_map_list=self.solid_collision_map_list,
+            room_width_tu=self.room_width_tu,
+            room_height_tu=self.room_height_tu,
             # REMOVE IN BUILD
-            self.game_debug_draw,
+            game_debug_draw=self.game_debug_draw,
         )
 
         self.is_play_test_mode: bool = False
 
     def _setup_reformat_sprite_sheet_json_metadata(self) -> None:
         """
-        Key is sprite name, value is its metadata. Used for selected button state.
+        Key sprite name str : value SpriteMetadata.
+        Used for selected button state.
         """
 
         self.sprite_name_to_sprite_metadata: dict[str, SpriteMetadata] = {}
@@ -155,7 +159,9 @@ class RoomJsonGenerator:
 
         self.is_from_edit_pressed_jump: bool = False
         self.is_from_pallete_pressed_jump: bool = False
+
         self.button_container: (ButtonContainer | None) = None
+
         self.selected_sprite_name: str = ""
 
     def _setup_cursor(self) -> None:
@@ -176,30 +182,30 @@ class RoomJsonGenerator:
         self.first_room_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
         self.second_room_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
         self.combined_room_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
-        self.screen_combined_room_selected_tile_rect_x = 0.0
-        self.screen_combined_room_selected_tile_rect_y = 0.0
-        self.combined_room_selected_tile_rect_width_ru = 0
-        self.combined_room_selected_tile_rect_height_ru = 0
-        self.combined_room_selected_tile_rect_x_ru = 0
-        self.combined_room_selected_tile_rect_y_ru = 0
+        self.screen_combined_room_selected_tile_rect_x: float = 0.0
+        self.screen_combined_room_selected_tile_rect_y: float = 0.0
+        self.combined_room_selected_tile_rect_width_ru: int = 0
+        self.combined_room_selected_tile_rect_height_ru: int = 0
+        self.combined_room_selected_tile_rect_x_ru: int = 0
+        self.combined_room_selected_tile_rect_y_ru: int = 0
 
         # There is no dedicated state here so it uses flag
         self.is_lmb_was_just_pressed: bool = False
 
-    def _setup_second_rect_region_feature(self) -> None:
+    def _setup_second_rect_region_feature_world(self) -> None:
         """
-        Setup world cursor.
+        Setup world combined cursor.
         """
 
         self.first_world_selected_tile_rect = pg.FRect(0.0, 0.0, WORLD_CELL_SIZE, WORLD_CELL_SIZE)
         self.second_world_selected_tile_rect = pg.FRect(0.0, 0.0, WORLD_CELL_SIZE, WORLD_CELL_SIZE)
         self.combined_world_selected_tile_rect = pg.FRect(0.0, 0.0, WORLD_CELL_SIZE, WORLD_CELL_SIZE)
-        self.screen_combined_world_selected_tile_rect_x = 0.0
-        self.screen_combined_world_selected_tile_rect_y = 0.0
-        self.combined_world_selected_tile_rect_width_ru = 0
-        self.combined_world_selected_tile_rect_height_ru = 0
-        self.combined_world_selected_tile_rect_x_ru = 0
-        self.combined_world_selected_tile_rect_y_ru = 0
+        self.screen_combined_world_selected_tile_rect_x: float = 0.0
+        self.screen_combined_world_selected_tile_rect_y: float = 0.0
+        self.combined_world_selected_tile_rect_width_ru: int = 0
+        self.combined_world_selected_tile_rect_height_ru: int = 0
+        self.combined_world_selected_tile_rect_x_ru: int = 0
+        self.combined_world_selected_tile_rect_y_ru: int = 0
 
     def _setup_curtain(self) -> None:
         """
@@ -837,6 +843,9 @@ class RoomJsonGenerator:
                 self.sprite_sheet_surf = pg.image.load(existing_path).convert_alpha()
 
                 # Get stage binded data with sprite_sheet_png_name
+                # TODO: Do this on ALL RUNTIME DICT WITH INSTANCE VALUE
+                # VALIDATE RUNTIME DICT WITH INSTANCE VALUE
+                # POST
                 self.sprite_sheet_static_actor_surfs_dict = self.game.get_sprite_sheet_static_actor_surfs_dict(
                     self.sprite_sheet_png_name
                 )
@@ -852,6 +861,9 @@ class RoomJsonGenerator:
 
                 # Iterate SpriteSheetMetadata sprites_list prop
                 for sprite_metadata_instance in sprite_sheet_metadata_instance.sprites_list:
+                    # TODO: Do this on ALL RUNTIME DICT WITH INSTANCE VALUE
+                    # VALIDATE RUNTIME DICT WITH INSTANCE VALUE
+                    # POST
                     # Make sure value is a SpriteMetadata
                     if not isinstance(sprite_metadata_instance, SpriteMetadata):
                         raise ValueError("Invalid sprite metadata JSON data against schema")
@@ -997,6 +1009,9 @@ class RoomJsonGenerator:
                 }
                 # Turn into sprite metadata instance
                 sprite_metadata_instance = instance_sprite_metadata(new_sprite_metadata_dict)
+
+                # VALIDATE RUNTIME DICT WITH INSTANCE VALUE
+                # POST
                 # Make sure value is a SpriteMetadata
                 if not isinstance(sprite_metadata_instance, SpriteMetadata):
                     raise ValueError("Invalid sprite metadata JSON data against schema")
@@ -1031,8 +1046,20 @@ class RoomJsonGenerator:
                 self.button_container.add_event_listener(self._on_button_selected, ButtonContainer.BUTTON_SELECTED)
                 # Init the first selected name
                 self.selected_sprite_name = buttons[0].text
-                # Init the cursor size
+
+                # VALIDATE RUNTIME DICT WITH INSTANCE VALUE
+                # GET
+                # Check if the key exists in the dictionary
+                if self.selected_sprite_name not in self.sprite_name_to_sprite_metadata:
+                    raise KeyError(f"{self.selected_sprite_name} is not in sprite_name_to_sprite_metadata")
+                # Get the value for the key, init the cursor size
                 sprite_metadata_instance = self.sprite_name_to_sprite_metadata[self.selected_sprite_name]
+                # Make sure the value is of type SpriteMetadata
+                if not isinstance(sprite_metadata_instance, SpriteMetadata):
+                    raise TypeError(
+                        f"Expected SpriteMetadata for key {self.selected_sprite_name}, got {type(sprite_metadata_instance)}"
+                    )
+
                 # None has cursor size
                 if sprite_metadata_instance.sprite_tile_type == "none":
                     self.cursor_width = sprite_metadata_instance.width

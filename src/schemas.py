@@ -6,18 +6,19 @@ from jsonschema import ValidationError
 
 # How schema works
 # This is the same like how you get json res, then you instance a class to represent it
-# But here json res is either from reading a file or from hardcoded dict
-# So use this to validate WRITe / READ JSON FROM DISK
-# Validate when you GET / POST to or from disk
-
-# You want this because
-# After validating dict against schema
-# You get autocompletion with its prop, no more guessing what keys it has
+# So use this to validate dicts, then use their instance after successful validation
+# Schema instance gives you get autocompletion with its prop, no more guessing what keys it has
 
 # Protocol
 # 1. Validate dict with SCHEMA
 # 2. Instance dataclass
 # 3. Use instance just like any other dict but has prop autocompletion
+
+# Protocol Runtime Dict
+# 1. Validate on insertion
+# 2. Validate on access
+# 3. Periodic validation
+# 4. Custom exceptions
 
 ######################
 # ANIMATION METADATA #
@@ -77,6 +78,19 @@ from jsonschema import ValidationError
 #     }
 # }
 
+# TODO: Use this for validation in saving later
+ANIMATION_SPRITE_METADATA_SCHEMA: dict = {
+    "type": "object",
+    "properties": {
+        "x": {"type": "integer", "minimum": 0},
+        "y": {"type": "integer", "minimum": 0},
+    },
+    "required": [
+        "x",
+        "y",
+    ],
+}
+
 ANIMATION_SCHEMA: dict = {
     "type": "object",
     "patternProperties": {
@@ -91,11 +105,7 @@ ANIMATION_SCHEMA: dict = {
                 "sprite_sheet_png_name": {"type": "string"},
                 "animation_sprites_list": {
                     "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {"x": {"type": "integer", "minimum": 0}, "y": {"type": "integer", "minimum": 0}},
-                        "required": ["x", "y"],
-                    },
+                    "items": ANIMATION_SPRITE_METADATA_SCHEMA,
                     "minItems": 1,
                 },
             },
@@ -111,19 +121,6 @@ ANIMATION_SCHEMA: dict = {
         }
     },
     "additionalProperties": False,
-}
-
-# TODO: Use this for validation in saving later
-ANIMATION_SPRITE_METADATA_SCHEMA: dict = {
-    "type": "object",
-    "properties": {
-        "x": {"type": "integer", "minimum": 0},
-        "y": {"type": "integer", "minimum": 0},
-    },
-    "required": [
-        "x",
-        "y",
-    ],
 }
 
 
@@ -264,53 +261,6 @@ def instance_animation_metadata(input_dict: dict) -> dict[str, AnimationMetadata
 #             "y": 128
 #         },
 
-SPRITE_SHEET_METADATA_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "sprite_sheet_png_name": {"type": "string"},
-        "sprite_room_map_body_color": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$"},
-        "sprite_room_map_sub_division_color": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$"},
-        "sprite_room_map_border_color": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$"},
-        "sprites_list": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "sprite_name": {"type": "string"},
-                    "sprite_layer": {"type": "integer", "minimum": 1},
-                    "sprite_tile_type": {"type": "string"},
-                    "sprite_type": {"type": "string"},
-                    "sprite_is_tile_mix": {"type": "integer", "enum": [0, 1]},
-                    "width": {"type": "integer", "minimum": 1},
-                    "height": {"type": "integer", "minimum": 1},
-                    "x": {"type": "integer", "minimum": 0},
-                    "y": {"type": "integer", "minimum": 0},
-                },
-                "required": [
-                    "sprite_name",
-                    "sprite_layer",
-                    "sprite_tile_type",
-                    "sprite_type",
-                    "sprite_is_tile_mix",
-                    "width",
-                    "height",
-                    "x",
-                    "y",
-                ],
-            },
-            "minItems": 1,
-        },
-    },
-    "required": [
-        "sprite_sheet_png_name",
-        "sprite_room_map_body_color",
-        "sprite_room_map_sub_division_color",
-        "sprite_room_map_border_color",
-        "sprites_list",
-    ],
-    "additionalProperties": False,
-}
-
 SPRITE_METADATA_SCHEMA = {
     "type": "object",
     "properties": {
@@ -335,6 +285,29 @@ SPRITE_METADATA_SCHEMA = {
         "x",
         "y",
     ],
+}
+
+SPRITE_SHEET_METADATA_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "sprite_sheet_png_name": {"type": "string"},
+        "sprite_room_map_body_color": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$"},
+        "sprite_room_map_sub_division_color": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$"},
+        "sprite_room_map_border_color": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$"},
+        "sprites_list": {
+            "type": "array",
+            "items": SPRITE_METADATA_SCHEMA,
+            "minItems": 1,
+        },
+    },
+    "required": [
+        "sprite_sheet_png_name",
+        "sprite_room_map_body_color",
+        "sprite_room_map_sub_division_color",
+        "sprite_room_map_border_color",
+        "sprites_list",
+    ],
+    "additionalProperties": False,
 }
 
 
@@ -707,3 +680,44 @@ def validate_json(input_dict: dict, schema: Any) -> bool:
     except ValidationError as e:
         print(f"Validation error: {e.message}")
         return False
+
+
+##################################
+# SPRITE NAME TO SPRITE METADATA #
+##################################
+
+# Used in room_json_generator.py
+# Key sprite name str : value SpriteMetadata
+# Used for selected button state.
+
+# {
+#     "sky": {
+#             "sprite_name": "sky",
+#             "sprite_layer": 1,
+#             "sprite_tile_type": "none",
+#             "sprite_type": "parallax_background",
+#             "sprite_is_tile_mix": 0,
+#             "width": 320,
+#             "height": 128,
+#             "x": 0,
+#             "y": 0
+#     },
+#     "fdsfds": {
+#             "sprite_name": "asdsda",
+#             "sprite_layer": 4321,
+#             "sprite_tile_type": "none",
+#             "sprite_type": "dsadsadsa",
+#             "sprite_is_tile_mix": 0,
+#             "width": 321321,
+#             "height": 321321,
+#             "x": 0,
+#             "y": 0
+#     }
+# }
+
+
+SPRITE_NAME_TO_SPRITE_METADATA_SCHEMA: dict = {
+    "type": "object",
+    "patternProperties": {"^[a-zA-Z0-9_]+$": SPRITE_METADATA_SCHEMA},
+    "additionalProperties": False,
+}

@@ -8,7 +8,7 @@
 - [x] ./actors/stage_1_pine_trees.py
 - [x] ./actors/stage_1_colonnade.py
 - [x] ./actors/stage_1_clouds.py
-- [ ] ./actors/thin_fire.py
+- [ ] ./actors/static_actor.py
 - [ ] ./scenes/made_with_splash_screen.py
 - [ ] ./scenes/animation_json_generator.py
 - [ ] ./scenes/title_screen.py

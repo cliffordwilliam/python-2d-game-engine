@@ -80,9 +80,15 @@ def set_one_target_dict_value(key: str, value: Any, target_dict: dict, target_di
     """
     Set a value to local settings dict. Need to be same type. For POST and PATCH.
 
+    Use for runtime dicts like these ones, where it starts off empty.
+    Values need to be primitives, not instances.
+    self.sprite_name_to_sprite_metadata: dict = {}
+
     Do not use this on local settings dict.
 
     Use the game setter and getter method.
+
+    Raises exception on invalid shape after set.
     """
 
     # Set the new value
@@ -95,6 +101,10 @@ def set_one_target_dict_value(key: str, value: Any, target_dict: dict, target_di
 def get_one_target_dict_value(key: str, target_dict: dict, target_dict_name: str) -> Any:
     """
     Get a value from target dict.
+
+    Use for runtime dicts like these ones, where it starts off empty.
+    Values need to be primitives, not instances.
+    self.sprite_name_to_sprite_metadata: dict = {}
 
     Do not use this on local settings dict.
 
