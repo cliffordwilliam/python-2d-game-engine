@@ -140,90 +140,73 @@ class Game:
     # Abilities
     def get_sprite_sheet_static_actor_jsons_dict(self, stage_sprite_sheet_name: str) -> dict[str, dict[str, AnimationMetadata]]:
         """
-        Animation metadata are binded to their stages.
-
-        Pass the stage sprite sheet name.
-
-        I get a dict of {actor_name, json_name}.
-
-        I use the json_name to get the full json path.
-
-        I use full json path to get JSON dict from disk dynamic path.
-
-        I create instance of the JSON dict.
-
-        You get a dict, key is actor str name, value is the following dict:
-
-        dict = {
-            "animation_string_name_1": {
-                AnimationMetadata: {
-                    "animation_is_loop": 1
-                    ...: ...
-                    "animation_sprites_list": list[AnimationSpriteMetadata]
-                }
-            },
-            "animation_string_name_2": {
-                AnimationMetadata: {
-                    "animation_is_loop": 0
-                    ...: ...
-                    "animation_sprites_list": list[AnimationSpriteMetadata]
-                }
-            }
-            "animation_string_name_3": ...
-        }
-
-        It is easy to read this way.
+        | Stage sprite sheet name is key
+        | Key for a dict filled with {actor names : json names}
+        |
+        | Raises exception if passed stage sprite sheet name is invalid
+        |
+        | I turn {actor names : json names} into {actor names : {animation names : metadata}} as output
         """
 
-        data = get_one_target_dict_value(
+        # {actor names : json names}
+        data: dict[str, str] = get_one_target_dict_value(
             stage_sprite_sheet_name,
             self.sprite_sheet_static_actor_jsons_dict,
             "self.sprite_sheet_static_actor_jsons_dict",
         )
-        # Actor name, animation name, animation metadata
+
+        # Prepare {actor names : {animation names: metadata}}
         out: dict[str, dict[str, AnimationMetadata]] = {}
+
+        # Iter {actor names : json names}
         for actor_name, json_name in data.items():
+            # Turn json names into json paths
             existing_json_dynamic_path: str = get_one_target_dict_value(
                 json_name,
                 self.jsons_repo_pahts_dict,
                 "self.jsons_repo_pahts_dict",
             )
+            # Turn json path into JSON dict (taken from disk)
             data = self.GET_file_from_disk_dynamic_path(existing_json_dynamic_path)
-            # Convert the dictionary to the data class, this validates it too
+            # Convert JSON dict to dataclass (metadata)
             out[actor_name] = instance_animation_metadata(data)
+        # Return {actor names : {animation names: metadata}}
         return out
 
     def get_sprite_sheet_static_actor_surfs_dict(self, stage_sprite_sheet_name: str) -> dict[str, pg.Surface]:
         """
-        Surfs are binded to their stages.
-
-        Pass the stage sprite sheet name to get its surfs.
-
-        I use the stage sprite sheet name as key to get the binded surf full path.
-
-        I raise exception when key is not valid.
-
-        I use valid full path to get the surf.
-
-        I give you a dict, key is actor str name, value is actor surf.
-
-        It is easy to read this way.
+        | Stage sprite sheet name is key
+        | Key for a dict filled with {actor names : surf names}
+        |
+        | Raises exception if passed stage sprite sheet name is invalid
+        |
+        | I turn {actor names : surf names} into {actor names : surf} as output
         """
 
-        data = get_one_target_dict_value(
+        # {actor names : surf names}
+        data: dict[str, str] = get_one_target_dict_value(
             stage_sprite_sheet_name,
             self.sprite_sheet_static_actor_surfs_dict,
             "self.sprite_sheet_static_actor_surfs_dict",
         )
-        out: dict[str, Any] = {}
+
+        # Prepare {actor names : Surface}
+        out: dict[str, pg.Surface] = {}
+
+        # Iter {actor names : surf names}
         for actor_name, surf_name in data.items():
-            out[actor_name] = pg.image.load(
-                get_one_target_dict_value(
-                    surf_name,
-                    PNGS_PATHS_DICT,
-                    "PNGS_PATHS_DICT",
-                )
-            ).convert_alpha()
+            # Turn surf names into surf path
+            surf_path: str = get_one_target_dict_value(
+                surf_name,
+                PNGS_PATHS_DICT,
+                "PNGS_PATHS_DICT",
+            )
+            # Turn surf path into surf
+            surf: pg.Surface = pg.image.load(surf_path).convert_alpha()
+            # Rebind {actor name : surf}
+            out[actor_name] = surf
+
+        # Return {actor names : surf}
         return out
 
     def get_sprite_sheet_parallax_mems_dict(self, stage_sprite_sheet_name: str) -> dict[str, Any]:
@@ -265,24 +248,26 @@ class Game:
 
     def GET_file_from_disk_dynamic_path(self, existing_dynamic_path_dict_value: str) -> Any:
         """
-        GET file from user disk.
-
-        Use the dynamic paths dict path.
-
-        Raises path does not exist exception.
+        | Makes sure path is in dynamic paths {json names : json paths}.
+        | Raises exception on invalid key.
+        |
+        | Returns JSON dict from disk
         """
 
-        # Handle not found path 404
+        # Collect all dynamic paths dict {json names : json paths}
         all_paths = {
             **self.jsons_user_pahts_dict,
             **self.jsons_repo_pahts_dict,
             **self.jsons_repo_rooms_pahts_dict,
         }
+        # Path not found in dynamic paths dict?
         if existing_dynamic_path_dict_value not in all_paths.values():
+            # Raise exception
             raise KeyError("Path does not exist")
 
-        # GET 200
+        # Use path to GET JSON dict from disk
         with open(existing_dynamic_path_dict_value, "r") as file:
+            # Return JSON dict
             data = load(file)
             return data
 

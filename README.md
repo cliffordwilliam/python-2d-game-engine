@@ -19,6 +19,8 @@ This project is developed and tested with Python 3.12.3.
 
 ## Installation
 
+Note: If you use VSCode do not forget to set interpreter to the venv python for import dependencies detection.
+
 Steps to install and run the project:
 
 1. Clone the repository:

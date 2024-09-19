@@ -48,6 +48,8 @@ from schemas import NoneOrBlobSpriteMetadata
 from schemas import SpriteMetadata
 from schemas import SpriteSheetMetadata
 from typeguard import typechecked
+from utils import get_one_target_dict_value
+from utils import set_one_target_dict_value
 
 if TYPE_CHECKING:
     from nodes.game import Game
@@ -73,8 +75,8 @@ class RoomJsonGenerator:
     # VALIDATE RUNTIME DICT WITH INSTANCE VALUE
     # POST
 
-    SLOW_FADE_DURATION = 1000.0
-    FAST_FADE_DURATION = 250.0
+    SLOW_FADE_DURATION: float = 1000.0
+    FAST_FADE_DURATION: float = 250.0
 
     class State(Enum):
         JUST_ENTERED_SCENE = auto()
@@ -127,9 +129,10 @@ class RoomJsonGenerator:
     def _setup_player(self) -> None:
         """
         Instance the player.
-        The editor / play test mode flag.
+        The editor mode / play test mode flag.
         """
 
+        # Instance the player
         self.player: Player = Player(
             camera=self.camera,
             game_event_handler=self.game_event_handler,
@@ -140,23 +143,26 @@ class RoomJsonGenerator:
             game_debug_draw=self.game_debug_draw,
         )
 
+        # The editor mode / play test mode flag
         self.is_play_test_mode: bool = False
 
     def _setup_reformat_sprite_sheet_json_metadata(self) -> None:
         """
-        Key sprite name str : value SpriteMetadata.
+        Sprite name : SpriteMetadata.
         Used for selected button state.
         """
 
+        # Sprite name : SpriteMetadata. Used for selected button state
         self.sprite_name_to_sprite_metadata: dict[str, SpriteMetadata] = {}
 
     def _setup_pallete(self) -> None:
         """
-        For opaque curtain to know where to go next (pallete or edit mode).
+        For opaque curtain to know where to go next (to pallete or to edit mode).
         The button container.
         The currently selected sprite name.
         """
 
+        # For opaque curtain to know where to go next (to pallete or to edit mode)
         self.is_from_edit_pressed_jump: bool = False
         self.is_from_pallete_pressed_jump: bool = False
 
@@ -179,9 +185,9 @@ class RoomJsonGenerator:
         Setup room combined cursor.
         """
 
-        self.first_room_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
-        self.second_room_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
-        self.combined_room_selected_tile_rect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
+        self.first_room_selected_tile_rect: pg.FRect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
+        self.second_room_selected_tile_rect: pg.FRect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
+        self.combined_room_selected_tile_rect: pg.FRect = pg.FRect(0.0, 0.0, TILE_SIZE, TILE_SIZE)
         self.screen_combined_room_selected_tile_rect_x: float = 0.0
         self.screen_combined_room_selected_tile_rect_y: float = 0.0
         self.combined_room_selected_tile_rect_width_ru: int = 0
@@ -197,9 +203,9 @@ class RoomJsonGenerator:
         Setup world combined cursor.
         """
 
-        self.first_world_selected_tile_rect = pg.FRect(0.0, 0.0, WORLD_CELL_SIZE, WORLD_CELL_SIZE)
-        self.second_world_selected_tile_rect = pg.FRect(0.0, 0.0, WORLD_CELL_SIZE, WORLD_CELL_SIZE)
-        self.combined_world_selected_tile_rect = pg.FRect(0.0, 0.0, WORLD_CELL_SIZE, WORLD_CELL_SIZE)
+        self.first_world_selected_tile_rect: pg.FRect = pg.FRect(0.0, 0.0, WORLD_CELL_SIZE, WORLD_CELL_SIZE)
+        self.second_world_selected_tile_rect: pg.FRect = pg.FRect(0.0, 0.0, WORLD_CELL_SIZE, WORLD_CELL_SIZE)
+        self.combined_world_selected_tile_rect: pg.FRect = pg.FRect(0.0, 0.0, WORLD_CELL_SIZE, WORLD_CELL_SIZE)
         self.screen_combined_world_selected_tile_rect_x: float = 0.0
         self.screen_combined_world_selected_tile_rect_y: float = 0.0
         self.combined_world_selected_tile_rect_width_ru: int = 0
@@ -228,9 +234,11 @@ class RoomJsonGenerator:
         Setup timers with event listeners.
         """
 
+        # Entry delay timer
         self.entry_delay_timer: Timer = Timer(duration=self.SLOW_FADE_DURATION)
         self.entry_delay_timer.add_event_listener(self._on_entry_delay_timer_end, Timer.END)
 
+        # Exit delay timer
         self.exit_delay_timer: Timer = Timer(duration=self.SLOW_FADE_DURATION)
         self.exit_delay_timer.add_event_listener(self._on_exit_delay_timer_end, Timer.END)
 
@@ -239,9 +247,11 @@ class RoomJsonGenerator:
         Setup text for title and tips.
         """
 
+        # Prompt question
         self.prompt_text: str = ""
         self.prompt_rect: pg.Rect = FONT.get_rect(self.prompt_text)
 
+        # Input answer
         self.input_text: str = ""
         self.input_rect: pg.Rect = FONT.get_rect(self.input_text)
         self.input_rect.center = NATIVE_RECT.center
@@ -251,7 +261,7 @@ class RoomJsonGenerator:
         Store user inputs.
         """
 
-        # Room metadata
+        # Room metadata size and position
         self.room_height: int = ROOM_HEIGHT
         self.room_height_tu: int = self.room_height // TILE_SIZE
         self.room_width: int = ROOM_WIDTH
@@ -265,41 +275,39 @@ class RoomJsonGenerator:
 
         # Sprite sheet binded things
         self.sprite_sheet_static_actor_surfs_dict: dict[
-            # Static actor name : static actor surf
+            # {Static actor name : static actor surf}
             str,
             pg.Surface,
         ] = {}
         self.sprite_sheet_static_actor_jsons_dict: dict[
-            # Static actor name : {animation name : animation metadata}
+            # {Static actor name : {animation name : animation metadata}}
             str,
             dict[str, AnimationMetadata],
         ] = {}
         self.sprite_sheet_static_actor_instance_dict: dict[
-            # Static actor name : static actor instance
+            # {Static actor name : static actor instance}
             str,
-            Any,
+            StaticActor,
         ] = {}
         self.sprite_sheet_parallax_background_mems_dict: dict[
-            # Parallax name : parallax instance
+            # {Parallax name : parallax instance}
             str,
+            # TODO: Make a parent class for typing only
             Any,
         ] = {}
 
-        # Drawing layer data
-        # Parallax
+        # Parallax layer
         self.parallax_background_instances_list: list[(None | Any)] = []
-        # Background
+        # Background layer
         self.background_total_layers: int = 0
         self.background_collision_map_list: list[list[(int | NoneOrBlobSpriteMetadata)]] = []
-        # Static actor
+        # Static actor layer
         self.static_actor_total_layers: int = 0
-        self.static_actor_collision_map_list: list[list[(int | Any)]] = []
-
+        self.static_actor_collision_map_list: list[list[int]] = []
         # TODO: item actors layer (things that player interact with like twin goddess, item drop, door, teleported etc)
         # TODO: dynamic actors layer (anything that moves under the player like goblins, bullets)
         # TODO: player layer
         # TODO: explosions effects are like static actors but they do not need collision or stored in map, just add them in gameplay list
-
         # Solid
         self.solid_collision_map_list: list[(int | NoneOrBlobSpriteMetadata)] = [
             0 for _ in range(self.room_width_tu * self.room_height_tu)
@@ -325,7 +333,7 @@ class RoomJsonGenerator:
 
     def _setup_camera(self) -> None:
         """
-        Store user inputs.
+        Camera instance and editor camera anchor.
         """
 
         # The "player" in editing mode
@@ -347,18 +355,15 @@ class RoomJsonGenerator:
         """
 
         # World
+        # TODO: When saving feature is done, type safe this
         self.world_collision_map_list: list[Any] = [0 for _ in range(WORLD_WIDTH_RU * WORLD_HEIGHT_RU)]
 
     def _setup_surfs(self) -> None:
         """
-        Surfaces for selection marker, grids and pre render world.
+        Surfaces for grids and pre render world.
         """
 
-        # Selected surf marker
-        self.selected_surf_marker: pg.Surface = pg.Surface((WORLD_CELL_SIZE, WORLD_CELL_SIZE))
-        self.selected_surf_marker.fill("red")
-
-        # Grid world surfs
+        # Grid world line surfs
         self.grid_world_horizontal_line_surf: pg.Surface = pg.Surface((WORLD_WIDTH, 1))
         self.grid_world_horizontal_line_surf.fill("black")
         self.grid_world_horizontal_line_surf.set_alpha(21)
@@ -366,13 +371,13 @@ class RoomJsonGenerator:
         self.grid_world_vertical_line_surf.fill("black")
         self.grid_world_vertical_line_surf.set_alpha(21)
 
-        # Grid room surfs
-        self.grid_horizontal_line_surf: pg.Surface = pg.Surface((NATIVE_WIDTH, 1))
-        self.grid_horizontal_line_surf.fill("black")
-        self.grid_horizontal_line_surf.set_alpha(21)
-        self.grid_vertical_line_surf: pg.Surface = pg.Surface((1, NATIVE_HEIGHT))
-        self.grid_vertical_line_surf.fill("black")
-        self.grid_vertical_line_surf.set_alpha(21)
+        # Grid room line surfs
+        self.grid_room_horizontal_line_surf: pg.Surface = pg.Surface((NATIVE_WIDTH, 1))
+        self.grid_room_horizontal_line_surf.fill("black")
+        self.grid_room_horizontal_line_surf.set_alpha(21)
+        self.grid_room_vertical_line_surf: pg.Surface = pg.Surface((1, NATIVE_HEIGHT))
+        self.grid_room_vertical_line_surf.fill("black")
+        self.grid_room_vertical_line_surf.set_alpha(21)
 
         # World surf
         self.world_surf: pg.Surface = pg.Surface((WORLD_WIDTH, WORLD_HEIGHT))
@@ -493,13 +498,13 @@ class RoomJsonGenerator:
 
     def _QUERIES(self, _dt: int) -> None:
         """
-        Draws prompt and user typing input.
+        Draws prompt and user answer typing input.
         """
 
         # Clear
         NATIVE_SURF.fill(self.clear_color)
 
-        # Draw prompt
+        # Draw prompt question
         FONT.render_to(
             NATIVE_SURF,
             self.prompt_rect,
@@ -507,7 +512,7 @@ class RoomJsonGenerator:
             self.font_color,
         )
 
-        # Draw input
+        # Draw input answer
         FONT.render_to(
             NATIVE_SURF,
             self.input_rect,
@@ -595,7 +600,7 @@ class RoomJsonGenerator:
         # Clear
         NATIVE_SURF.fill(self.clear_color)
 
-        # Store surfs to be drawn with fblits
+        # Store surfs to be drawn with fblits for performance
         blit_sequence: list[
             # List of tuples = (surf, coord)
             tuple[pg.Surface, tuple[float, float]]
@@ -618,7 +623,7 @@ class RoomJsonGenerator:
             )
         )
 
-        # Collect static actor pre renders (these are extra moving 1 layer bg in front of the bg, fire and waterfall and so on)
+        # Collect static actor pre renders
         for static_actor_instance in self.sprite_sheet_static_actor_instance_dict.values():
             static_actor_instance.draw(blit_sequence)
 
@@ -726,6 +731,7 @@ class RoomJsonGenerator:
             # TODO: If click on a room, Load the room
             # TODO: So collision store the file name
             # TODO: If click on empty then make new one
+            # TODO: Make schema later
             # Sprite selection
             if self.game_event_handler.is_lmb_just_pressed:
                 # Get what is clicked
@@ -738,7 +744,7 @@ class RoomJsonGenerator:
                     # Remember first selected tile rect
                     self.first_world_selected_tile_rect.x = self.world_mouse_snapped_x
                     self.first_world_selected_tile_rect.y = self.world_mouse_snapped_y
-                    # Go to ADD_OTHER_ROOM
+                    # Exit state
                     self.state_machine_update.change_state(RoomJsonGenerator.State.ADD_OTHER_ROOM)
                     self.state_machine_draw.change_state(RoomJsonGenerator.State.ADD_OTHER_ROOM)
 
@@ -771,9 +777,9 @@ class RoomJsonGenerator:
                         if found_tile_lmb_pressed != 0 and found_tile_lmb_pressed != -1:
                             found_occupied = True
                             break
-                # All cells are empty
+                # All cells are empty?
                 if not found_occupied:
-                    # Update room metadata dimension
+                    # Update room metadata dimension and position
                     self.room_height = self.combined_world_selected_tile_rect_width_ru * ROOM_HEIGHT
                     self.room_height_tu = self.room_height // TILE_SIZE
                     self.room_width = self.combined_world_selected_tile_rect_height_ru * ROOM_WIDTH
@@ -787,7 +793,7 @@ class RoomJsonGenerator:
                         float(0),
                         float(self.room_width),
                     )
-                    # Update dynamic actors room size tu
+                    # Update dynamic actors room size tu (for solid collisions)
                     self.player.set_room_height_tu(self.room_height_tu)
                     self.player.set_room_width_tu(self.room_width_tu)
                     # Close curtain
@@ -804,6 +810,7 @@ class RoomJsonGenerator:
 
         # Accept logic
         def _accept_callback() -> None:
+            # Input not blank?
             if self.input_text != "":
                 # Update room name / file name metadata
                 self.file_name = self.input_text
@@ -838,14 +845,12 @@ class RoomJsonGenerator:
                 self.sprite_sheet_png_name = sprite_sheet_metadata_instance.sprite_sheet_png_name
 
                 # Use name as key to get the full path to image png
+                # TODO: Create shcema for constants paths dict (not dynamic paths dict)
                 existing_path: str = PNGS_PATHS_DICT[self.sprite_sheet_png_name]
                 # Use full png path to create sprite sheet surf, convert alpha since it has transparent pixels
                 self.sprite_sheet_surf = pg.image.load(existing_path).convert_alpha()
 
                 # Get stage binded data with sprite_sheet_png_name
-                # TODO: Do this on ALL RUNTIME DICT WITH INSTANCE VALUE
-                # VALIDATE RUNTIME DICT WITH INSTANCE VALUE
-                # POST
                 self.sprite_sheet_static_actor_surfs_dict = self.game.get_sprite_sheet_static_actor_surfs_dict(
                     self.sprite_sheet_png_name
                 )
@@ -861,17 +866,15 @@ class RoomJsonGenerator:
 
                 # Iterate SpriteSheetMetadata sprites_list prop
                 for sprite_metadata_instance in sprite_sheet_metadata_instance.sprites_list:
-                    # TODO: Do this on ALL RUNTIME DICT WITH INSTANCE VALUE
-                    # VALIDATE RUNTIME DICT WITH INSTANCE VALUE
-                    # POST
-                    # Make sure value is a SpriteMetadata
-                    if not isinstance(sprite_metadata_instance, SpriteMetadata):
-                        raise ValueError("Invalid sprite metadata JSON data against schema")
-                    # Make sure key is a string
-                    if not isinstance(sprite_metadata_instance.sprite_name, str):
-                        raise TypeError("sprite_name should be a string")
-                    # Validated here, get SpriteMetadata name prop set it as key, value is the entire SpriteMetadata itself
-                    self.sprite_name_to_sprite_metadata[sprite_metadata_instance.sprite_name] = sprite_metadata_instance
+                    # TODO: Continue working on using getter setter for self.sprite_name_to_sprite_metadata
+                    set_one_target_dict_value(
+                        sprite_metadata_instance.sprite_name,
+                        str,
+                        sprite_metadata_instance,
+                        SpriteMetadata,
+                        self.sprite_name_to_sprite_metadata,
+                        "self.sprite_name_to_sprite_metadata",
+                    )
 
                     # Create button for this SpriteMetadata
                     button: Button = Button(
@@ -902,7 +905,6 @@ class RoomJsonGenerator:
                     # This SpriteMetadata is a parallax background?
                     if sprite_metadata_instance.sprite_type == "parallax_background":
                         # If this parallax is not in binded, raise exception
-                        # TODO: Update the get utils func to do this instead
                         if sprite_metadata_instance.sprite_name not in self.sprite_sheet_parallax_background_mems_dict:
                             raise ValueError(
                                 f"{sprite_metadata_instance.sprite_name} is not in sprite_sheet_parallax_background_mems_dict"
@@ -936,13 +938,17 @@ class RoomJsonGenerator:
                             self.static_actor_total_layers = sprite_metadata_instance.sprite_layer
 
                         # Get this static actor surf
-                        static_actor_surf: pg.Surface = self.sprite_sheet_static_actor_surfs_dict[
-                            sprite_metadata_instance.sprite_name
-                        ]
+                        static_actor_surf: pg.Surface = get_one_target_dict_value(
+                            sprite_metadata_instance.sprite_name,
+                            self.sprite_sheet_static_actor_surfs_dict,
+                            "self.sprite_sheet_static_actor_surfs_dict",
+                        )
                         # Get this static actor json dict {str, AnimationMetadata} == static actor name : {anim name: anim meta data like next_anim_name, anim_is_loop, ...}
-                        static_actor_animation_metadata_instance: dict[
-                            str, AnimationMetadata
-                        ] = self.sprite_sheet_static_actor_jsons_dict[sprite_metadata_instance.sprite_name]
+                        static_actor_animation_metadata_instance: dict[str, AnimationMetadata] = get_one_target_dict_value(
+                            sprite_metadata_instance.sprite_name,
+                            self.sprite_sheet_static_actor_jsons_dict,
+                            "self.sprite_sheet_static_actor_jsons_dict",
+                        )
                         # Instance a this new static actor
                         new_static_actor_instance = StaticActor(
                             static_actor_surf,
@@ -954,9 +960,14 @@ class RoomJsonGenerator:
                             self.room_height_tu,
                         )
                         # Add this new static actor to dict (name key instance value)
-                        self.sprite_sheet_static_actor_instance_dict[
-                            sprite_metadata_instance.sprite_name
-                        ] = new_static_actor_instance
+                        set_one_target_dict_value(
+                            sprite_metadata_instance.sprite_name,
+                            str,
+                            new_static_actor_instance,
+                            StaticActor,
+                            self.sprite_sheet_static_actor_instance_dict,
+                            "self.sprite_sheet_static_actor_instance_dict",
+                        )
 
                 # Beyond this point, sprite sheet metadata names and binding dict are correct
 
@@ -1139,11 +1150,15 @@ class RoomJsonGenerator:
 
                 if selected_sprite_type == "static_actor":
                     # Get static_actor collision map LAYER
-                    selected_static_actor_layer_collision_map: list = self.static_actor_collision_map_list[
+                    selected_static_actor_layer_collision_map: list[int] = self.static_actor_collision_map_list[
                         selected_sprite_layer_index
                     ]
                     # Get the selected static actor
-                    selected_static_actor_instance = self.sprite_sheet_static_actor_instance_dict[selected_sprite_name]
+                    selected_static_actor_instance: StaticActor = get_one_target_dict_value(
+                        selected_sprite_name,
+                        self.sprite_sheet_static_actor_instance_dict,
+                        "self.sprite_sheet_static_actor_instance_dict",
+                    )
                     ###############
                     # Lmb pressed #
                     ###############
@@ -1198,7 +1213,11 @@ class RoomJsonGenerator:
                         # This layer is None?
                         if self.parallax_background_instances_list[selected_sprite_layer_index] is None:
                             # Get binded mem with name
-                            parallax_background_mem = self.sprite_sheet_parallax_background_mems_dict[self.selected_sprite_name]
+                            parallax_background_mem = get_one_target_dict_value(
+                                self.selected_sprite_name,
+                                self.sprite_sheet_parallax_background_mems_dict,
+                                "self.sprite_sheet_parallax_background_mems_dict",
+                            )
                             # Create new parallax background instance
                             new_parallax_background_instance = parallax_background_mem(
                                 self.sprite_sheet_surf,
@@ -2165,7 +2184,7 @@ class RoomJsonGenerator:
                     stack.append((tu_x, tu_y))
 
     def _on_static_actor_lmb_pressed(
-        self, selected_static_actor_instance: Any, world_mouse_tu_x: int, world_mouse_tu_y: int, collision_map_list: list
+        self, selected_static_actor_instance: StaticActor, world_mouse_tu_x: int, world_mouse_tu_y: int, collision_map_list: list
     ) -> None:
         # Get clicked cell
         found_tile = self._get_tile_from_collision_map_list(
@@ -2789,14 +2808,14 @@ class RoomJsonGenerator:
             vertical_line_x_position: float = (TILE_SIZE * i - self.camera.rect.x) % NATIVE_WIDTH
             blit_sequence.append(
                 (
-                    self.grid_vertical_line_surf,
+                    self.grid_room_vertical_line_surf,
                     (vertical_line_x_position, 0.0),
                 )
             )
             horizontal_line_y_position: float = (TILE_SIZE * i - self.camera.rect.y) % NATIVE_WIDTH
             blit_sequence.append(
                 (
-                    self.grid_horizontal_line_surf,
+                    self.grid_room_horizontal_line_surf,
                     (0.0, horizontal_line_y_position),
                 )
             )

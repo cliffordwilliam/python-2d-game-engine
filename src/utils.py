@@ -76,49 +76,51 @@ def overwriting_target_dict(new_dict: dict, target_dict: dict, target_dict_schem
     target_dict.update(new_dict)
 
 
-def set_one_target_dict_value(key: str, value: Any, target_dict: dict, target_dict_schema: Any) -> None:
+def set_one_target_dict_value(key: Any, key_type: Any, val: Any, val_type: Any, target_dict: dict, target_dict_name: str) -> None:
     """
-    Set a value to local settings dict. Need to be same type. For POST and PATCH.
-
-    Use for runtime dicts like these ones, where it starts off empty.
-    Values need to be primitives, not instances.
-    self.sprite_name_to_sprite_metadata: dict = {}
-
-    Do not use this on local settings dict.
-
-    Use the game setter and getter method.
-
-    Raises exception on invalid shape after set.
+    | Set a value to non constant dict.
+    |
+    | Makes sure key type is correct.
+    | Makes sure value type is correct.
+    |
+    | Raises exception on invalid key or values.
     """
 
-    # Set the new value
-    target_dict[key] = value
+    is_key_valid: bool = isinstance(key, key_type)
+    is_val_valid: bool = isinstance(val, val_type)
 
-    if not validate_json(target_dict, target_dict_schema):
-        raise ValueError("Invalid new dict JSON against target dict schema")
+    # Invalid key type?
+    if not is_key_valid:
+        # Raise exception
+        raise KeyError(f"{key} type invalid for {target_dict_name}")
+
+    # Invalid val type?
+    if not is_val_valid:
+        # Raise exception
+        raise KeyError(f"{val} type invalid for {target_dict_name}")
+
+    # Set the new value, no need to return mutable
+    target_dict[key] = val
 
 
 def get_one_target_dict_value(key: str, target_dict: dict, target_dict_name: str) -> Any:
     """
-    Get a value from target dict.
-
-    Use for runtime dicts like these ones, where it starts off empty.
-    Values need to be primitives, not instances.
-    self.sprite_name_to_sprite_metadata: dict = {}
-
-    Do not use this on local settings dict.
-
-    Use the game setter and getter method.
-
-    Raises exception on invalid key.
+    | Get a value from non constant dict.
+    |
+    | Makes sure key exists.
+    | No need to check if value type is correct.
+    | Since it was validated before insertion.
+    |
+    | Raises exception on invalid key.
     """
 
-    # Check if the key exists in the target_dict
+    # Key not in target dict?
     if key not in target_dict:
+        # Raise exception
         raise KeyError(f"{key} is not in {target_dict_name}")
 
-    # Return the value for the key
-    return target_dict.get(key, None)
+    # Return value
+    return target_dict[key]
 
 
 def ray_vs_rect(
