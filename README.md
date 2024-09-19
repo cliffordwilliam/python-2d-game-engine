@@ -79,6 +79,8 @@ Steps to install and run the project:
    python main.py
    ```
 
+10. Delete the .vscode if you do not want my workplace settings:
+
 ## Usage
 
 Read my docs to read the manual on how to use this wrapper.
