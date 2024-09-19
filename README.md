@@ -19,7 +19,7 @@ This project is developed and tested with Python 3.12.3.
 
 ## Installation
 
-To install and run the project, follow these steps:
+Steps to install and run the project:
 
 1. Clone the repository:
 
@@ -33,42 +33,47 @@ To install and run the project, follow these steps:
    cd your-repository
    ```
 
-3. Create a virtual environment (optional but recommended / btw you can use VSCode to make virtual environment):
+3. Install python 3.12.3
 
-   - Without VSCode, use Bash / any CLI you have:
+4. Install pip:
 
-      ```bash
-      python3 -m venv venv
-      ```
+   ```bash
+   sudo apt install python3-pip
+   pip3 --version
+   ```
 
-   - Using VSCode:
-      ctrl + shift + p to select the python intreperter and create venv. Open and close your terminal and wait until you see a popup saying that the venv is activated. If you are a developer, you can run the pre-commit install now. Run this again if you update the pre commit yaml file.
+5. Install virtualvenv with pip:
 
-      ```bash
-      pre-commit install
-      ```
+   ```bash
+   install python3.12-venv
+   ```
 
-4. Activate the virtual environment (skip this if you already made venv via VSCode, it activates it for you):
+6. Create a virtual environment:
 
-   - On Windows:
+   ```bash
+   python3 -m venv /the/path/to/python-2d-game-engine/venv/
+   ```
 
-     ```bash
-     venv\Scripts\activate
-     ```
+7. Activate venv:
+   ```bash
+   source venv/bin/activate
+   which python
+   which pip
+   ```
 
-   - On macOS and Linux:
-
-     ```bash
-     source venv/bin/activate
-     ```
-
-5. Install dependencies (even if you had used VSCode to make your venv, you can run this again just in case):
+7. Install dependencies:
 
    ```bash
    pip install -r requirements.txt
    ```
 
-6. Run the main script:
+8. If you are a developer, you can run the pre-commit install now. Run this again if you update the pre commit yaml file.
+
+   ```bash
+   pre-commit install
+   ```
+
+9. Run the main script:
 
    ```bash
    python main.py

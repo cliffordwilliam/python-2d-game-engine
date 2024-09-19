@@ -23,10 +23,13 @@ pygame-ce==2.4.1
 pyrsistent==0.20.0
 PyYAML==6.0.1
 questionary==2.0.1
+referencing==0.35.1
+rpds-py==0.20.0
 setuptools==69.5.1
 termcolor==2.4.0
 tomlkit==0.12.5
 typeguard==4.2.1
+types-jsonschema==4.23.0.20240813
 typing_extensions==4.11.0
 virtualenv==20.26.1
 wcwidth==0.2.13
