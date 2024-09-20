@@ -235,6 +235,11 @@ class Game:
         POST default settings to disk. local settings is already default at start.
         """
 
+        # TODO: Create a popup scene, like options scene right now
+        # TODO: Can toggle with flag, when it is on, it takes highest precedence
+        # TODO: It just shows message, you can set option 2 options
+        # TODO: The one who initiate popup needs to pass callback, and handle answer
+
         # If that file is not in dynamic paths dict, it has not been POST yet, only POST updates dynamic paths dict
         if SETTINGS_FILE_NAME in self.jsons_user_pahts_dict:
             value = self.GET_file_from_disk_dynamic_path(self.jsons_user_pahts_dict[SETTINGS_FILE_NAME])

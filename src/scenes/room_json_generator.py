@@ -78,6 +78,13 @@ class RoomJsonGenerator:
     # TODO: Implement Quadtree, goblin, twin goddess first
     # TODO: Write the controls in the grid background
     # TODO: Have a clear canvas function where it clears off everything
+    # TODO: So I have 4 possible room sizes, for each size, that determine extra door buttons, if 1 x 1 room, thats 4 door buttons
+    # TODO: If 2 x 1 then got 6 door. Each door is on room section sides. On saved will be just key name to room path json value
+    # TODO: So when you hover on a button, you can type, what you type appears on the button surf, on enter, it validates if path exists
+    # TODO: Then it just closes the editor with the last selected sprite, because when you select, door limit is drawn at edge automatically
+    # TODO: So if player hits any room edge, use top left, see where it falls, then grab path to load next room, and player offset
+    # TODO: Create the player state machine here
+    # TODO: Create popup to let user know writing data setting first time
 
     SLOW_FADE_DURATION: float = 1000.0
     FAST_FADE_DURATION: float = 250.0
@@ -1818,7 +1825,7 @@ class RoomJsonGenerator:
                 ####################
                 # FOREGROUND STATE #
                 ####################
-
+                # TODO: Bind the selected_sprite_type as key to selected_foreground_layer_collision_map
                 elif selected_sprite_type == "foreground":
                     # Get background layer collision map
                     selected_foreground_layer_collision_map: list[
@@ -2120,8 +2127,10 @@ class RoomJsonGenerator:
 
     def _on_exit_delay_timer_end(self) -> None:
         # Load title screen music. Played in my set state
+        # TODO: Ask should this be schemaed or get set or what? Ask chatgpt
         self.game_music_manager.set_current_music_path(OGGS_PATHS_DICT["xdeviruchi_title_theme.ogg"])
         self.game_music_manager.play_music(-1, 0.0, 0)
+        # TODO: Ask should this be schemaed or get set or what? Ask chatgpt
         self.game.set_scene("MainMenu")
 
     def _on_curtain_invisible(self) -> None:
@@ -3228,6 +3237,7 @@ class RoomJsonGenerator:
             ],
             1,
         )
+        # TODO: How to create a schema for this when value is Rect?
         return {
             "first_rect": first_rect,
             "second_rect": second_rect,
