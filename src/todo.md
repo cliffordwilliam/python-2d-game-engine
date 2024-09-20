@@ -1,6 +1,5 @@
 # refactor
 - [x] ./schemas.py
-    - Check this against the uses, see if the names are okay
     - Create a global error handler, to centralize where exceptions are all thrown (Do not immediately crash also maybe create a log or screen for it)
 - [x] ./actors/player.py
 - [x] ./actors/stage_1_glow.py

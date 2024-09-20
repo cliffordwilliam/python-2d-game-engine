@@ -23,7 +23,7 @@ class Timer:
             self.END: [],
         }
 
-    def add_event_listener(self, value: Callable, event: int) -> None:
+    def add_event_listener(self, callback: Callable, event: int) -> None:
         """
         Subscribe to my events.
         """
@@ -31,7 +31,7 @@ class Timer:
         # The event user is supported?
         if event in self.event_listeners:
             # Collect it
-            self.event_listeners[event].append(value)
+            self.event_listeners[event].append(callback)
         else:
             # Throw error
             raise ValueError(f"Unsupported event type: {event}")

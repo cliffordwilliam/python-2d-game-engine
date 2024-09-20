@@ -232,7 +232,7 @@ class Kinematic:
                             "radius": 3,
                         }
                     )
-                    # Draw normal
+                    # Draw normal TODO: Draw this properly not on offset
                     self.game_debug_draw.add(
                         {
                             "type": "line",

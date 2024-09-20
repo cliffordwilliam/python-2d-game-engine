@@ -4,81 +4,32 @@ from typing import Any
 from jsonschema import validate
 from jsonschema import ValidationError
 
+# Algo determine how dict access is either
+# - some_dict.name
+# - some_dict[self.name]
+
+# Point is to stop doing some_dict["some_key"]
+# And do some_dict.key with auto completion
+# If you need some_dict["some_key"], then make a schema for it
+
+# If no choice need to do some_dict[self.name]
+# Use util set get
+
+# Example
+# PNGS_PATHS_DICT[self.sprite_sheet_png_name]
+# Technically can do PNGS_PATHS_DICT.some_key
+# But usage algo is not like that so use utils
+
 # How schema works
-# This is the same like how you get json res, then you instance a class to represent it
-# So use this to validate dicts, then use their instance after successful validation
-# Schema instance gives you get autocompletion with its prop, no more guessing what keys it has
 
-# Protocol
-# 1. Validate dict with SCHEMA
-# 2. Instance dataclass
-# 3. Use instance just like any other dict but has prop autocompletion
-
-# Protocol Runtime Dict
-# 1. Validate on insertion
-# 2. Validate on access
-# 3. Periodic validation
-# 4. Custom exceptions
+# Protocol like how you get JSON response, then you instance a class to represent it
+# So schema here to validate, then use their instance after successful validation
+# Schema instance gives you autocompletion with its keys
 
 ######################
 # ANIMATION METADATA #
 ######################
 
-# Animation metadata is json in project dir dynamic
-# Generated from animation json generator
-# It has
-# Animation name
-# Animation duration
-# Animation sprite size
-# And more...
-
-# Todo:
-# Validate on saving
-# Update the dynamic path dict
-# Validate on loading
-
-# Example, "thin_fire_animation.json"
-
-# {
-#     "burn": {
-#         "animation_is_loop": 1,
-#         "next_animation_name": "none",
-#         "animation_duration": 50,
-#         "animation_sprite_height": 16,
-#         "animation_sprite_width": 16,
-#         "sprite_sheet_png_name": "thin_fire_sprite_sheet.png",
-#         "animation_sprites_list": [
-#             {
-#                 "x": 0,
-#                 "y": 0
-#             },
-#             {
-#                 "x": 16,
-#                 "y": 0
-#             },
-#         ]
-#     },
-#     "another_animation": {
-#         "animation_is_loop": 1,
-#         "next_animation_name": "none",
-#         "animation_duration": 50,
-#         "animation_sprite_height": 16,
-#         "animation_sprite_width": 16,
-#         "sprite_sheet_png_name": "thin_fire_sprite_sheet.png",
-#         "animation_sprites_list": [
-#             {
-#                 "x": 0,
-#                 "y": 0
-#             },
-#             {
-#                 "x": 16,
-#                 "y": 0
-#             },
-#         ]
-#     }
-# }
-
-# TODO: Use this for validation in saving later
 ANIMATION_SPRITE_METADATA_SCHEMA: dict = {
     "type": "object",
     "properties": {
@@ -90,7 +41,6 @@ ANIMATION_SPRITE_METADATA_SCHEMA: dict = {
         "y",
     ],
 }
-
 ANIMATION_SCHEMA: dict = {
     "type": "object",
     "patternProperties": {
@@ -124,18 +74,12 @@ ANIMATION_SCHEMA: dict = {
 }
 
 
-# Dataclass for ANIMATION_SCHEMA's animation_sprites_list dict members
-#             {
-#                 "x": 0,
-#                 "y": 0
-#             },
 @dataclass
 class AnimationSpriteMetadata:
     x: int
     y: int
 
 
-# Dataclass for ANIMATION_SCHEMA
 @dataclass
 class AnimationMetadata:
     animation_is_loop: int
@@ -147,57 +91,32 @@ class AnimationMetadata:
     animation_sprites_list: list[AnimationSpriteMetadata]
 
 
-# So the dataclass should look like this
-# Dict
-# Keys = animation name strings
-# Values = AnimationMetadata with list[AnimationSpriteMetadata]
-
-
-# Factory method to instance the dataclass
 def instance_animation_metadata(input_dict: dict) -> dict[str, AnimationMetadata]:
     """
-    Factory method, validates dict and returns instance dataclass version of it.
-
-    Input = animation metadata json.
-
-    Output = dict = {
-        "animation_string_name_1": {
-            AnimationMetadata: {
-                "animation_is_loop": 1
-                ...: ...
-                "animation_sprites_list": list[AnimationSpriteMetadata]
-            }
-        },
-        "animation_string_name_2": {
-            AnimationMetadata: {
-                "animation_is_loop": 0
-                ...: ...
-                "animation_sprites_list": list[AnimationSpriteMetadata]
-            }
-        }
-        "animation_string_name_3": ...
-    }
-
-    I Raise invalid given animation dict against schema exception.
+    | Input = animation JSON dict from disk.
+    |
+    | Validate input against schema.
+    | I raise exception on invalid.
+    |
+    | Output = {animation name : AnimationMetadata dataclass instance}
     """
 
-    # Validate the given dict against the schema
+    # Validate against the schema
     if not validate_json(input_dict, ANIMATION_SCHEMA):
         raise ValueError("Invalid given animation dict against schema")
 
-    # Prepare output var
+    # Prepare output {animation name : AnimationMetadata dataclass instance}
     out: dict[
-        str,  # Animation name string (burn, another_animation)
+        str,
         AnimationMetadata,
     ] = {}
 
-    # Given dict is valid here, iter over each animation in it (burn, another_animation, ...)
+    # Iter over each animation name and its metadata
     for animation_name, animation_metadata in input_dict.items():
-        # Instance and populate each animation_sprites_list member first
+        # Instance and populate each animation sprite members first
         sprites_list = [
             AnimationSpriteMetadata(x=sprite["x"], y=sprite["y"]) for sprite in animation_metadata["animation_sprites_list"]
         ]
-
         # Then construct the whole AnimationMetadata instance
         out[animation_name] = AnimationMetadata(
             animation_is_loop=animation_metadata["animation_is_loop"],
@@ -209,57 +128,13 @@ def instance_animation_metadata(input_dict: dict) -> dict[str, AnimationMetadata
             animation_sprites_list=sprites_list,
         )
 
-    # Output is complete here, return it
+    # Return output
     return out
 
 
 #########################
 # SPRITE SHEET METADATA #
 #########################
-
-# Sprite sheet metadata is json in project dir dynamic
-# Generated from sprite sheet json generator
-# It has
-# Sprite sheet png name
-# Sprite room map body color (for minimap)
-# Sprites list (sprite name, layer, width, topleft, and more...)
-# And more
-
-# Todo:
-# Validate on saving
-# Update the dynamic path dict
-# Validate on loading
-
-# Example, this is "stage_1_sprite_sheet_metadata.json"
-
-# {
-#     "sprite_sheet_png_name": "stage_1_sprite_sheet.png",
-#     "sprite_room_map_body_color": "#492a1e",
-#     "sprite_room_map_sub_division_color": "#5a3729",
-#     "sprite_room_map_border_color": "#e5e3bc",
-#     "sprites_list": [
-#         {
-#             "sprite_name": "sky",
-#             "sprite_layer": 1,
-#             "sprite_tile_type": "none",
-#             "sprite_type": "parallax_background",
-#             "sprite_is_tile_mix": 0,
-#             "width": 320,
-#             "height": 128,
-#             "x": 0,
-#             "y": 0
-#         },
-#         {
-#             "sprite_name": "clouds",
-#             "sprite_layer": 2,
-#             "sprite_tile_type": "none",
-#             "sprite_type": "parallax_background",
-#             "sprite_is_tile_mix": 0,
-#             "width": 320,
-#             "height": 160,
-#             "x": 0,
-#             "y": 128
-#         },
 
 SPRITE_METADATA_SCHEMA = {
     "type": "object",
@@ -311,18 +186,6 @@ SPRITE_SHEET_METADATA_SCHEMA = {
 }
 
 
-# Dataclass for SPRITE_SHEET_METADATA_SCHEMA's sprites_list dict memebers
-#         {
-#             "sprite_name": "sky",
-#             "sprite_layer": 1,
-#             "sprite_tile_type": "none",
-#             "sprite_type": "parallax_background",
-#             "sprite_is_tile_mix": 0,
-#             "width": 320,
-#             "height": 128,
-#             "x": 0,
-#             "y": 0
-#         },
 @dataclass
 class SpriteMetadata:
     sprite_name: str
@@ -336,7 +199,6 @@ class SpriteMetadata:
     y: int
 
 
-# Dataclass for SPRITE_SHEET_METADATA_SCHEMA
 @dataclass
 class SpriteSheetMetadata:
     sprite_sheet_png_name: str
@@ -346,28 +208,25 @@ class SpriteSheetMetadata:
     sprites_list: list[SpriteMetadata]
 
 
-# So the dataclass should look like this
-# Dataclass instance
-# SpriteSheetMetadata with list[SpriteMetadata]
-
-
-# Factory method to instance the dataclass
 def instance_sprite_sheet_metadata(input_dict: dict) -> SpriteSheetMetadata:
     """
-    Factory method, validates dict and returns instance dataclass version of it.
-
-    Input = sprite sheet metadata json.
-
-    Output = SpriteSheetMetadata with list[SpriteMetadata].
-
-    I Raise invalid sprite sheet dict against schema exception.
+    | Input = sprite sheet JSON dict from disk.
+    |
+    | Validate input against schema.
+    | I raise exception on invalid.
+    |
+    | Output = SpriteSheetMetadata dataclass instance
     """
 
-    # Validate the given dict against the schema
+    # Validate against the schema
     if not validate_json(input_dict, SPRITE_SHEET_METADATA_SCHEMA):
         raise ValueError("Invalid sprite sheet dict against schema")
+        # TODO: Do this later
+        # raise ValueError("An exception has occured.")
+        # File "path/to/file.extension", line number
+        # See traceback.txt for details.
 
-    # Given dict is valid here, construct the whole instance
+    # Construct the whole instance and return it
     return SpriteSheetMetadata(
         sprite_sheet_png_name=input_dict["sprite_sheet_png_name"],
         sprite_room_map_body_color=input_dict["sprite_room_map_body_color"],
@@ -392,20 +251,19 @@ def instance_sprite_sheet_metadata(input_dict: dict) -> SpriteSheetMetadata:
 
 def instance_sprite_metadata(input_dict: dict) -> SpriteMetadata:
     """
-    Factory method, validates dict and returns instance dataclass version of it.
-
-    Input = sprite sheet's sprite metadata json.
-
-    Output = SpriteMetadata.
-
-    I Raise invalid sprite dict against schema exception.
+    | Input = sprite JSON dict from disk.
+    |
+    | Validate input against schema.
+    | I raise exception on invalid.
+    |
+    | Output = SpriteMetadata dataclass instance
     """
 
-    # Validate the given dict against the schema
+    # Validate against the schema
     if not validate_json(input_dict, SPRITE_METADATA_SCHEMA):
         raise ValueError("Invalid sprite dict against schema")
 
-    # Given dict is valid here, construct the whole instance
+    # Construct the whole instance and return it
     return SpriteMetadata(
         sprite_name=input_dict["sprite_name"],
         sprite_layer=input_dict["sprite_layer"],
@@ -422,39 +280,6 @@ def instance_sprite_metadata(input_dict: dict) -> SpriteMetadata:
 #################
 # USER SETTINGS #
 #################
-
-# Settings is json in user OS dir dynamic
-# Generated from game
-# It has
-# Resolution index
-# Resolution scale
-# Up (input mapping)
-# Down (input mapping)
-# And more...
-
-# Todo:
-# Validate on saving
-# Update the dynamic path dict
-# Validate on loading
-
-# Example, there can be only 1 of this stored in OS context sensitive dir
-# Linux: /home/.config/python_2d_game_engine/settings.json
-
-# {
-#     "resolution_index": 2,
-#     "resolution_scale": 3,
-#     "up": 1073741906,
-#     "down": 1073741905,
-#     "left": 1073741904,
-#     "right": 1073741903,
-#     "enter": 13,
-#     "pause": 27,
-#     "jump": 99,
-#     "attack": 120,
-#     "lmb": 1,
-#     "mmb": 2,
-#     "rmb": 3
-# }
 
 SETTINGS_SCHEMA = {
     "type": "object",
@@ -495,6 +320,7 @@ SETTINGS_SCHEMA = {
 
 
 # TODO: Use this in place of dict after settings dict validation
+# TODO: Update with set get, then re create dataclass instance
 @dataclass
 class Settings:
     resolution_index: int
@@ -517,30 +343,6 @@ class Settings:
 # NONE OR BLOB SPRITE METADATA #
 ################################
 
-# None or blob sprite metadata is dict in room editor
-# Created and stored in collision map list
-# It has
-# Sprite name
-# Sprite x and y world coord
-# Sprirte x and y sprite sheet region coord
-
-# Todo:
-# Validate on reading collision data
-# Validate on storing collision data
-
-# Example, on lmb pressed blob tile type
-
-# new_none_or_blob_sprite_metadata_dict: dict = {
-#     "name": selected_sprite_name,
-#     "type": self.sprite_name_to_sprite_metadata[self.selected_sprite_name].sprite_type,
-#     "x": world_snapped_x,
-#     "y": world_snapped_y,
-#     "region_x": selected_sprite_x,
-#     "region_y": selected_sprite_y,
-# }
-
-# TODO: Rename this? I think this is for blob only
-
 NONE_OR_BLOB_SPRITE_METADATA_SCHEMA = {
     "type": "object",
     "properties": {
@@ -560,7 +362,6 @@ NONE_OR_BLOB_SPRITE_METADATA_SCHEMA = {
 }
 
 
-# Dataclass for NONE_OR_BLOB_SPRITE_METADATA_SCHEMA, collision map item
 @dataclass
 class NoneOrBlobSpriteMetadata:
     name: str
@@ -573,20 +374,19 @@ class NoneOrBlobSpriteMetadata:
 
 def instance_none_or_blob_sprite_metadata(input_dict: dict) -> NoneOrBlobSpriteMetadata:
     """
-    Factory method, validates dict and returns instance dataclass version of it.
-
-    Input = dict for collision map item.
-
-    Output = NoneOrBlobSpriteMetadata.
-
-    I Raise invalid sprite dict against schema exception.
+    | Input = object like dict item member in collision map list.
+    |
+    | Validate input against schema.
+    | I raise exception on invalid.
+    |
+    | Output = NoneOrBlobSpriteMetadata dataclass instance
     """
 
-    # Validate first
+    # Validate against the schema
     if not validate_json(input_dict, NONE_OR_BLOB_SPRITE_METADATA_SCHEMA):
         raise ValueError("Invalid sprite dict against schema")
 
-    # If safe then create instance
+    # Construct the whole instance and return it
     return NoneOrBlobSpriteMetadata(
         name=input_dict["name"],
         type=input_dict["type"],
@@ -600,24 +400,6 @@ def instance_none_or_blob_sprite_metadata(input_dict: dict) -> NoneOrBlobSpriteM
 ##########################
 # ADJACENT TILE METADATA #
 ##########################
-
-# Adjacent tile metadata is dict in room editor
-# Created in the get adjacent tile helper private func
-# It has
-# Tile
-# World coord x and y
-
-# Todo:
-# Validate on making in func
-# Validate on receiving from func
-
-# Example, inside the func _get_adjacent_tiles
-
-# adjacent_tile_dict: dict = {
-#     "tile": tile.name,
-#     "world_tu_x": adjacent_x,
-#     "world_tu_y": adjacent_y,
-# }
 
 ADJACENT_TILE_METADATA_SCHEMA = {
     "type": "object",
@@ -634,7 +416,6 @@ ADJACENT_TILE_METADATA_SCHEMA = {
 }
 
 
-# Dataclass for ADJACENT_TILE_METADATA_SCHEMA, _get_adjacent_tiles func output
 @dataclass
 class AdjacentTileMetadata:
     tile: str
@@ -644,20 +425,19 @@ class AdjacentTileMetadata:
 
 def instance_adjacent_tile_metadata(input_dict: dict) -> AdjacentTileMetadata:
     """
-    Factory method, validates dict and returns instance dataclass version of it.
-
-    Input = dict for _get_adjacent_tiles helper func output.
-
-    Output = NoneOrBlobSpriteMetadata.
-
-    I Raise invalid sprite dict against schema exception.
+    | Input = object like dict from _get_adjacent_tiles helper func output.
+    |
+    | Validate input against schema.
+    | I raise exception on invalid.
+    |
+    | Output = AdjacentTileMetadata dataclass instance
     """
 
-    # Validate first
+    # Validate against the schema
     if not validate_json(input_dict, ADJACENT_TILE_METADATA_SCHEMA):
         raise ValueError("Invalid sprite dict against schema")
 
-    # If safe then create instance
+    # Construct the whole instance and return it
     return AdjacentTileMetadata(
         tile=input_dict["tile"],
         world_tu_x=input_dict["world_tu_x"],
@@ -667,11 +447,8 @@ def instance_adjacent_tile_metadata(input_dict: dict) -> AdjacentTileMetadata:
 
 def validate_json(input_dict: dict, schema: Any) -> bool:
     """
-    Check if a dict is valid against a schema.
-
-    Input: dict and schema.
-
-    Output: boolean.
+    | Validate input dict against schema.
+    | Returns boolean.
     """
 
     try:
@@ -680,44 +457,3 @@ def validate_json(input_dict: dict, schema: Any) -> bool:
     except ValidationError as e:
         print(f"Validation error: {e.message}")
         return False
-
-
-##################################
-# SPRITE NAME TO SPRITE METADATA #
-##################################
-
-# Used in room_json_generator.py
-# Key sprite name str : value SpriteMetadata
-# Used for selected button state.
-
-# {
-#     "sky": {
-#             "sprite_name": "sky",
-#             "sprite_layer": 1,
-#             "sprite_tile_type": "none",
-#             "sprite_type": "parallax_background",
-#             "sprite_is_tile_mix": 0,
-#             "width": 320,
-#             "height": 128,
-#             "x": 0,
-#             "y": 0
-#     },
-#     "fdsfds": {
-#             "sprite_name": "asdsda",
-#             "sprite_layer": 4321,
-#             "sprite_tile_type": "none",
-#             "sprite_type": "dsadsadsa",
-#             "sprite_is_tile_mix": 0,
-#             "width": 321321,
-#             "height": 321321,
-#             "x": 0,
-#             "y": 0
-#     }
-# }
-
-
-SPRITE_NAME_TO_SPRITE_METADATA_SCHEMA: dict = {
-    "type": "object",
-    "patternProperties": {"^[a-zA-Z0-9_]+$": SPRITE_METADATA_SCHEMA},
-    "additionalProperties": False,
-}

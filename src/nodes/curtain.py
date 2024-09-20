@@ -104,17 +104,18 @@ class Curtain:
         # Set is done true
         self.is_done = False
 
-    def add_event_listener(self, value: Callable, event: int) -> None:
+    def add_event_listener(self, callback: Callable, event: int) -> None:
         """
-        Subscribe to my events.
+        | Subscribe to my events.
+        | Raise exception if passed event is unsupported.
         """
 
-        # The event user is supported?
+        # Given event is supported?
         if event in self.event_listeners:
             # Collect it
-            self.event_listeners[event].append(value)
+            self.event_listeners[event].append(callback)
         else:
-            # Throw error
+            # Raise exception
             raise ValueError(f"Unsupported event type: {event}")
 
     def jump_to_opaque(self) -> None:

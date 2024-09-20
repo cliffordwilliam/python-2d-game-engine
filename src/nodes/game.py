@@ -141,15 +141,15 @@ class Game:
     def get_sprite_sheet_static_actor_jsons_dict(self, stage_sprite_sheet_name: str) -> dict[str, dict[str, AnimationMetadata]]:
         """
         | Stage sprite sheet name is key
-        | Key for a dict filled with {actor names : json names}
+        | Key for a dict filled with {actor names : JSON names}
         |
         | Raises exception if passed stage sprite sheet name is invalid
         |
-        | I turn {actor names : json names} into {actor names : {animation names : metadata}} as output
+        | I turn {actor names : JSON names} into {actor names : {animation names : metadata}} as output
         """
 
-        # {actor names : json names}
-        data: dict[str, str] = get_one_target_dict_value(
+        # {actor names : JSON names}
+        actor_name_to_json_name_dict: dict[str, str] = get_one_target_dict_value(
             stage_sprite_sheet_name,
             self.sprite_sheet_static_actor_jsons_dict,
             "self.sprite_sheet_static_actor_jsons_dict",
@@ -158,18 +158,18 @@ class Game:
         # Prepare {actor names : {animation names: metadata}}
         out: dict[str, dict[str, AnimationMetadata]] = {}
 
-        # Iter {actor names : json names}
-        for actor_name, json_name in data.items():
-            # Turn json names into json paths
+        # Iter {actor names : JSON names}
+        for actor_name, json_name in actor_name_to_json_name_dict.items():
+            # Turn JSON names into JSON paths
             existing_json_dynamic_path: str = get_one_target_dict_value(
                 json_name,
                 self.jsons_repo_pahts_dict,
                 "self.jsons_repo_pahts_dict",
             )
-            # Turn json path into JSON dict (taken from disk)
-            data = self.GET_file_from_disk_dynamic_path(existing_json_dynamic_path)
-            # Convert JSON dict to dataclass (metadata)
-            out[actor_name] = instance_animation_metadata(data)
+            # Turn JSON path into JSON dict (taken from disk)
+            json_dict: dict = self.GET_file_from_disk_dynamic_path(existing_json_dynamic_path)
+            # Convert JSON dict to dataclass (metadata), populate out
+            out[actor_name] = instance_animation_metadata(json_dict)
         # Return {actor names : {animation names: metadata}}
         return out
 
@@ -246,7 +246,7 @@ class Game:
                 self.get_local_settings_dict(),
             )
 
-    def GET_file_from_disk_dynamic_path(self, existing_dynamic_path_dict_value: str) -> Any:
+    def GET_file_from_disk_dynamic_path(self, existing_dynamic_path_dict_value: str) -> dict:
         """
         | Makes sure path is in dynamic paths {json names : json paths}.
         | Raises exception on invalid key.

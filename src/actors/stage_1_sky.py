@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING
 
+from actors.parallax_background import ParallaxBackground
 from constants import NATIVE_HEIGHT
 from constants import NATIVE_WIDTH
 from constants import pg
@@ -11,11 +12,12 @@ if TYPE_CHECKING:
 
 
 @typechecked
-class Stage1Sky:
+class Stage1Sky(ParallaxBackground):
     """
-    Too confusing to make a single parallax background class
-    So a parallax background is an actor like goblin or fire
-    This way it is more flexible to do things
+    Actor that only draws itself with scaled offset.
+    Instanced during room data reading.
+
+    TODO: Add the features below later with parent update method
     Like opacity changing when player gets closer to the right
     Or if it moves on its own like elevator or moving train
     """
@@ -30,32 +32,31 @@ class Stage1Sky:
         sprite_x: int,
         sprite_y: int,
     ):
-        # Load and instanced the sprite sheet and camera for me to use here
-        self.sprite_sheet_surf: pg.Surface = sprite_sheet_surf
-        self.camera: "Camera" = camera
-
-        # My constants metadata
-        self.sprite_name: str = sprite_name
-        self.sprite_width: int = sprite_width
-        self.sprite_height: int = sprite_height
-        self.sprite_x: int = sprite_x
-        self.sprite_y: int = sprite_y
-
-        # Flexible for me to set however this is going to be
-        self.draw_scale_x: float = 0.05
-        self.draw_scale_y: float = 0.0
-        self.sprite_region: tuple[int, int, int, int] = (
-            self.sprite_x,
-            self.sprite_y,
-            self.sprite_width,
-            self.sprite_height,
+        super().__init__(
+            sprite_sheet_surf=sprite_sheet_surf,
+            camera=camera,
+            sprite_name=sprite_name,
+            sprite_width=sprite_width,
+            sprite_height=sprite_height,
+            sprite_x=sprite_x,
+            sprite_y=sprite_y,
+            draw_scale_x=0.05,
+            draw_scale_y=0.0,
         )
 
-        # Make my surf
-        self.surf: pg.Surface = pg.Surface((NATIVE_WIDTH, NATIVE_HEIGHT))
-        # Draw on it, construct the whole thing here by stamping the regions
-        self.surf.fill("#1f2b47")
-        self.surf.blit(
+    def construct_base_surface(self) -> pg.Surface:
+        """
+        | Creates the surface to be used for drawing.
+        | Can be extended or overridden in child classes.
+        | Children must have this method.
+        """
+
+        # Make surf
+        surf: pg.Surface = pg.Surface((NATIVE_WIDTH, NATIVE_HEIGHT))
+        # Fill surf with sky background color
+        surf.fill("#1f2b47")
+        # Stamp stars and moon sprite regions on surf
+        surf.blit(
             self.sprite_sheet_surf,
             (
                 0,
@@ -63,6 +64,8 @@ class Stage1Sky:
             ),
             self.sprite_region,
         )
+        # Return surf to be my prop
+        return surf
 
     def draw(
         self, blit_sequence: list[tuple[pg.Surface, tuple[float, float]]]
@@ -71,11 +74,15 @@ class Stage1Sky:
         tuple[pg.Surface, tuple[float, float]]
     ]:
         """
-        This takes existing blit sequence, adds my surf pre renders to it and returns it.
+        | Takes existing blit sequence, adds my surf pre renders to it and returns it.
+        | Can be extended or overridden in child classes.
+        | Children must have this method.
         """
 
+        # Get scaled x draw offset position
         x = (-self.camera.rect.x * self.draw_scale_x) % NATIVE_WIDTH
 
+        # Add surf on scaled draw offset position to blit sequence
         blit_sequence.extend(
             [
                 # Bottom Right
@@ -97,4 +104,5 @@ class Stage1Sky:
             ]
         )
 
+        # Return blit sequence
         return blit_sequence
