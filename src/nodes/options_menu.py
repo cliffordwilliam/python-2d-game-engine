@@ -15,6 +15,7 @@ from nodes.curtain import Curtain
 from nodes.state_machine import StateMachine
 from nodes.timer import Timer
 from typeguard import typechecked
+from utils import get_one_target_dict_value
 
 
 if TYPE_CHECKING:
@@ -227,7 +228,7 @@ class OptionsMenu:
             "< fullscreen >",
         ]
         self.resolution_texts_len: int = len(self.resolution_texts)
-        local_settings_dict_resolution_index = self.game.get_one_local_settings_dict_value("resolution_index")
+        local_settings_dict_resolution_index = self.game.local_settings_metadata_instance.resolution_index
         self.resolution_text: str = self.resolution_texts[local_settings_dict_resolution_index]
         self.resolution_text_rect: pg.Rect = FONT.get_rect(self.resolution_text)
         self.resolution_text_rect.topright = self.resolution_button.rect.topright
@@ -243,7 +244,7 @@ class OptionsMenu:
         )
 
         # Up input text
-        local_settings_dict_up = self.game.get_one_local_settings_dict_value("up")
+        local_settings_dict_up = self.game.local_settings_metadata_instance.up
         self.up_input_text: str = pg.key.name(local_settings_dict_up)
         self.up_input_text_rect: pg.Rect = FONT.get_rect(self.up_input_text)
         self.up_input_text_rect.topright = self.up_input_button.rect.topright
@@ -259,7 +260,7 @@ class OptionsMenu:
         )
 
         # Down input text
-        local_settings_dict_down = self.game.get_one_local_settings_dict_value("down")
+        local_settings_dict_down = self.game.local_settings_metadata_instance.down
         self.down_input_text: str = pg.key.name(local_settings_dict_down)
         self.down_input_text_rect: pg.Rect = FONT.get_rect(self.down_input_text)
         self.down_input_text_rect.topright = self.down_input_button.rect.topright
@@ -275,7 +276,7 @@ class OptionsMenu:
         )
 
         # Left input text
-        local_settings_dict_left = self.game.get_one_local_settings_dict_value("left")
+        local_settings_dict_left = self.game.local_settings_metadata_instance.left
         self.left_input_text: str = pg.key.name(local_settings_dict_left)
         self.left_input_text_rect: pg.Rect = FONT.get_rect(self.left_input_text)
         self.left_input_text_rect.topright = self.left_input_button.rect.topright
@@ -291,7 +292,7 @@ class OptionsMenu:
         )
 
         # Right input text
-        local_settings_dict_right = self.game.get_one_local_settings_dict_value("right")
+        local_settings_dict_right = self.game.local_settings_metadata_instance.right
         self.right_input_text: str = pg.key.name(local_settings_dict_right)
         self.right_input_text_rect: pg.Rect = FONT.get_rect(self.right_input_text)
         self.right_input_text_rect.topright = self.right_input_button.rect.topright
@@ -307,7 +308,7 @@ class OptionsMenu:
         )
 
         # Enter input text
-        local_settings_dict_enter = self.game.get_one_local_settings_dict_value("enter")
+        local_settings_dict_enter = self.game.local_settings_metadata_instance.enter
         self.enter_input_text: str = pg.key.name(local_settings_dict_enter)
         self.enter_input_text_rect: pg.Rect = FONT.get_rect(self.enter_input_text)
         self.enter_input_text_rect.topright = self.enter_input_button.rect.topright
@@ -323,7 +324,7 @@ class OptionsMenu:
         )
 
         # Pause input text
-        local_settings_dict_pause = self.game.get_one_local_settings_dict_value("pause")
+        local_settings_dict_pause = self.game.local_settings_metadata_instance.pause
         self.pause_input_text: str = pg.key.name(local_settings_dict_pause)
         self.pause_input_text_rect: pg.Rect = FONT.get_rect(self.pause_input_text)
         self.pause_input_text_rect.topright = self.pause_input_button.rect.topright
@@ -339,7 +340,7 @@ class OptionsMenu:
         )
 
         # Jump input text
-        local_settings_dict_jump = self.game.get_one_local_settings_dict_value("jump")
+        local_settings_dict_jump = self.game.local_settings_metadata_instance.jump
         self.jump_input_text: str = pg.key.name(local_settings_dict_jump)
         self.jump_input_text_rect: pg.Rect = FONT.get_rect(self.jump_input_text)
         self.jump_input_text_rect.topright = self.jump_input_button.rect.topright
@@ -355,7 +356,7 @@ class OptionsMenu:
         )
 
         # Attack input text
-        local_settings_dict_attack = self.game.get_one_local_settings_dict_value("attack")
+        local_settings_dict_attack = self.game.local_settings_metadata_instance.attack
         self.attack_input_text: str = pg.key.name(local_settings_dict_attack)
         self.attack_input_text_rect: pg.Rect = FONT.get_rect(self.attack_input_text)
         self.attack_input_text_rect.topright = self.attack_input_button.rect.topright
@@ -528,14 +529,14 @@ class OptionsMenu:
             if dir == 0:
                 return
             # Get new resolution index value with dir
-            local_settings_dict_resolution_index = self.game.get_one_local_settings_dict_value("resolution_index")
+            local_settings_dict_resolution_index = self.game.local_settings_metadata_instance.resolution_index
             new_resolution_index_value = local_settings_dict_resolution_index + dir
             # Module wrap it
             new_resolution_index_value = new_resolution_index_value % self.resolution_texts_len
             # Update game real window, window prop and local settings with new resolution value
             self.game.set_resolution_index(new_resolution_index_value)
             # Update my front end ui with new game resolution
-            local_settings_dict_resolution_index = self.game.get_one_local_settings_dict_value("resolution_index")
+            local_settings_dict_resolution_index = self.game.local_settings_metadata_instance.resolution_index
             self._update_input_text_front_end_ui(
                 self.resolution_button,
                 self.resolution_texts[local_settings_dict_resolution_index],
@@ -567,7 +568,12 @@ class OptionsMenu:
                 key_name = self.focused_button.text.split()[0]
 
                 # Update game local settings input
-                self.game.set_one_local_settings_dict_value(key_name, self.game_event_handler.this_frame_event.key)
+                self.game.set_one_local_settings_dict_value(
+                    key=key_name,
+                    key_type=str,
+                    val=self.game_event_handler.this_frame_event.key,
+                    val_type=int,
+                )
 
                 # Update input text front-end ui
                 self._update_input_text_front_end_ui(
@@ -657,8 +663,14 @@ class OptionsMenu:
         # Apply button selected?
         if self.apply_button == self.selected_button:
             # Overwrite disk with game local settings
+            settings_json_path: str = get_one_target_dict_value(
+                key=SETTINGS_FILE_NAME,
+                key_type=str,
+                target_dict=self.game.jsons_user_pahts_dict,
+                target_dict_name="self.game.jsons_user_pahts_dict",
+            )
             self.game.PATCH_file_to_disk_dynamic_path(
-                self.game.jsons_user_pahts_dict[SETTINGS_FILE_NAME],
+                settings_json_path,
                 self.game.get_local_settings_dict(),
             )
 
@@ -716,13 +728,13 @@ class OptionsMenu:
         """
 
         # Remember the old, no need to update window and local settings if the same
-        old_local_settings_dict_resolution_index = self.game.get_one_local_settings_dict_value("resolution_index")
+        old_local_settings_dict_resolution_index = self.game.local_settings_metadata_instance.resolution_index
 
         # Read disk and update game local settings
-        self.game.GET_or_POST_settings_json_from_disk()
+        self.game.GET_or_POST_settings_json_from_or_to_disk()
 
         # Get resolution index
-        local_settings_dict_resolution_index = self.game.get_one_local_settings_dict_value("resolution_index")
+        local_settings_dict_resolution_index = self.game.local_settings_metadata_instance.resolution_index
 
         # Old and new was different? Then resolution was updated by player in settings
         if old_local_settings_dict_resolution_index != local_settings_dict_resolution_index:
@@ -732,14 +744,14 @@ class OptionsMenu:
         # Update ui text
         button_settings = {
             self.resolution_button: self.resolution_texts[local_settings_dict_resolution_index],
-            self.up_input_button: pg.key.name(self.game.get_one_local_settings_dict_value("up")),
-            self.down_input_button: pg.key.name(self.game.get_one_local_settings_dict_value("down")),
-            self.left_input_button: pg.key.name(self.game.get_one_local_settings_dict_value("left")),
-            self.right_input_button: pg.key.name(self.game.get_one_local_settings_dict_value("right")),
-            self.enter_input_button: pg.key.name(self.game.get_one_local_settings_dict_value("enter")),
-            self.pause_input_button: pg.key.name(self.game.get_one_local_settings_dict_value("pause")),
-            self.jump_input_button: pg.key.name(self.game.get_one_local_settings_dict_value("jump")),
-            self.attack_input_button: pg.key.name(self.game.get_one_local_settings_dict_value("attack")),
+            self.up_input_button: pg.key.name(self.game.local_settings_metadata_instance.up),
+            self.down_input_button: pg.key.name(self.game.local_settings_metadata_instance.down),
+            self.left_input_button: pg.key.name(self.game.local_settings_metadata_instance.left),
+            self.right_input_button: pg.key.name(self.game.local_settings_metadata_instance.right),
+            self.enter_input_button: pg.key.name(self.game.local_settings_metadata_instance.enter),
+            self.pause_input_button: pg.key.name(self.game.local_settings_metadata_instance.pause),
+            self.jump_input_button: pg.key.name(self.game.local_settings_metadata_instance.jump),
+            self.attack_input_button: pg.key.name(self.game.local_settings_metadata_instance.attack),
         }
         for button_instance, button_text in button_settings.items():
             self._update_input_text_front_end_ui(

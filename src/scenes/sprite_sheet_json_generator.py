@@ -373,11 +373,11 @@ class SpriteSheetJsonGenerator:
         mouse_position_x_tuple: int = mouse_position_tuple[0]
         mouse_position_y_tuple: int = mouse_position_tuple[1]
         # Scale mouse position
-        mouse_position_x_tuple_scaled: int | float = mouse_position_x_tuple // self.game.get_one_local_settings_dict_value(
-            "resolution_scale"
+        mouse_position_x_tuple_scaled: int | float = (
+            mouse_position_x_tuple // self.game.local_settings_metadata_instance.resolution_scale
         )
-        mouse_position_y_tuple_scaled: int | float = mouse_position_y_tuple // self.game.get_one_local_settings_dict_value(
-            "resolution_scale"
+        mouse_position_y_tuple_scaled: int | float = (
+            mouse_position_y_tuple // self.game.local_settings_metadata_instance.resolution_scale
         )
         # Keep mouse inside scaled NATIVE_RECT
         mouse_position_x_tuple_scaled = clamp(
@@ -453,11 +453,11 @@ class SpriteSheetJsonGenerator:
             mouse_position_x_tuple: int = mouse_position_tuple[0]
             mouse_position_y_tuple: int = mouse_position_tuple[1]
             # Scale mouse position
-            mouse_position_x_tuple_scaled: int | float = mouse_position_x_tuple // self.game.get_one_local_settings_dict_value(
-                "resolution_scale"
+            mouse_position_x_tuple_scaled: int | float = (
+                mouse_position_x_tuple // self.game.local_settings_metadata_instance.resolution_scale
             )
-            mouse_position_y_tuple_scaled: int | float = mouse_position_y_tuple // self.game.get_one_local_settings_dict_value(
-                "resolution_scale"
+            mouse_position_y_tuple_scaled: int | float = (
+                mouse_position_y_tuple // self.game.local_settings_metadata_instance.resolution_scale
             )
             # Keep mouse inside scaled NATIVE_RECT
             mouse_position_x_tuple_scaled = clamp(
@@ -853,8 +853,11 @@ class SpriteSheetJsonGenerator:
                     # Validate the JSON before write to disk
                     if not validate_json(self.local_sprite_json, SPRITE_SHEET_METADATA_SCHEMA):
                         raise ValueError("Invalid sprite sheet json against schema")
+                    # Get settings_json_path
+                    settings_json_path: str = join(JSONS_REPO_DIR_PATH, f"{self.file_name}.json")
+                    # POST to disk. SAVE local_sprite_json to disk
                     self.game.POST_file_to_disk_dynamic_path(
-                        join(JSONS_REPO_DIR_PATH, f"{self.file_name}.json"),
+                        settings_json_path,
                         self.local_sprite_json,
                     )
                     self.game_music_manager.fade_out_music(int(self.curtain.fade_duration))
@@ -1161,7 +1164,7 @@ class SpriteSheetJsonGenerator:
         self.input_rect.center = NATIVE_RECT.center
 
     def _set_prompt_text(self, value: str) -> None:
-        local_settings_dict_enter = pg.key.name(self.game.get_one_local_settings_dict_value("enter"))
+        local_settings_dict_enter = pg.key.name(self.game.local_settings_metadata_instance.enter)
         self.prompt_text = f"{value} " f"hit {local_settings_dict_enter} " "to proceed"
         self.prompt_rect = FONT.get_rect(self.prompt_text)
         self.prompt_rect.center = NATIVE_RECT.center

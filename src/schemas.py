@@ -9,11 +9,12 @@ from jsonschema import ValidationError
 # - some_dict[self.name]
 
 # Point is to stop doing some_dict["some_key"]
-# And do some_dict.key with auto completion
-# If you need some_dict["some_key"], then make a schema for it
+# I want to do some_dict.key with auto completion
 
-# If no choice need to do some_dict[self.name]
+# But if you still have to use some_dict[self.name] dynamic access
 # Use util set get
+# If you know dict prop, use schema dataclass instance. some_dict.some_key
+# But on local settings dict, use the game get set method API
 
 # Example
 # PNGS_PATHS_DICT[self.sprite_sheet_png_name]
@@ -281,7 +282,7 @@ def instance_sprite_metadata(input_dict: dict) -> SpriteMetadata:
 # USER SETTINGS #
 #################
 
-SETTINGS_SCHEMA = {
+SETTINGS_METADATA_SCHEMA = {
     "type": "object",
     "properties": {
         "resolution_index": {"type": "integer", "minimum": 0},
@@ -322,7 +323,7 @@ SETTINGS_SCHEMA = {
 # TODO: Use this in place of dict after settings dict validation
 # TODO: Update with set get, then re create dataclass instance
 @dataclass
-class Settings:
+class SettingsMetadata:
     resolution_index: int
     resolution_scale: int
     up: int
@@ -337,6 +338,39 @@ class Settings:
     lmb: int
     mmb: int
     rmb: int
+
+
+def instance_settings_metadata(input_dict: dict) -> SettingsMetadata:
+    """
+    | Input = sprite JSON dict from disk.
+    |
+    | Validate input against schema.
+    | I raise exception on invalid.
+    |
+    | Output = SettingsMetadata dataclass instance
+    """
+
+    # Validate against the schema
+    if not validate_json(input_dict, SETTINGS_METADATA_SCHEMA):
+        raise ValueError("Invalid sprite dict against schema")
+
+    # Construct the whole instance and return it
+    return SettingsMetadata(
+        resolution_index=input_dict["resolution_index"],
+        resolution_scale=input_dict["resolution_scale"],
+        up=input_dict["up"],
+        down=input_dict["down"],
+        left=input_dict["left"],
+        right=input_dict["right"],
+        enter=input_dict["enter"],
+        pause=input_dict["pause"],
+        jump=input_dict["jump"],
+        attack=input_dict["attack"],
+        # REMOVE IN BUILD
+        lmb=input_dict["lmb"],
+        mmb=input_dict["mmb"],
+        rmb=input_dict["rmb"],
+    )
 
 
 ################################
@@ -442,6 +476,50 @@ def instance_adjacent_tile_metadata(input_dict: dict) -> AdjacentTileMetadata:
         tile=input_dict["tile"],
         world_tu_x=input_dict["world_tu_x"],
         world_tu_y=input_dict["world_tu_y"],
+    )
+
+
+##########################
+# BINARY MAP OFFSET ITEM #
+##########################
+
+BINARY_MAP_OFFSET_ITEM_METADATA_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "x": {"type": "integer", "minimum": 0},
+        "y": {"type": "integer", "minimum": 0},
+    },
+    "required": [
+        "x",
+        "y",
+    ],
+}
+
+
+@dataclass
+class BinaryMapOffsetItemMetadata:
+    x: int
+    y: int
+
+
+def instance_binary_map_offset_item_metadata(input_dict: dict) -> BinaryMapOffsetItemMetadata:
+    """
+    | Input = object like dict from _get_adjacent_tiles helper func output.
+    |
+    | Validate input against schema.
+    | I raise exception on invalid.
+    |
+    | Output = BinaryMapOffsetItemMetadata dataclass instance
+    """
+
+    # Validate against the schema
+    if not validate_json(input_dict, BINARY_MAP_OFFSET_ITEM_METADATA_SCHEMA):
+        raise ValueError("Invalid sprite dict against schema")
+
+    # Construct the whole instance and return it
+    return BinaryMapOffsetItemMetadata(
+        x=input_dict["x"],
+        y=input_dict["y"],
     )
 
 

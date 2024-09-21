@@ -3,6 +3,7 @@ from json import load
 from os.path import join
 from typing import Any
 
+from actors.parallax_background import ParallaxBackground
 from actors.stage_1_clouds import Stage1Clouds
 from actors.stage_1_colonnade import Stage1Colonnade
 from actors.stage_1_glow import Stage1Glow
@@ -34,7 +35,9 @@ from scenes.sprite_sheet_json_generator import SpriteSheetJsonGenerator
 from scenes.title_screen import TitleScreen
 from schemas import AnimationMetadata
 from schemas import instance_animation_metadata
-from schemas import SETTINGS_SCHEMA
+from schemas import instance_settings_metadata
+from schemas import SETTINGS_METADATA_SCHEMA
+from schemas import SettingsMetadata
 from schemas import validate_json
 from typeguard import typechecked
 from utils import create_paths_dict
@@ -44,8 +47,10 @@ from utils import get_one_target_dict_value
 @typechecked
 class Game:
     def __init__(self, initial_scene: str):
-        # Prepare local settings with default settings
-        self.local_settings_dict: dict[str, int] = DEFAULT_SETTINGS_DICT
+        # Prepare regular dict local settings with default settings
+        self.local_settings_dict: dict = DEFAULT_SETTINGS_DICT
+        # Prepare the dataclass instance version of it for quick read access with dot notation
+        self.local_settings_metadata_instance: SettingsMetadata = instance_settings_metadata(self.local_settings_dict)
 
         # Dynamic paths dict (for player save data slot, room JSON metadata, animation JSON metadata, ...)
         self.jsons_user_pahts_dict: dict[str, str] = create_paths_dict(JSONS_USER_DIR_PATH)
@@ -56,13 +61,13 @@ class Game:
         self.event_handler: EventHandler = EventHandler(self)
 
         # Update local settings dict with disk settings
-        self.GET_or_POST_settings_json_from_disk()
+        self.GET_or_POST_settings_json_from_or_to_disk()
 
         # Window size, surf and resolution scale
-        self.window_width: int = WINDOW_WIDTH * self.get_one_local_settings_dict_value("resolution_scale")
-        self.window_height: int = WINDOW_HEIGHT * self.get_one_local_settings_dict_value("resolution_scale")
+        self.window_width: int = WINDOW_WIDTH * self.local_settings_metadata_instance.resolution_scale
+        self.window_height: int = WINDOW_HEIGHT * self.local_settings_metadata_instance.resolution_scale
         self.window_surf: (None | pg.Surface) = None
-        self.set_resolution_index(self.get_one_local_settings_dict_value("resolution_index"))
+        self.set_resolution_index(self.local_settings_metadata_instance.resolution_index)
 
         # Flags
         self.is_options_menu_active: bool = False
@@ -81,7 +86,7 @@ class Game:
         for ogg_name, ogg_path in OGGS_PATHS_DICT.items():
             self.sound_manager.load_sound(ogg_name, ogg_path)
 
-        # Map sprite sheet names to stage sprite sheet name
+        # Sprite sheet names bindings to things
         self.sprite_sheet_static_actor_surfs_dict: dict[str, dict[str, str]] = {
             "stage_1_sprite_sheet.png": {
                 # Static actor name : static actor surf name
@@ -89,8 +94,6 @@ class Game:
                 "thin_waterfall": "thin_waterfall_sprite_sheet.png",
             }
         }
-
-        # Map sprite animation JSON names to stage sprite sheet name
         self.sprite_sheet_static_actor_jsons_dict: dict[str, dict[str, str]] = {
             "stage_1_sprite_sheet.png": {
                 # Static actor name : static actor JSON name
@@ -98,10 +101,9 @@ class Game:
                 "thin_waterfall": "thin_waterfall_animation.json",
             }
         }
-
-        # Map parallax memory to stage sprite sheet name
-        self.sprite_sheet_parallax_background_mems_dict: dict[str, dict[str, Any]] = {
+        self.sprite_sheet_parallax_background_mems_dict: dict[str, dict[str, type[ParallaxBackground]]] = {
             "stage_1_sprite_sheet.png": {
+                # Parallax actor name : mem
                 "clouds": Stage1Clouds,
                 "colonnade": Stage1Colonnade,
                 "glow": Stage1Glow,
@@ -110,8 +112,9 @@ class Game:
             }
         }
 
-        # All scenes dict, name key to memory
+        # All scenes constant dicts TODO: Create schema
         self.scenes: dict[str, Any] = {
+            # Scene name : mem
             "CreatedBySplashScreen": CreatedBySplashScreen,
             "MadeWithSplashScreen": MadeWithSplashScreen,
             "TitleScreen": TitleScreen,
@@ -128,9 +131,9 @@ class Game:
     # Helper
     def _update_dynamic_paths_dict(self) -> None:
         """
-        Called by POST or DELETE to disk dir.
-
-        Reread edited disk dir content, repopulate dynamic paths dict.
+        | Called by POST or DELETE FILE to disk.
+        |
+        | Reread edited disk dir content, repopulate dynamic paths dict.
         """
 
         self.jsons_user_pahts_dict = create_paths_dict(JSONS_USER_DIR_PATH)
@@ -150,9 +153,10 @@ class Game:
 
         # {actor names : JSON names}
         actor_name_to_json_name_dict: dict[str, str] = get_one_target_dict_value(
-            stage_sprite_sheet_name,
-            self.sprite_sheet_static_actor_jsons_dict,
-            "self.sprite_sheet_static_actor_jsons_dict",
+            key=stage_sprite_sheet_name,
+            key_type=str,
+            target_dict=self.sprite_sheet_static_actor_jsons_dict,
+            target_dict_name="self.sprite_sheet_static_actor_jsons_dict",
         )
 
         # Prepare {actor names : {animation names: metadata}}
@@ -162,9 +166,10 @@ class Game:
         for actor_name, json_name in actor_name_to_json_name_dict.items():
             # Turn JSON names into JSON paths
             existing_json_dynamic_path: str = get_one_target_dict_value(
-                json_name,
-                self.jsons_repo_pahts_dict,
-                "self.jsons_repo_pahts_dict",
+                key=json_name,
+                key_type=str,
+                target_dict=self.jsons_repo_pahts_dict,
+                target_dict_name="self.jsons_repo_pahts_dict",
             )
             # Turn JSON path into JSON dict (taken from disk)
             json_dict: dict = self.GET_file_from_disk_dynamic_path(existing_json_dynamic_path)
@@ -185,9 +190,10 @@ class Game:
 
         # {actor names : surf names}
         data: dict[str, str] = get_one_target_dict_value(
-            stage_sprite_sheet_name,
-            self.sprite_sheet_static_actor_surfs_dict,
-            "self.sprite_sheet_static_actor_surfs_dict",
+            key=stage_sprite_sheet_name,
+            key_type=str,
+            target_dict=self.sprite_sheet_static_actor_surfs_dict,
+            target_dict_name="self.sprite_sheet_static_actor_surfs_dict",
         )
 
         # Prepare {actor names : Surface}
@@ -197,9 +203,10 @@ class Game:
         for actor_name, surf_name in data.items():
             # Turn surf names into surf path
             surf_path: str = get_one_target_dict_value(
-                surf_name,
-                PNGS_PATHS_DICT,
-                "PNGS_PATHS_DICT",
+                key=surf_name,
+                key_type=str,
+                target_dict=PNGS_PATHS_DICT,
+                target_dict_name="PNGS_PATHS_DICT",
             )
             # Turn surf path into surf
             surf: pg.Surface = pg.image.load(surf_path).convert_alpha()
@@ -209,30 +216,29 @@ class Game:
         # Return {actor names : surf}
         return out
 
-    def get_sprite_sheet_parallax_mems_dict(self, stage_sprite_sheet_name: str) -> dict[str, Any]:
+    def get_sprite_sheet_parallax_mems_dict(self, stage_sprite_sheet_name: str) -> dict[str, type[ParallaxBackground]]:
         """
-        Actors are binded to their stages.
-
-        Pass the stage sprite sheet name to get its actors mem.
-
-        You get a dict, key is actor str name, value is actor mem.
-
-        It is easy to read this way.
+        | Stage sprite sheet name is key
+        | Key for a dict filled with {parallax actor names : mem}
+        |
+        | Raises exception if passed stage sprite sheet name is invalid
         """
 
         return get_one_target_dict_value(
-            stage_sprite_sheet_name,
-            self.sprite_sheet_parallax_background_mems_dict,
-            "self.sprite_sheet_parallax_background_mems_dict",
+            key=stage_sprite_sheet_name,
+            key_type=str,
+            target_dict=self.sprite_sheet_parallax_background_mems_dict,
+            target_dict_name="self.sprite_sheet_parallax_background_mems_dict",
         )
 
-    def GET_or_POST_settings_json_from_disk(self) -> None:
+    def GET_or_POST_settings_json_from_or_to_disk(self) -> None:
         """
-        GET prev saved disk settings, then overwrites local settings with disk.
-
-        Or.
-
-        POST default settings to disk. local settings is already default at start.
+        | IF in disk
+        | Get from disk
+        | Then overwrite current local_settings_dict with it
+        |
+        | ELIF not in disk
+        | POST current local_settings_dict to disk
         """
 
         # TODO: Create a popup scene, like options scene right now
@@ -240,14 +246,28 @@ class Game:
         # TODO: It just shows message, you can set option 2 options
         # TODO: The one who initiate popup needs to pass callback, and handle answer
 
-        # If that file is not in dynamic paths dict, it has not been POST yet, only POST updates dynamic paths dict
+        # Settings file name in dynamic paths dict?
         if SETTINGS_FILE_NAME in self.jsons_user_pahts_dict:
-            value = self.GET_file_from_disk_dynamic_path(self.jsons_user_pahts_dict[SETTINGS_FILE_NAME])
-            self.overwriting_local_settings_dict(value)
+            # Get settings_json_path
+            settings_json_path: str = get_one_target_dict_value(
+                key=SETTINGS_FILE_NAME,
+                key_type=str,
+                target_dict=self.jsons_user_pahts_dict,
+                target_dict_name="self.jsons_user_pahts_dict",
+            )
+            # GET settings_json_dict from disk
+            settings_json_dict: dict = self.GET_file_from_disk_dynamic_path(settings_json_path)
+            self.overwriting_local_settings_dict(settings_json_dict)
+        # Settings file name not in dynamic paths dict?
         else:
-            # POST new first disk settings with local settings (local starts off with defaullt settings)
+            # Validate the JSON before write to disk
+            if not validate_json(self.get_local_settings_dict(), SETTINGS_METADATA_SCHEMA):
+                raise ValueError("Invalid local settings dict against schema")
+            # Get settings_json_path
+            settings_json_path = join(JSONS_USER_DIR_PATH, SETTINGS_FILE_NAME)
+            # POST self.local_settings_dict to disk
             self.POST_file_to_disk_dynamic_path(
-                join(JSONS_USER_DIR_PATH, SETTINGS_FILE_NAME),
+                settings_json_path,
                 self.get_local_settings_dict(),
             )
 
@@ -278,119 +298,147 @@ class Game:
 
     def PATCH_file_to_disk_dynamic_path(self, existing_dynamic_path_dict_value: str, file_content: Any) -> None:
         """
-        POST file to user disk.
-
-        Use the dynamic paths dict path.
-
-        Raises path does not exist exception.
+        | Makes sure path is in dynamic paths {json names : json paths}.
+        | Raises exception on invalid key.
+        |
+        | Returns JSON dict from disk
         """
 
-        # Handle not found path 404
+        # Collect all dynamic paths dict {json names : json paths}
         all_paths = {
             **self.jsons_user_pahts_dict,
             **self.jsons_repo_pahts_dict,
             **self.jsons_repo_rooms_pahts_dict,
         }
+        # Path not found in dynamic paths dict?
         if existing_dynamic_path_dict_value not in all_paths.values():
+            # Raise exception
             raise KeyError("Path does not exist")
 
-        # PATCH 200
-        with open(
-            existing_dynamic_path_dict_value,
-            "w",
-        ) as file:
+        # Use path to open JSON dict from disk
+        with open(existing_dynamic_path_dict_value, "w") as file:
+            # Overwrite with file_content
             dump(file_content, file, separators=(",", ":"))
 
     def POST_file_to_disk_dynamic_path(self, new_dynamic_path: str, file_content: Any) -> None:
         """
-        POST file to user disk.
-
-        Use new path with join to be added to dynamic paths dict.
+        | Remember to validate against schema first before saving.
+        | POST NEW FILE TO DISK.
+        |
+        | Update dynamic path dict.
         """
 
-        # POST 201
-        with open(
-            new_dynamic_path,
-            "w",
-        ) as file:
+        # POST NEW FILE TO DISK
+        with open(new_dynamic_path, "w") as file:
             dump(file_content, file, separators=(",", ":"))
 
-        # After POST / DELETE, update dynamic path dict
+        # After POST / DELETE FILE TO DISK, update dynamic path dict
         self._update_dynamic_paths_dict()
 
-    # This does not use the general way to get dict, this way it is easy to know who mutates settings dict
-    def overwriting_local_settings_dict(self, new_settings: dict) -> None:
+    # This is the API for interacting with self.local_settings_dict
+    def overwriting_local_settings_dict(self, new_local_settings_dict: dict) -> None:
         """
-        Overwrite local settings dict, need exact same shape.
-
-        Raises invalid new settings JSON against schema.
+        | Overwrite local settings dict, need exact same shape.
+        | Raises invalid new settings JSON against schema.
         """
 
-        if not validate_json(new_settings, SETTINGS_SCHEMA):
-            raise ValueError("Invalid new settings JSON against schema")
+        # Passed new_local_settings_dict invalid schema?
+        if not validate_json(new_local_settings_dict, SETTINGS_METADATA_SCHEMA):
+            raise ValueError("Invalid new_local_settings_dict against schema")
 
-        # If all checks pass, overwrite the current settings
-        self.local_settings_dict.update(new_settings)
+        # Overwrite the current settings
+        self.local_settings_dict.update(new_local_settings_dict)
+        self.local_settings_metadata_instance = instance_settings_metadata(self.local_settings_dict)
 
         # Update event handler function binds, in case event key was changed
         self.event_handler.bind_game_local_setting_key_with_input_flag_setter()
 
-    def set_one_local_settings_dict_value(self, key: str, value: Any) -> None:
+    def set_one_local_settings_dict_value(self, key: Any, key_type: Any, val: Any, val_type: Any) -> None:
         """
-        Set a value to local settings dict. Need to be same type.
+        | Instead some_dict[self.name], use this.
+        | If you know dict prop, use schema dataclass instance version. self.local_settings_metadata_instance.attack.
+        | When using schema dataclass instance version.
+        | Use it as getter only, and when regular dict changes, create new instance.
+        | some_var = self.local_settings_metadata_instance.attack.
+        |
+        | Set a value to local settings dict.
+        |
+        | Makes sure key type is correct.
+        | Makes sure value type is correct.
+        |
+        | Raises exception on invalid key or values.
+        """
 
-        Raises invalid new settings JSON against schema.
-        """
+        is_key_valid: bool = isinstance(key, key_type)
+        is_val_valid: bool = isinstance(val, val_type)
+
+        # Invalid key type?
+        if not is_key_valid:
+            # Raise exception
+            raise KeyError(f"{key} type invalid for self.local_settings_dict")
+
+        # Invalid val type?
+        if not is_val_valid:
+            # Raise exception
+            raise KeyError(f"{val} type invalid for self.local_settings_dict")
 
         # Set the new value
-        self.local_settings_dict[key] = value
-
-        if not validate_json(self.local_settings_dict, SETTINGS_SCHEMA):
-            raise ValueError("Invalid new settings JSON against schema")
+        self.local_settings_dict[key] = val
+        self.local_settings_metadata_instance = instance_settings_metadata(self.local_settings_dict)
 
         # Update event handler function binds, in case event key was changed
         self.event_handler.bind_game_local_setting_key_with_input_flag_setter()
 
     def get_one_local_settings_dict_value(self, key: str) -> Any:
         """
-        Get a value from local settings dict.
-
-        Raises invalid key.
+        | Instead some_dict[self.name], use this.
+        | If you know dict prop, use schema dataclass instance version. self.local_settings_metadata_instance.attack.
+        |
+        | Get a value to local settings dict.
+        |
+        | Makes sure key exists.
+        | No need to check if value type is correct.
+        | Since it was validated before insertion.
+        |
+        | Raises exception on invalid key.
         """
 
-        # Check if the key exists in the self.local_settings_dict
+        # Key not in self.local_settings_dict?
         if key not in self.local_settings_dict:
+            # Raise exception
             raise KeyError(f"Invalid key: '{key}'")
 
-        # Return the value for the key
-        return self.local_settings_dict.get(key, None)
+        # Return value
+        return self.local_settings_dict[key]
 
     def get_local_settings_dict(self) -> Any:
         """
-        Get local settings dict.
+        | Get local settings dict.
+        |
+        | Point is that to avoid having inconsistent names, avoid game.local_settings_dict.
+        | And to contain self.local_settings_dict here only.
+        | Easy to debug just find who calls this.
         """
 
         return self.local_settings_dict
 
     def set_is_options_menu_active(self, value: bool) -> None:
         """
-        Toggle options screen on / off.
-
-        If options screen is active, current scene is not updated.
+        | Toggle options screen on / off.
+        | If options screen is active, current scene is not updated.
         """
 
         self.is_options_menu_active = value
 
     def set_resolution_index(self, value: int) -> None:
         """
-        Sets the resolution scale of the window.
-
-        Takes int parameter, 0 - 6 only.
-
-        Updates:
-        - window surf prop.
-        - window size prop.
-        - game local settings.
+        | Sets the resolution scale of the window.
+        | Takes int parameter, 0 - 6 only.
+        |
+        | Updates:
+        | window surf prop
+        | window size prop
+        | game local settings
         """
 
         # Keeps safe
@@ -411,8 +459,18 @@ class Game:
             self.window_width = self.window_surf.get_width()
             self.window_height = self.window_surf.get_height()
             # Update game local settings
-            self.set_one_local_settings_dict_value("resolution_index", value_index)
-            self.set_one_local_settings_dict_value("resolution_scale", self.window_surf.get_width() // NATIVE_WIDTH)
+            self.set_one_local_settings_dict_value(
+                key="resolution_index",
+                key_type=str,
+                val=value_index,
+                val_type=int,
+            )
+            self.set_one_local_settings_dict_value(
+                key="resolution_scale",
+                key_type=str,
+                val=self.window_surf.get_width() // NATIVE_WIDTH,
+                val_type=int,
+            )
             return
 
         # Not fullscreen
@@ -427,12 +485,22 @@ class Game:
         self.window_width = self.window_surf.get_width()
         self.window_height = self.window_surf.get_height()
         # Update game local settings
-        self.set_one_local_settings_dict_value("resolution_index", value_index)
-        self.set_one_local_settings_dict_value("resolution_scale", value_scale)
+        self.set_one_local_settings_dict_value(
+            key="resolution_index",
+            key_type=str,
+            val=value_index,
+            val_type=int,
+        )
+        self.set_one_local_settings_dict_value(
+            key="resolution_scale",
+            key_type=str,
+            val=value_scale,
+            val_type=int,
+        )
 
     def set_scene(self, value: str) -> None:
         """
-        Sets the current scene with a new scene instance.
+        | Sets the current scene with a new scene instance.
         """
 
         self.current_scene = self.scenes[value](self)

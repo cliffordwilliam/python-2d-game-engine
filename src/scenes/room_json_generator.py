@@ -42,6 +42,7 @@ from pygame.math import Vector2
 from schemas import AdjacentTileMetadata
 from schemas import AnimationMetadata
 from schemas import instance_adjacent_tile_metadata
+from schemas import instance_binary_map_offset_item_metadata
 from schemas import instance_none_or_blob_sprite_metadata
 from schemas import instance_sprite_metadata
 from schemas import instance_sprite_sheet_metadata
@@ -179,6 +180,10 @@ class RoomJsonGenerator:
 
         # Button container
         self.button_container: (ButtonContainer | None) = None
+
+        # Button icon size
+        self.base_subsurf_width: int = 49
+        self.base_subsurf_height: int = 19
 
         # Currently selected sprite name
         self.selected_sprite_name: str = ""
@@ -344,7 +349,7 @@ class RoomJsonGenerator:
         self.sprite_sheet_parallax_background_mems_dict: dict[
             # {Parallax name : parallax instance}
             str,
-            ParallaxBackground,
+            type[ParallaxBackground],
         ] = {}
 
         # Parallax layer
@@ -721,7 +726,7 @@ class RoomJsonGenerator:
         # In editing mode?
         if not self.is_play_test_mode:
             # Draw grid
-            self._draw_grid()
+            self._draw_room_grid()
 
             # Filter only some sprite types
 
@@ -926,6 +931,7 @@ class RoomJsonGenerator:
                 # Turn sprite_sheet_png_name to sprite_sheet_png_path
                 sprite_sheet_png_path: str = get_one_target_dict_value(
                     key=self.sprite_sheet_png_name,
+                    key_type=str,
                     target_dict=PNGS_PATHS_DICT,
                     target_dict_name="PNGS_PATHS_DICT",
                 )
@@ -1025,15 +1031,17 @@ class RoomJsonGenerator:
 
                         # Get this static actor surf
                         static_actor_surf: pg.Surface = get_one_target_dict_value(
-                            sprite_metadata_instance.sprite_name,
-                            self.sprite_sheet_static_actor_surfs_dict,
-                            "self.sprite_sheet_static_actor_surfs_dict",
+                            key=sprite_metadata_instance.sprite_name,
+                            key_type=str,
+                            target_dict=self.sprite_sheet_static_actor_surfs_dict,
+                            target_dict_name="self.sprite_sheet_static_actor_surfs_dict",
                         )
                         # Get this static actor json dict {anim name: anim metadata instance}
                         static_actor_animation_metadata_instance: dict[str, AnimationMetadata] = get_one_target_dict_value(
-                            sprite_metadata_instance.sprite_name,
-                            self.sprite_sheet_static_actor_jsons_dict,
-                            "self.sprite_sheet_static_actor_jsons_dict",
+                            key=sprite_metadata_instance.sprite_name,
+                            key_type=str,
+                            target_dict=self.sprite_sheet_static_actor_jsons_dict,
+                            target_dict_name="self.sprite_sheet_static_actor_jsons_dict",
                         )
                         # Instance this new static actor
                         new_static_actor_instance = StaticActor(
@@ -1139,6 +1147,7 @@ class RoomJsonGenerator:
                 # Get the value for the key, init the cursor size
                 self.sprite_metadata_instance = get_one_target_dict_value(
                     key=self.selected_sprite_name,
+                    key_type=str,
                     target_dict=self.sprite_name_to_sprite_metadata,
                     target_dict_name="self.sprite_name_to_sprite_metadata",
                 )
@@ -1189,6 +1198,8 @@ class RoomJsonGenerator:
                 self.camera.update(dt)
 
                 # TODO: Turn the block to a func and use the name as key
+                # TODO: Does this need sepeate logic? Can it be all combined into one instead?
+                # TODO: Add the second rect combine feature to solid ones
 
                 # Get sprite metadata from reformat with selected sprite name
                 selected_sprite_type: str = self.sprite_metadata_instance.sprite_type
@@ -1228,9 +1239,10 @@ class RoomJsonGenerator:
                     ]
                     # Get the selected static actor
                     selected_static_actor_instance: StaticActor = get_one_target_dict_value(
-                        selected_sprite_name,
-                        self.sprite_sheet_static_actor_instance_dict,
-                        "self.sprite_sheet_static_actor_instance_dict",
+                        key=selected_sprite_name,
+                        key_type=str,
+                        target_dict=self.sprite_sheet_static_actor_instance_dict,
+                        target_dict_name="self.sprite_sheet_static_actor_instance_dict",
                     )
                     ###############
                     # Lmb pressed #
@@ -1266,6 +1278,7 @@ class RoomJsonGenerator:
                                 world_tu_y=self.world_mouse_tu_y,
                                 value=0,
                                 collision_map_list=selected_static_actor_layer_collision_map,
+                                is_update_pre_render=False,
                             )
                             # Update pre render frame surfs based on collision map
                             selected_static_actor_instance.update_pre_render_frame_surfs(
@@ -1285,9 +1298,10 @@ class RoomJsonGenerator:
                         if self.parallax_background_instances_list[selected_sprite_layer_index] is None:
                             # Get binded mem with name
                             parallax_background_mem = get_one_target_dict_value(
-                                self.selected_sprite_name,
-                                self.sprite_sheet_parallax_background_mems_dict,
-                                "self.sprite_sheet_parallax_background_mems_dict",
+                                key=self.selected_sprite_name,
+                                key_type=str,
+                                target_dict=self.sprite_sheet_parallax_background_mems_dict,
+                                target_dict_name="self.sprite_sheet_parallax_background_mems_dict",
                             )
                             # Create new parallax background instance
                             new_parallax_background_instance = parallax_background_mem(
@@ -1393,7 +1407,6 @@ class RoomJsonGenerator:
                                                     # Other dynamic data this needs
                                                     selected_sprite_x,
                                                     selected_sprite_y,
-                                                    selected_sprite_name,
                                                     # Then subsequent callbacks are from neighbor pos
                                                     world_tu_x=world_tu_x,
                                                     world_tu_y=world_tu_y,
@@ -1441,7 +1454,6 @@ class RoomJsonGenerator:
                                         # Other dynamic data this needs
                                         selected_sprite_x,
                                         selected_sprite_y,
-                                        selected_sprite_name,
                                         # Then subsequent callbacks are from neighbor pos
                                         world_tu_x=world_tu_x,
                                         world_tu_y=world_tu_y,
@@ -1501,7 +1513,6 @@ class RoomJsonGenerator:
                                     selected_background_layer_collision_map,
                                     selected_sprite_x,
                                     selected_sprite_y,
-                                    selected_sprite_name,
                                     world_tu_x=self.world_mouse_tu_x,
                                     world_tu_y=self.world_mouse_tu_y,
                                 )
@@ -1567,7 +1578,6 @@ class RoomJsonGenerator:
                                     # Other dynamic data this needs
                                     selected_sprite_x,
                                     selected_sprite_y,
-                                    selected_sprite_name,
                                     # Then subsequent callbacks are from neighbor pos
                                     world_tu_x=world_tu_x,
                                     world_tu_y=world_tu_y,
@@ -1632,7 +1642,6 @@ class RoomJsonGenerator:
                                 self.solid_collision_map_list,
                                 selected_sprite_x,
                                 selected_sprite_y,
-                                selected_sprite_name,
                                 world_tu_x=self.world_mouse_tu_x,
                                 world_tu_y=self.world_mouse_tu_y,
                             )
@@ -1706,7 +1715,6 @@ class RoomJsonGenerator:
                                     # Other dynamic data this needs
                                     selected_sprite_x,
                                     selected_sprite_y,
-                                    selected_sprite_name,
                                     # Then subsequent callbacks are from neighbor pos
                                     world_tu_x=world_tu_x,
                                     world_tu_y=world_tu_y,
@@ -1771,7 +1779,6 @@ class RoomJsonGenerator:
                                 self.solid_collision_map_list,
                                 selected_sprite_x,
                                 selected_sprite_y,
-                                selected_sprite_name,
                                 world_tu_x=self.world_mouse_tu_x,
                                 world_tu_y=self.world_mouse_tu_y,
                             )
@@ -1850,7 +1857,6 @@ class RoomJsonGenerator:
                                     # Other dynamic data this needs
                                     selected_sprite_x,
                                     selected_sprite_y,
-                                    selected_sprite_name,
                                     # Then subsequent callbacks are from neighbor pos
                                     world_tu_x=world_tu_x,
                                     world_tu_y=world_tu_y,
@@ -1911,7 +1917,6 @@ class RoomJsonGenerator:
                                 selected_foreground_layer_collision_map,
                                 selected_sprite_x,
                                 selected_sprite_y,
-                                selected_sprite_name,
                                 world_tu_x=self.world_mouse_tu_x,
                                 world_tu_y=self.world_mouse_tu_y,
                             )
@@ -2027,9 +2032,9 @@ class RoomJsonGenerator:
                 # Open and read the JSON file
 
                 # GET from disk
-                data = self.game.GET_file_from_disk_dynamic_path(file_path)
+                data: dict = self.game.GET_file_from_disk_dynamic_path(file_path)
 
-                # TODO: When save feature is done. Validate data or raise exception
+                # TODO: When save feature is done. Create data class instance here
 
                 # Draw marks on the world surf
                 file_name = data["file_name"]
@@ -2165,6 +2170,7 @@ class RoomJsonGenerator:
         # Update cursor size
         self.sprite_metadata_instance = get_one_target_dict_value(
             key=self.selected_sprite_name,
+            key_type=str,
             target_dict=self.sprite_name_to_sprite_metadata,
             target_dict_name="self.sprite_name_to_sprite_metadata",
         )
@@ -2223,36 +2229,58 @@ class RoomJsonGenerator:
     ###########
     # HELPERS #
     ###########
-    def _on_mmb_pressed(self, world_tu_x: int, world_tu_y: int, collision_map_list: list, callback: Callable) -> None:
+    def _on_mmb_pressed(
+        self,
+        world_tu_x: int,
+        world_tu_y: int,
+        collision_map_list: list[int | NoneOrBlobSpriteMetadata],
+        callback: Callable,
+    ) -> None:
+        """
+        | Paint bucket fill tool.
+        |
+        | Pass fill starting position.
+        | Pass collision map list to work with.
+        | Pass fill callback logic.
+        """
+
+        # Return if cursor size is bigger than 1 x 1
         if self.cursor_height > TILE_SIZE or self.cursor_width > TILE_SIZE:
             return
 
         stack = [(world_tu_x, world_tu_y)]
         processed = set()
 
+        # While stack is filled
         while stack:
+            # Pop one stack
             current_x, current_y = stack.pop()
 
+            # This one is handled? Skip
             if (current_x, current_y) in processed:
                 continue
 
+            # Remember what position was handled
             processed.add((current_x, current_y))
 
+            # Call the callback
             callback(
                 world_tu_x=current_x,
                 world_tu_y=current_y,
                 collision_map_list=collision_map_list,
             )
 
+            # Find neighbors
             adjacent_empty_tiles_list = self._get_adjacent_tiles_no_corners(
                 world_tu_x=current_x,
                 world_tu_y=current_y,
                 collision_map_list=collision_map_list,
             )
-
+            # Iterarte over neighbor
             for adjacent_empty_tile in adjacent_empty_tiles_list:
-                tu_x = adjacent_empty_tile[0]
-                tu_y = adjacent_empty_tile[1]
+                tu_x = adjacent_empty_tile.world_tu_x
+                tu_y = adjacent_empty_tile.world_tu_y
+                # Collect neighbor position to stack
                 if (tu_x, tu_y) not in processed:
                     stack.append((tu_x, tu_y))
 
@@ -2261,8 +2289,12 @@ class RoomJsonGenerator:
         selected_static_actor_instance: StaticActor,
         world_mouse_tu_x: int,
         world_mouse_tu_y: int,
-        collision_map_list: list,
+        collision_map_list: list[int],
     ) -> None:
+        """
+        | Logic for static actor lmb pressed.
+        """
+
         # Get clicked cell, static actor collision map list stores int only
         found_tile = self._get_tile_from_collision_map_list(
             world_mouse_tu_x,
@@ -2282,16 +2314,18 @@ class RoomJsonGenerator:
                 world_tu_y=world_mouse_tu_y,
                 value=1,
                 collision_map_list=collision_map_list,
+                is_update_pre_render=False,
             )
-            # Update pre render frame surfs based on collision map
+            # Update STATIC ACTOR'S PRE RENDER frame surfs based on collision map
             selected_static_actor_instance.update_pre_render_frame_surfs(
                 collision_map_list,
             )
 
     def _change_update_and_draw_state_machine(self, value: Enum) -> None:
         """
-        Update and change are the same, so use this to change both.
+        | Update and change are the same, so use this to change both.
         """
+
         self.state_machine_update.change_state(value)
         self.state_machine_draw.change_state(value)
 
@@ -2308,17 +2342,21 @@ class RoomJsonGenerator:
         cell_size: int,
         is_world: bool,
     ) -> None:
+        """
+        | TODO: Refacotor the rest of the helpers from here on out
+        """
+
         # Draw cursor
         # Get mouse position
         mouse_position_tuple: tuple[int, int] = pg.mouse.get_pos()
         mouse_position_x_tuple: int = mouse_position_tuple[0]
         mouse_position_y_tuple: int = mouse_position_tuple[1]
         # Scale mouse position
-        mouse_position_x_tuple_scaled: int | float = mouse_position_x_tuple // self.game.get_one_local_settings_dict_value(
-            "resolution_scale"
+        mouse_position_x_tuple_scaled: int | float = (
+            mouse_position_x_tuple // self.game.local_settings_metadata_instance.resolution_scale
         )
-        mouse_position_y_tuple_scaled: int | float = mouse_position_y_tuple // self.game.get_one_local_settings_dict_value(
-            "resolution_scale"
+        mouse_position_y_tuple_scaled: int | float = (
+            mouse_position_y_tuple // self.game.local_settings_metadata_instance.resolution_scale
         )
         # Keep mouse inside scaled NATIVE_RECT
         mouse_position_x_tuple_scaled = clamp(
@@ -2377,17 +2415,16 @@ class RoomJsonGenerator:
 
     def _create_button_icons(self, subsurf: pg.Surface, width: int, height: int, button: Button) -> Button:
         """
-        Pass a subsurf, original height and width, and the button to draw the icon on.
-        On draw completion the button is returned.
+        | Pass icon subsurf, original height and width, and the button to draw the icon on.
+        | On draw completion the button is returned.
         """
+
         # Create button icon from sprite sheet surf with metadata region
-        base_subsurf_width = 49
-        base_subsurf_height = 19
-        base_subsurf = pg.Surface((base_subsurf_width, base_subsurf_height))
+        base_subsurf = pg.Surface((self.base_subsurf_width, self.base_subsurf_height))
         base_subsurf.fill(self.clear_color)
-        scaled_height = base_subsurf_width * height / width
-        subsurf = pg.transform.scale(subsurf, (base_subsurf_width, scaled_height))
-        y_diff = scaled_height - base_subsurf_height
+        scaled_height = self.base_subsurf_width * height / width
+        subsurf = pg.transform.scale(subsurf, (self.base_subsurf_width, scaled_height))
+        y_diff = scaled_height - self.base_subsurf_height
         base_subsurf.blit(subsurf, (0, -y_diff / 2))
         button.draw_extra_surf_on_surf(base_subsurf, (1, 0))
         return button
@@ -2397,6 +2434,7 @@ class RoomJsonGenerator:
         Get new surfs for pre renders.
         Iter the collision map to draw on it.
         """
+
         # Clear pre render, make new ones so it does not build up data
         # Pre render background
         self.pre_render_background_surf = pg.Surface((self.room_width, self.room_height))
@@ -2486,12 +2524,13 @@ class RoomJsonGenerator:
 
     def _on_rmb_just_pressed_blob_tile_type(
         self,
-        collision_map_list: list[Any],
+        collision_map_list: list[int | NoneOrBlobSpriteMetadata],
     ) -> None:
         """
         Click filled tile. Erase and set to 0.
         Tell neighbor to autotile update draw.
         """
+
         # Get clicked cell
         found_tile = self._get_tile_from_collision_map_list(
             self.world_mouse_tu_x,
@@ -2506,6 +2545,7 @@ class RoomJsonGenerator:
                 world_tu_y=self.world_mouse_tu_y,
                 value=0,
                 collision_map_list=collision_map_list,
+                is_update_pre_render=True,
             )
 
             # Get my neighbors
@@ -2530,6 +2570,7 @@ class RoomJsonGenerator:
                 # Get neighbor sprite metadata
                 sprite_metadata_instance: SpriteMetadata = get_one_target_dict_value(
                     key=neighbor_tile_name,
+                    key_type=str,
                     target_dict=self.sprite_name_to_sprite_metadata,
                     target_dict_name="self.sprite_name_to_sprite_metadata",
                 )
@@ -2566,22 +2607,22 @@ class RoomJsonGenerator:
         collision_map_list: list[int | NoneOrBlobSpriteMetadata],
         selected_sprite_x: int,
         selected_sprite_y: int,
-        selected_sprite_name: str,
         world_tu_x: int,
         world_tu_y: int,
     ) -> None:
         """
-        If cursor region is empty, draw and set collision.
+        | If cursor region is empty, draw and set collision.
         """
+
         # All cells in cursor region empty
         if not self._is_cursor_region_collision_map_empty(
             collision_map_list,
             world_tu_x,
             world_tu_y,
         ):
+            # Fill cursor region with sprite metadata
             self._fill_cursor_region_collision_map_with_metadata(
                 collision_map_list,
-                selected_sprite_name,
                 selected_sprite_x,
                 selected_sprite_y,
                 world_tu_x,
@@ -2635,6 +2676,7 @@ class RoomJsonGenerator:
                 world_tu_y=world_tu_y,
                 value=none_or_blob_sprite_metadata_instance,
                 collision_map_list=collision_map_list,
+                is_update_pre_render=True,
             )
 
             # Draw autotile on surf with proper offset
@@ -2672,6 +2714,7 @@ class RoomJsonGenerator:
                 # Get neighbor sprite metadata
                 sprite_metadata_instance: SpriteMetadata = get_one_target_dict_value(
                     key=neighbor_tile_name,
+                    key_type=str,
                     target_dict=self.sprite_name_to_sprite_metadata,
                     target_dict_name="self.sprite_name_to_sprite_metadata",
                 )
@@ -2711,15 +2754,27 @@ class RoomJsonGenerator:
         sprite_world_tu_x: int,
         sprite_world_tu_y: int,
         selected_layer_collision_map: list[Any],
-        # selected_layer_surf: pg.Surface,
         sprite_snapped_x: int,
         sprite_snapped_y: int,
         sprite_name: str,
     ) -> None:
+        """
+        | Overwirte this tile position with new NoneOrBlobSpriteMetadata that has correct region.
+        """
+
         # Get the proper binary to offset dict
-        # TODO: Type safety for this one
-        binary_to_offset_dict = SPRITE_TILE_TYPE_BINARY_TO_OFFSET_DICT[sprite_tile_type]
-        directions = SPRITE_TILE_TYPE_SPRITE_ADJACENT_NEIGHBOR_DIRECTIONS_LIST[sprite_tile_type]
+        binary_to_offset_dict: dict[int, dict[str, int]] = get_one_target_dict_value(
+            key=sprite_tile_type,
+            key_type=str,
+            target_dict=SPRITE_TILE_TYPE_BINARY_TO_OFFSET_DICT,
+            target_dict_name="SPRITE_TILE_TYPE_BINARY_TO_OFFSET_DICT",
+        )
+        directions: list[tuple[tuple[int, int], int]] = get_one_target_dict_value(
+            key=sprite_tile_type,
+            key_type=str,
+            target_dict=SPRITE_TILE_TYPE_SPRITE_ADJACENT_NEIGHBOR_DIRECTIONS_LIST,
+            target_dict_name="SPRITE_TILE_TYPE_SPRITE_ADJACENT_NEIGHBOR_DIRECTIONS_LIST",
+        )
 
         # Prepare top left with offset
         sprite_x_with_offset = sprite_x
@@ -2735,14 +2790,16 @@ class RoomJsonGenerator:
 
         # Is binary available in map?
         if binary_value in binary_to_offset_dict:
-            # Turn binary to offset obj
-            offset_object = binary_to_offset_dict[binary_value]
-            # Apply offset to top left
-            sprite_x_with_offset = sprite_x + offset_object["x"]
-            sprite_y_with_offset = sprite_y + offset_object["y"]
+            # Turn binary to offset dict
+            offset_dict: dict[str, int] = get_one_target_dict_value(
+                key=binary_value, key_type=int, target_dict=binary_to_offset_dict, target_dict_name="binary_to_offset_dict"
+            )
+            offset_metadata_instance = instance_binary_map_offset_item_metadata(offset_dict)
+            # Turn offset dict to offset metadata instance
+            sprite_x_with_offset = sprite_x + offset_metadata_instance.x
+            sprite_y_with_offset = sprite_y + offset_metadata_instance.y
 
-        # Override this sprite collision with new metadata
-        # Construct sprite metadata
+        # Override this sprite collision with new metadata. Construct sprite metadata
         new_none_or_blob_sprite_metadata_dict: dict = {
             "name": sprite_name,
             "type": self.sprite_metadata_instance.sprite_type,
@@ -2755,44 +2812,50 @@ class RoomJsonGenerator:
         # Turn into sprite metadata instance
         none_or_blob_sprite_metadata_instance = instance_none_or_blob_sprite_metadata(new_none_or_blob_sprite_metadata_dict)
 
-        # Make sure value is a SpriteMetadata
-        if not isinstance(none_or_blob_sprite_metadata_instance, NoneOrBlobSpriteMetadata):
-            raise ValueError("Invalid none or blob sprite metadata JSON data against schema")
-
+        # Set NoneOrBlobSpriteMetadata to collision map
         self._set_tile_from_collision_map_list(
             world_tu_x=sprite_world_tu_x,
             world_tu_y=sprite_world_tu_y,
             value=none_or_blob_sprite_metadata_instance,
             collision_map_list=selected_layer_collision_map,
+            is_update_pre_render=True,
         )
 
     def _fill_cursor_region_collision_map_with_0(
         self,
         collision_map: list,
     ) -> None:
-        # Fill collision map with sprite name in cursor area
+        """
+        | Iterate over cursor region and fill it with 0.
+        """
+
+        # Iterate cursor region
         for cursor_tu_x in range(self.cursor_width_tu):
             for cursor_tu_y in range(self.cursor_height_tu):
                 tu_x = self.world_mouse_tu_x + cursor_tu_x
                 tu_y = self.world_mouse_tu_y + cursor_tu_y
-
+                # Set 0 to collision map
                 self._set_tile_from_collision_map_list(
                     world_tu_x=tu_x,
                     world_tu_y=tu_y,
                     value=0,
                     collision_map_list=collision_map,
+                    is_update_pre_render=True,
                 )
 
     def _fill_cursor_region_collision_map_with_metadata(
         self,
         collision_map_list: list[int | NoneOrBlobSpriteMetadata],
-        sprite_name: str,
         region_x: int,
         region_y: int,
         world_tu_x: int,
         world_tu_y: int,
     ) -> None:
-        # Fill collision map with sprite name in cursor area
+        """
+        | Iterate over cursor region and fill it with NoneOrBlobSpriteMetadata.
+        """
+
+        # Iterate cursor region
         for cursor_tu_x in range(self.cursor_width_tu):
             for cursor_tu_y in range(self.cursor_height_tu):
                 tu_x = world_tu_x + cursor_tu_x
@@ -2806,7 +2869,7 @@ class RoomJsonGenerator:
 
                 # Construct sprite metadata
                 new_none_or_blob_sprite_metadata_dict: dict = {
-                    "name": sprite_name,
+                    "name": self.sprite_metadata_instance.sprite_name,
                     "type": self.sprite_metadata_instance.sprite_type,
                     "x": world_mouse_x_snapped,
                     "y": world_mouse_y_snapped,
@@ -2819,15 +2882,13 @@ class RoomJsonGenerator:
                     new_none_or_blob_sprite_metadata_dict
                 )
 
-                # Make sure value is a SpriteMetadata
-                if not isinstance(none_or_blob_sprite_metadata_instance, NoneOrBlobSpriteMetadata):
-                    raise ValueError("Invalid none or blob sprite metadata JSON data against schema")
-
+                # Set NoneOrBlobSpriteMetadata instance to collision map
                 self._set_tile_from_collision_map_list(
                     world_tu_x=tu_x,
                     world_tu_y=tu_y,
                     value=none_or_blob_sprite_metadata_instance,
                     collision_map_list=collision_map_list,
+                    is_update_pre_render=True,
                 )
 
     def _is_cursor_region_collision_map_empty(
@@ -2836,14 +2897,20 @@ class RoomJsonGenerator:
         world_tu_x: int,
         world_tu_y: int,
     ) -> bool:
+        """
+        | Check if cursor region is empty in given collision map list.
+        """
+
+        # Prepare output
+        found_occupied: bool = False
+
         # Iterate cursor area
-        found_occupied = False
         for cursor_tu_x in range(self.cursor_width_tu):
             if found_occupied:
                 break
             for cursor_tu_y in range(self.cursor_height_tu):
-                tu_x = world_tu_x + cursor_tu_x
-                tu_y = world_tu_y + cursor_tu_y
+                tu_x: int = world_tu_x + cursor_tu_x
+                tu_y: int = world_tu_y + cursor_tu_y
                 # Get each tile in cursor area
                 found_tile = self._get_tile_from_collision_map_list(
                     tu_x,
@@ -2856,9 +2923,14 @@ class RoomJsonGenerator:
                     found_occupied = True
                     break
 
+        # Return output
         return found_occupied
 
     def _move_camera_anchor_vector(self, dt: int) -> None:
+        """
+        | Update camera_anchor_vector with input.
+        """
+
         # Get direction_horizontal
         direction_horizontal: int = self.game_event_handler.is_right_pressed - self.game_event_handler.is_left_pressed
         # Update camera anchor position with direction and speed
@@ -2869,6 +2941,10 @@ class RoomJsonGenerator:
         self.camera_anchor_vector.y += direction_vertical * self.camera_speed * dt
 
     def _draw_world_grid(self) -> None:
+        """
+        | Draw world editor grid.
+        """
+
         blit_sequence = []
         for i in range(WORLD_WIDTH_RU):
             vertical_line_x_position: float = (WORLD_CELL_SIZE * i - self.camera.rect.x) % WORLD_WIDTH
@@ -2888,7 +2964,11 @@ class RoomJsonGenerator:
 
         NATIVE_SURF.fblits(blit_sequence)
 
-    def _draw_grid(self) -> None:
+    def _draw_room_grid(self) -> None:
+        """
+        | Draw room editor grid.
+        """
+
         blit_sequence = []
         for i in range(NATIVE_WIDTH_TU):
             vertical_line_x_position: float = (TILE_SIZE * i - self.camera.rect.x) % NATIVE_WIDTH
@@ -2914,12 +2994,17 @@ class RoomJsonGenerator:
         world_ru_y: int,
     ) -> Any:
         """
-        Returns -1 if out of bounds
-        Because camera needs extra 1 and thus may get out of bound.
+        | Returns -1 if out of bounds
+        | Because camera needs extra 1 and thus may get out of bound.
         """
+
+        # In bound?
         if 0 <= world_ru_x < WORLD_WIDTH_RU and 0 <= world_ru_y < WORLD_HEIGHT_RU:
+            # Return found tile
             return self.world_collision_map_list[world_ru_y * WORLD_WIDTH_RU + world_ru_x]
+        # Out of bound?
         else:
+            # Return -1 on out of bound
             return -1
 
     def _set_tile_from_world_collision_map_list(
@@ -2927,15 +3012,23 @@ class RoomJsonGenerator:
         world_ru_x: int,
         world_ru_y: int,
         value: Any,
-    ) -> None | int:
+    ) -> int | None:
         """
-        Returns -1 if out of bounds
-        Because camera needs extra 1 and thus may get out of bound.
+        | Returns None if set success.
+        |
+        | Returns -1 if out of bounds.
+        | Because camera needs extra 1 and thus may get out of bound.
         """
+
+        # In bound?
         if 0 <= world_ru_x < WORLD_WIDTH_RU and 0 <= world_ru_y < WORLD_HEIGHT_RU:
+            # Set
             self.world_collision_map_list[world_ru_y * WORLD_WIDTH_RU + world_ru_x] = value
+            # Return None on success
             return None
+        # Out of bound?
         else:
+            # Return -1 on out of bound
             return -1
 
     def _set_input_text(self, value: str) -> None:
@@ -2944,7 +3037,7 @@ class RoomJsonGenerator:
         self.input_rect.center = NATIVE_RECT.center
 
     def _set_prompt_text(self, value: str) -> None:
-        local_settings_dict_enter = pg.key.name(self.game.get_one_local_settings_dict_value("enter"))
+        local_settings_dict_enter = pg.key.name(self.game.local_settings_metadata_instance.enter)
         self.prompt_text = f"{value} " f"hit {local_settings_dict_enter} " "to proceed"
         self.prompt_rect = FONT.get_rect(self.prompt_text)
         self.prompt_rect.center = NATIVE_RECT.center
@@ -2957,12 +3050,17 @@ class RoomJsonGenerator:
         collision_map_list: list,
     ) -> int | NoneOrBlobSpriteMetadata:
         """
-        Returns -1 if out of bounds
-        Because camera needs extra 1 and thus may get out of bound.
+        | Returns -1 if out of bounds
+        | Because camera needs extra 1 and thus may get out of bound.
         """
+
+        # In bound?
         if 0 <= world_tu_x < self.room_width_tu and 0 <= world_tu_y < self.room_height_tu:
+            # Return found tile
             return collision_map_list[world_tu_y * self.room_width_tu + world_tu_x]
+        # Out of bound?
         else:
+            # Return -1 on out of bound
             return -1
 
     def _set_tile_from_collision_map_list(
@@ -2971,17 +3069,28 @@ class RoomJsonGenerator:
         world_tu_y: int,
         value: (int | NoneOrBlobSpriteMetadata),
         collision_map_list: list,
-    ) -> None | int:
+        is_update_pre_render: bool,
+    ) -> int | None:
         """
-        Returns -1 if out of bounds
-        Because camera needs extra 1 and thus may get out of bound.
+        | Returns None if set success.
+        |
+        | Returns -1 if out of bounds.
+        | Because camera needs extra 1 and thus may get out of bound.
         """
-        # TODO: create a condition for this, only update collision map list for pre render
-        self.is_pre_render_collision_map_list_mutated = True
+
+        # Update pre render?
+        if is_update_pre_render:
+            self.is_pre_render_collision_map_list_mutated = True
+
+        # In bound?
         if 0 <= world_tu_x < self.room_width_tu and 0 <= world_tu_y < self.room_height_tu:
+            # Set
             collision_map_list[world_tu_y * self.room_width_tu + world_tu_x] = value
+            # Return None on success
             return None
+        # Out of bound?
         else:
+            # Return -1 on out of bound
             return -1
 
     def _get_surrounding_tile_value(
@@ -2992,9 +3101,10 @@ class RoomJsonGenerator:
         directions: list[tuple[tuple[int, int], int]],
     ) -> int:
         """
-        Returns an integer representing the presence of surrounding tiles using 8-bit directional values.
-        A corner tile is included only if it has both adjacent neighbors in the cardinal directions.
+        | Returns an integer representing the presence of surrounding tiles using 8-bit directional values.
+        | A corner tile is included only if it has both adjacent neighbors in the cardinal directions.
         """
+
         # Cardinal directions for checking neighbor presence
         cardinal_directions = {
             (-1, -1): [(-1, 0), (0, -1)],  # North West
@@ -3007,38 +3117,35 @@ class RoomJsonGenerator:
         # Check my neigbors
         for (dx, dy), value in directions:
             # Check this pos tile
-            adjacent_x = world_tu_x + dx
-            adjacent_y = world_tu_y + dy
+            adjacent_world_tu_x = world_tu_x + dx
+            adjacent_world_tu_y = world_tu_y + dy
             tile = self._get_tile_from_collision_map_list(
-                adjacent_x,
-                adjacent_y,
+                adjacent_world_tu_x,
+                adjacent_world_tu_y,
                 collision_map_list,
             )
             # Found something
             if tile != -1 and tile != 0:
-                # Should be a NoneOrBlobSpriteMetadata not actor
+                # Should be a NoneOrBlobSpriteMetadata
                 if not isinstance(tile, NoneOrBlobSpriteMetadata):
                     raise ValueError("Invalid none or blob sprite metadata JSON data against schema")
 
-                sprite_metadata_instance_neighbor_tile_name: SpriteMetadata = get_one_target_dict_value(
+                # Get neighbor SpriteMetadata
+                neighbor_sprite_metadata_instance: SpriteMetadata = get_one_target_dict_value(
                     key=tile.name,
+                    key_type=str,
                     target_dict=self.sprite_name_to_sprite_metadata,
                     target_dict_name="self.sprite_name_to_sprite_metadata",
                 )
 
-                # Not my kind and not mixed? Skip this one
-                neighbor_tile_name = sprite_metadata_instance_neighbor_tile_name.sprite_name
-
-                sprite_metadata_instance_neighbor_sprite_is_tile_mix: SpriteMetadata = get_one_target_dict_value(
-                    key=neighbor_tile_name,
-                    target_dict=self.sprite_name_to_sprite_metadata,
-                    target_dict_name="self.sprite_name_to_sprite_metadata",
-                )
-
+                # Get neighbor name and just added name
+                neighbor_tile_name = neighbor_sprite_metadata_instance.sprite_name
                 just_added_sprite_name = self.sprite_metadata_instance.sprite_name
 
+                # Neighbor and just added names are different?
                 if neighbor_tile_name != just_added_sprite_name:
-                    neighbor_sprite_is_tile_mix = sprite_metadata_instance_neighbor_sprite_is_tile_mix.sprite_is_tile_mix
+                    # Neighbor does not mix? Skip this neighbor
+                    neighbor_sprite_is_tile_mix = neighbor_sprite_metadata_instance.sprite_is_tile_mix
                     if not neighbor_sprite_is_tile_mix:
                         continue
                 # For corner tiles, check that they have both neighbor in the cardinal directions
@@ -3058,7 +3165,7 @@ class RoomJsonGenerator:
                     # Corners got cardinals? Collect
                     if has_cardinal_neighbor:
                         tile_value += value
-                # Collect
+                # Collect bit value
                 else:
                     tile_value += value
         # Bit is ready
@@ -3068,38 +3175,43 @@ class RoomJsonGenerator:
         self,
         world_tu_x: int,
         world_tu_y: int,
-        collision_map_list: list,
-    ) -> list[list[int]]:
+        collision_map_list: list[int | NoneOrBlobSpriteMetadata],
+    ) -> list[AdjacentTileMetadata]:
         """
-        Returns a list of 4 adjacent empty tiles coord world tu around the specified coordinates.
-
-        Index 0 = adjacent_world_tu_x
-
-        Index 1 = adjacent_world_tu_y
+        | Returns a list of 4 adjacent tiles around the specified coordinates.
+        | Output is a list of AdjacentTileMetadata
         """
-        adjacent_tiles: list[list[int]] = []
+
+        # Prepare output
+        adjacent_tiles: list[AdjacentTileMetadata] = []
+
         # Directions: top, left, right, bottom
         directions = [(0, -1), (-1, 0), (1, 0), (0, 1)]
-
+        # Iter directions
         for dx, dy in directions:
+            # Get this adjacent position
             adjacent_world_tu_x = world_tu_x + dx
             adjacent_world_tu_y = world_tu_y + dy
 
+            # Get this adjacent tile
             tile = self._get_tile_from_collision_map_list(
                 adjacent_world_tu_x,
                 adjacent_world_tu_y,
                 collision_map_list,
             )
 
-            # Found empty
+            # Found empty?
             if tile == 0:
-                # I do not care what it is here, just need the coord of the empty neighbor
-                adjacent_tiles.append(
-                    [
-                        adjacent_world_tu_x,
-                        adjacent_world_tu_y,
-                    ]
-                )
+                # Construct adjacent_tile_dict
+                adjacent_tile_dict: dict = {
+                    "tile": "none",
+                    "world_tu_x": adjacent_world_tu_x,
+                    "world_tu_y": adjacent_world_tu_y,
+                }
+                # Turn adjacent_tile_dict into adjacent_tile_instance
+                adjacent_tile_instance = instance_adjacent_tile_metadata(adjacent_tile_dict)
+                # Populate list[AdjacentTileMetadata]
+                adjacent_tiles.append(adjacent_tile_instance)
 
         return adjacent_tiles
 
@@ -3107,42 +3219,48 @@ class RoomJsonGenerator:
         self,
         world_tu_x: int,
         world_tu_y: int,
-        collision_map_list: list,
+        collision_map_list: list[int | NoneOrBlobSpriteMetadata],
     ) -> list[AdjacentTileMetadata]:
         """
-        Returns a list of 8 adjacent tiles around the specified coordinates.
-        Each tile is represented as object with tile value as key and coords as values
+        | Returns a list of 8 adjacent tiles around the specified coordinates.
+        | Output is a list of AdjacentTileMetadata
         """
+
+        # Prepare output
         adjacent_tiles: list[AdjacentTileMetadata] = []
+
         # Directions: top-left, top, top-right, left, right, bottom-left, bottom, bottom-right
         directions = [(-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)]
-
+        # Iter directions
         for dx, dy in directions:
-            adjacent_x = world_tu_x + dx
-            adjacent_y = world_tu_y + dy
+            # Get this adjacent position
+            adjacent_world_tu_x = world_tu_x + dx
+            adjacent_world_tu_y = world_tu_y + dy
 
+            # Get this adjacent tile
             tile = self._get_tile_from_collision_map_list(
-                adjacent_x,
-                adjacent_y,
+                adjacent_world_tu_x,
+                adjacent_world_tu_y,
                 collision_map_list,
             )
 
-            # Found something
+            # Found something?
             if tile != -1 and tile != 0:
-                # Should be a NoneOrBlobSpriteMetadata not actor
+                # Should be a NoneOrBlobSpriteMetadata
                 if not isinstance(tile, NoneOrBlobSpriteMetadata):
                     raise ValueError("Invalid none or blob sprite metadata JSON data against schema")
+                # Construct adjacent_tile_dict
                 adjacent_tile_dict: dict = {
                     "tile": tile.name,
-                    "world_tu_x": adjacent_x,
-                    "world_tu_y": adjacent_y,
+                    "world_tu_x": adjacent_world_tu_x,
+                    "world_tu_y": adjacent_world_tu_y,
                 }
+                # Turn adjacent_tile_dict into adjacent_tile_instance
                 adjacent_tile_instance = instance_adjacent_tile_metadata(adjacent_tile_dict)
-                # Make sure value is a AdjacentTileMetadata
-                if not isinstance(adjacent_tile_instance, AdjacentTileMetadata):
-                    raise ValueError("getter adjacent tile invalid output construction")
+                # Populate list[AdjacentTileMetadata]
                 adjacent_tiles.append(adjacent_tile_instance)
 
+        #  Return filled list[AdjacentTileMetadata]
         return adjacent_tiles
 
     def _process_mouse_cursor(
@@ -3158,53 +3276,52 @@ class RoomJsonGenerator:
         clamp_rect: bool,
     ) -> dict[str, Any]:
         """
-        This function returns the paseed argument back in a dict where the key is the same str name to its parameters.
-        This is because it does not update the self prop in place.
+        | Returns the paseed argument back in a dict {var str name : val}.
+        | This is because it does not update the self prop in place.
         """
+
         # Get and scale mouse position
         mouse_position_tuple: tuple[int, int] = pg.mouse.get_pos()
-        mouse_position_x_tuple: int = mouse_position_tuple[0]
-        mouse_position_y_tuple: int = mouse_position_tuple[1]
+        mouse_position_x: int = mouse_position_tuple[0]
+        mouse_position_y: int = mouse_position_tuple[1]
         # Scale mouse position
-        mouse_position_x_tuple_scaled: int | float = mouse_position_x_tuple // self.game.get_one_local_settings_dict_value(
-            "resolution_scale"
-        )
-        mouse_position_y_tuple_scaled: int | float = mouse_position_y_tuple // self.game.get_one_local_settings_dict_value(
-            "resolution_scale"
-        )
+        mouse_position_x_scaled: int | float = mouse_position_x // self.game.local_settings_metadata_instance.resolution_scale
+        mouse_position_y_scaled: int | float = mouse_position_y // self.game.local_settings_metadata_instance.resolution_scale
+        # Clamp feature is for world, by design biggest room is 2 x 2
         if clamp_rect:
-            mouse_position_x_tuple_scaled = clamp(
-                mouse_position_x_tuple_scaled,
+            mouse_position_x_scaled = clamp(
+                mouse_position_x_scaled,
                 (first_rect.x - cell_size),
                 # Because this will refer to top left of a cell
                 # If it is flushed to the right it is out of bound
                 (first_rect.x + 2 * cell_size) - 1,
             )
-            mouse_position_y_tuple_scaled = clamp(
-                mouse_position_y_tuple_scaled,
+            mouse_position_y_scaled = clamp(
+                mouse_position_y_scaled,
                 (first_rect.y - cell_size),
                 # Because this will refer to top left of a cell
                 # If it is flushed to the bottom it is out of bound
                 (first_rect.y + 2 * cell_size) - 1,
             )
+        # Regular editor mode has no size clamp to combined rect
         else:
-            mouse_position_x_tuple_scaled = clamp(
-                mouse_position_x_tuple_scaled,
+            mouse_position_x_scaled = clamp(
+                mouse_position_x_scaled,
                 0,
                 # Because this will refer to top left of a cell
                 # If it is flushed to the right it is out of bound
                 room_width - 1,
             )
-            mouse_position_y_tuple_scaled = clamp(
-                mouse_position_y_tuple_scaled,
+            mouse_position_y_scaled = clamp(
+                mouse_position_y_scaled,
                 0,
                 # Because this will refer to top left of a cell
                 # If it is flushed to the bottom it is out of bound
                 room_height - 1,
             )
         # Convert positions
-        self.world_mouse_x = mouse_position_x_tuple_scaled + self.camera.rect.x
-        self.world_mouse_y = mouse_position_y_tuple_scaled + self.camera.rect.y
+        self.world_mouse_x = mouse_position_x_scaled + self.camera.rect.x
+        self.world_mouse_y = mouse_position_y_scaled + self.camera.rect.y
         self.world_mouse_x = min(
             self.world_mouse_x,
             room_width - cell_size,
@@ -3252,8 +3369,13 @@ class RoomJsonGenerator:
 
     def _handle_query_input(self, accept_callback: Callable) -> None:
         """
-        The query typing logic.
+        | The query typing logic.
+        |
+        | Accept callback.
+        | Add letter.
+        | Delete letter.
         """
+
         # Wait for curtain to be fully invisible
         if self.curtain.is_done:
             # Caught 1 key event this frame?
@@ -3267,6 +3389,7 @@ class RoomJsonGenerator:
                         new_value = self.input_text[:-1]
                         self._set_input_text(new_value)
                         # Play text
+                        # TODO: How to handle sound properly like send str like this?
                         self.game_sound_manager.play_sound("029_decline_09.ogg", 0, 0, 0)
                     # Add
                     else:

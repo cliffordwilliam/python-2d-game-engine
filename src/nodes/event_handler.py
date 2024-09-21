@@ -82,28 +82,28 @@ class EventHandler:
         """
 
         self.key_down_handlers = {
-            self.game.get_one_local_settings_dict_value("up"): self.KEYDOWN_UP,
-            self.game.get_one_local_settings_dict_value("down"): self.KEYDOWN_DOWN,
-            self.game.get_one_local_settings_dict_value("left"): self.KEYDOWN_LEFT,
-            self.game.get_one_local_settings_dict_value("right"): self.KEYDOWN_RIGHT,
-            self.game.get_one_local_settings_dict_value("enter"): self.KEYDOWN_ENTER,
-            self.game.get_one_local_settings_dict_value("pause"): self.KEYDOWN_PAUSE,
-            self.game.get_one_local_settings_dict_value("jump"): self.KEYDOWN_JUMP,
-            self.game.get_one_local_settings_dict_value("attack"): self.KEYDOWN_ATTACK,
+            self.game.local_settings_metadata_instance.up: self.KEYDOWN_UP,
+            self.game.local_settings_metadata_instance.down: self.KEYDOWN_DOWN,
+            self.game.local_settings_metadata_instance.left: self.KEYDOWN_LEFT,
+            self.game.local_settings_metadata_instance.right: self.KEYDOWN_RIGHT,
+            self.game.local_settings_metadata_instance.enter: self.KEYDOWN_ENTER,
+            self.game.local_settings_metadata_instance.pause: self.KEYDOWN_PAUSE,
+            self.game.local_settings_metadata_instance.jump: self.KEYDOWN_JUMP,
+            self.game.local_settings_metadata_instance.attack: self.KEYDOWN_ATTACK,
             # REMOVE IN BUILD
             pg.K_0: self.KEYDOWN_0,
             pg.K_9: self.KEYDOWN_9,
         }
 
         self.key_up_handlers = {
-            self.game.get_one_local_settings_dict_value("up"): self.KEYUP_UP,
-            self.game.get_one_local_settings_dict_value("down"): self.KEYUP_DOWN,
-            self.game.get_one_local_settings_dict_value("left"): self.KEYUP_LEFT,
-            self.game.get_one_local_settings_dict_value("right"): self.KEYUP_RIGHT,
-            self.game.get_one_local_settings_dict_value("enter"): self.KEYUP_ENTER,
-            self.game.get_one_local_settings_dict_value("pause"): self.KEYUP_PAUSE,
-            self.game.get_one_local_settings_dict_value("jump"): self.KEYUP_JUMP,
-            self.game.get_one_local_settings_dict_value("attack"): self.KEYUP_ATTACK,
+            self.game.local_settings_metadata_instance.up: self.KEYUP_UP,
+            self.game.local_settings_metadata_instance.down: self.KEYUP_DOWN,
+            self.game.local_settings_metadata_instance.left: self.KEYUP_LEFT,
+            self.game.local_settings_metadata_instance.right: self.KEYUP_RIGHT,
+            self.game.local_settings_metadata_instance.enter: self.KEYUP_ENTER,
+            self.game.local_settings_metadata_instance.pause: self.KEYUP_PAUSE,
+            self.game.local_settings_metadata_instance.jump: self.KEYUP_JUMP,
+            self.game.local_settings_metadata_instance.attack: self.KEYUP_ATTACK,
             # REMOVE IN BUILD
             pg.K_0: self.KEYUP_0,
             pg.K_9: self.KEYUP_9,
@@ -111,16 +111,16 @@ class EventHandler:
 
         # REMOVE IN BUILD
         self.mouse_down_handlers = {
-            self.game.get_one_local_settings_dict_value("lmb"): self.MOUSEDOWN_LMB,
-            self.game.get_one_local_settings_dict_value("mmb"): self.MOUSEDOWN_MMB,
-            self.game.get_one_local_settings_dict_value("rmb"): self.MOUSEDOWN_RMB,
+            self.game.local_settings_metadata_instance.lmb: self.MOUSEDOWN_LMB,
+            self.game.local_settings_metadata_instance.mmb: self.MOUSEDOWN_MMB,
+            self.game.local_settings_metadata_instance.rmb: self.MOUSEDOWN_RMB,
         }
 
         # REMOVE IN BUILD
         self.mouse_up_handlers = {
-            self.game.get_one_local_settings_dict_value("lmb"): self.MOUSEUP_LMB,
-            self.game.get_one_local_settings_dict_value("mmb"): self.MOUSEUP_MMB,
-            self.game.get_one_local_settings_dict_value("rmb"): self.MOUSEUP_RMB,
+            self.game.local_settings_metadata_instance.lmb: self.MOUSEUP_LMB,
+            self.game.local_settings_metadata_instance.mmb: self.MOUSEUP_MMB,
+            self.game.local_settings_metadata_instance.rmb: self.MOUSEUP_RMB,
         }
 
     # REMOVE IN BUILD

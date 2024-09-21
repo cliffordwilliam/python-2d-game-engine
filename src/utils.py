@@ -78,6 +78,15 @@ def overwriting_target_dict(new_dict: dict, target_dict: dict, target_dict_schem
 
 def set_one_target_dict_value(key: Any, key_type: Any, val: Any, val_type: Any, target_dict: dict, target_dict_name: str) -> None:
     """
+    | Instead some_dict[self.name], use this.
+    | If you know dict prop, use schema dataclass instance version. target_metadata_instance.attack.
+    | When using schema dataclass instance version.
+    | Use it as getter only, and when regular dict changes, create new instance.
+    | some_var = self.local_settings_metadata_instance.attack.
+    |
+    | Do not use this on game local settings dict, use game get set method instead.
+    | So that interaction with local settings is centralized in game node only.
+    |
     | Set a value to non constant dict.
     |
     | Makes sure key type is correct.
@@ -103,8 +112,17 @@ def set_one_target_dict_value(key: Any, key_type: Any, val: Any, val_type: Any, 
     target_dict[key] = val
 
 
-def get_one_target_dict_value(key: str, target_dict: dict, target_dict_name: str) -> Any:
+def get_one_target_dict_value(key: Any, key_type: Any, target_dict: dict, target_dict_name: str) -> Any:
     """
+    | Instead some_dict[self.name], use this.
+    | If you know dict prop, use schema dataclass instance version. target_metadata_instance.attack.
+    | When using schema dataclass instance version.
+    | Use it as getter only, and when regular dict changes, create new instance.
+    | some_var = self.local_settings_metadata_instance.attack.
+    |
+    | Do not use this on game local settings dict, use game get set method instead.
+    | So that interaction with local settings is centralized in game node only.
+    |
     | Get a value from non constant dict.
     |
     | Makes sure key exists.
@@ -113,6 +131,13 @@ def get_one_target_dict_value(key: str, target_dict: dict, target_dict_name: str
     |
     | Raises exception on invalid key.
     """
+
+    is_key_valid: bool = isinstance(key, key_type)
+
+    # Invalid key type?
+    if not is_key_valid:
+        # Raise exception
+        raise KeyError(f"{key} type invalid for {target_dict_name}")
 
     # Key not in target dict?
     if key not in target_dict:
