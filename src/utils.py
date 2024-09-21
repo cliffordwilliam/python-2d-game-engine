@@ -11,19 +11,14 @@ from typing import Any
 
 import pygame as pg
 from schemas import NoneOrBlobSpriteMetadata
-from schemas import validate_json
 
 
 def create_paths_dict(directory: str) -> dict[str, str]:
     """
-    Reads a dir.
-
-    Loop over its content, get files only.
-    Create a dict.
-
-    Key is file name.
-
-    Value is file path.
+    | Pass a dir.
+    |
+    | Loop over its content, get files only.
+    | Create a dict {file name : file path}.
     """
 
     paths_dict = {}
@@ -35,21 +30,22 @@ def create_paths_dict(directory: str) -> dict[str, str]:
 
 def get_os_specific_directory(app_name: Any) -> str:
     """
-    Pass a dir name.
-
-    Returns the dir full path to APPDATA or config and so on
+    | Pass app_name.
+    | Returns the OS sensitive dir full path to APPDATA or config and so on.
     """
 
     user_home = expanduser("~")
     sys = system()
 
-    # Set dir
+    # Windows
     if sys == "Windows":
         appdata_path = getenv("APPDATA", user_home)
         directory = join(appdata_path, app_name)
-    elif sys == "Darwin":  # macOS
+    # macOS
+    elif sys == "Darwin":
         directory = join(user_home, "Library", "Application Support", app_name)
-    else:  # Assume Linux or other Unix-like OS
+    # Assume Linux or other Unix-like OS
+    else:
         directory = join(user_home, ".config", app_name)
 
     # Dir does not exists?
@@ -59,21 +55,6 @@ def get_os_specific_directory(app_name: Any) -> str:
 
     # Return dir
     return directory
-
-
-def overwriting_target_dict(new_dict: dict, target_dict: dict, target_dict_schema: Any) -> None:
-    """
-    Overwrite dict, need exact same shape.
-
-    Do not use this on local settings dict.
-
-    Use the game setter and getter method.
-    """
-
-    if not validate_json(new_dict, target_dict_schema):
-        raise ValueError("Invalid new dict JSON against target dict schema")
-
-    target_dict.update(new_dict)
 
 
 def set_one_target_dict_value(key: Any, key_type: Any, val: Any, val_type: Any, target_dict: dict, target_dict_name: str) -> None:
@@ -157,13 +138,12 @@ def ray_vs_rect(
     t_hit_near: list,
 ) -> bool:
     """
-    True if light ray hits rect.
-
-    Parameter needs ray origin, ray dir, target_rect.
-
-    Need immutable list for extra info after computation.
-
-    contact_point, contact_normal, t_hit_near.
+    | True if light ray hits rect.
+    |
+    | Parameter needs ray origin, ray dir, target_rect.
+    |
+    | Need immutable list for extra info after computation.
+    | contact_point, contact_normal, t_hit_near.
     """
 
     # Cache division
@@ -173,19 +153,19 @@ def ray_vs_rect(
 
     # Handle infinity
     if abs(ray_dir.x) < 0.1:
-        if ray_dir.x > 0:
+        if ray_dir.x > 0.0:
             sign = 1.0
         one_over_ray_dir_x = float("inf") * sign
     else:
-        one_over_ray_dir_x = 1 / ray_dir.x
+        one_over_ray_dir_x = 1.0 / ray_dir.x
 
     # Handle infinity
     if abs(ray_dir.y) < 0.1:
-        if ray_dir.y > 0:
+        if ray_dir.y > 0.0:
             sign = 1.0
         one_over_ray_dir_y = float("inf") * sign
     else:
-        one_over_ray_dir_y = 1 / ray_dir.y
+        one_over_ray_dir_y = 1.0 / ray_dir.y
 
     # Get near far time
     t_near = pg.Vector2(
@@ -236,9 +216,10 @@ def dynamic_rect_vs_rect(
     dt: int,
 ) -> bool:
     """
-    If dynamic actor is not moving, returns False.
+    | If dynamic actor is not moving, returns False.
     """
-    if input_velocity.x == 0 and input_velocity.y == 0:
+
+    if not abs(input_velocity.x) > 0.0 and not abs(input_velocity.y) > 0.0:
         return False
     expanded_target: pg.FRect = pg.FRect(
         target_rect.x - collider_rect.width / 2,
@@ -264,6 +245,10 @@ def dynamic_rect_vs_rect(
 
 
 def exp_decay(a: float, b: float, decay: float, dt: int) -> float:
+    """
+    | Its Lerp but time independent.
+    """
+
     return b + (a - b) * exp(-decay * dt)
 
 
@@ -275,11 +260,15 @@ def get_tile_from_collision_map_list(
     collision_map_list: list,
 ) -> Any | int | NoneOrBlobSpriteMetadata:
     """
-    Returns -1 if out of bounds.
-
-    Because camera needs extra 1 and thus may get out of bound.
+    | Returns -1 if out of bounds.
+    | Because camera needs extra 1 and thus may get out of bound.
     """
+
+    # In bound?
     if 0 <= world_tu_x < room_width_tu and 0 <= world_tu_y < room_height_tu:
+        # Return found tile
         return collision_map_list[world_tu_y * room_width_tu + world_tu_x]
+    # Out of bound?
     else:
+        # Return -1 on out of bound
         return -1

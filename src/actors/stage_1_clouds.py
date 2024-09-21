@@ -90,7 +90,7 @@ class Stage1Clouds(ParallaxBackground):
                     self.surf,
                     (
                         x,
-                        0,
+                        0.0,
                     ),
                 ),
                 # Bottom Left
@@ -98,7 +98,7 @@ class Stage1Clouds(ParallaxBackground):
                     self.surf,
                     (
                         x - NATIVE_WIDTH,
-                        0,
+                        0.0,
                     ),
                 ),
             ]

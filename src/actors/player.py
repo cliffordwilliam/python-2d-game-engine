@@ -4,6 +4,7 @@ from constants import NATIVE_SURF
 from constants import pg
 from nodes.kinematic import Kinematic
 from pygame.math import Vector2
+from schemas import NoneOrBlobSpriteMetadata
 from typeguard import typechecked
 from utils import exp_decay
 
@@ -30,7 +31,7 @@ class Player:
         # Listen to input
         game_event_handler: "EventHandler",
         # Room metadata for collision
-        solid_collision_map_list: list,
+        solid_collision_map_list: list[int | NoneOrBlobSpriteMetadata],
         room_width_tu: int,
         room_height_tu: int,
         # REMOVE IN BUILD
@@ -43,7 +44,7 @@ class Player:
         self.game_debug_draw: "DebugDraw" = game_debug_draw
 
         # Initialize room metadata
-        self.solid_collision_map_list: list = solid_collision_map_list
+        self.solid_collision_map_list: list[int | NoneOrBlobSpriteMetadata] = solid_collision_map_list
         self.room_width_tu: int = room_width_tu
         self.room_height_tu: int = room_height_tu
 
@@ -101,7 +102,7 @@ class Player:
     #################
     # SETTER GETTER #
     #################
-    def set_solid_collision_map_list(self, value: list) -> None:
+    def set_solid_collision_map_list(self, value: list[int | NoneOrBlobSpriteMetadata]) -> None:
         """
         Call when room collision map list updates.
         Content changes.

@@ -89,8 +89,8 @@ class Stage1Glow(ParallaxBackground):
                 (
                     self.surf,
                     (
-                        0,
-                        0,
+                        0.0,
+                        0.0,
                     ),
                 ),
             ]

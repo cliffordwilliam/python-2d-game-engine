@@ -7,7 +7,7 @@ from typeguard import typechecked
 @typechecked
 class SoundManager:
     """
-    Plays sound effects.
+    | Plays sound effects.
     """
 
     def __init__(self) -> None:
@@ -17,7 +17,7 @@ class SoundManager:
 
     def load_sound(self, name: str, path: str) -> None:
         """
-        Load a sound and add it to the sound dictionary.
+        | Load a sound and add it to the sound dictionary.
         """
 
         if exists(path):
@@ -27,7 +27,7 @@ class SoundManager:
 
     def play_sound(self, name: str, loops: int, maxtime: int, fade_ms: int) -> None:
         """
-        Play a sound by its name.
+        | Play a sound by its name.
         """
 
         if name in self.sounds:
@@ -42,8 +42,8 @@ class SoundManager:
 
     def set_volume(self, name: str, volume: float) -> None:
         """
-        Set the volume for a sound.
-        Volume should be a float between 0.0 and 1.0.
+        | Set the volume for a sound.
+        | Volume should be a float between 0.0 and 1.0.
         """
 
         if name in self.sounds:
@@ -53,7 +53,7 @@ class SoundManager:
 
     def _get_free_channel(self) -> None | pg.mixer.Channel:
         """
-        Get the first available channel.
+        | Get the first available channel.
         """
 
         for channel in self.channels:
@@ -63,7 +63,7 @@ class SoundManager:
 
     def stop_all_sounds(self) -> None:
         """
-        Stop all sounds.
+        | Stop all sounds.
         """
 
         pg.mixer.stop()

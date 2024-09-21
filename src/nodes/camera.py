@@ -136,7 +136,7 @@ class Camera:
                 {
                     "type": "circle",
                     "layer": 5,
-                    "color": "red",
+                    "color": "green",
                     "center": (x, y),
                     "radius": 2,
                 }

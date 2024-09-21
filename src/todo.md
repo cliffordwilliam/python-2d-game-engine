@@ -11,7 +11,7 @@
 - [ ] ./scenes/made_with_splash_screen.py
 - [ ] ./scenes/animation_json_generator.py
 - [ ] ./scenes/title_screen.py
-- [ ] ./scenes/room_json_generator.py
+- [x] ./scenes/room_json_generator.py
 - [ ] ./scenes/created_by_splash_screen.py
 - [ ] ./scenes/sprite_sheet_json_generator.py
 - [ ] ./scenes/main_menu.py
@@ -32,4 +32,4 @@
 - [ ] ./nodes/button.py
 - [ ] ./nodes/camera.py
 - [ ] ./nodes/sound_manager.py
-- [ ] ./utils.py
+- [x] ./utils.py

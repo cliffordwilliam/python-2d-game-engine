@@ -20,7 +20,7 @@ class Kinematic:
         # Actor metadata
         collider_rect: pg.FRect,
         # Room metadata
-        solid_collision_map_list: list,
+        solid_collision_map_list: list[int | NoneOrBlobSpriteMetadata],
         room_width_tu: int,
         room_height_tu: int,
         # REMOVE IN BUILD
@@ -46,7 +46,7 @@ class Kinematic:
 
         # Init room metadata
         # TODO: Make the solid collision map list be safe
-        self.solid_collision_map_list = solid_collision_map_list
+        self.solid_collision_map_list: list[int | NoneOrBlobSpriteMetadata] = solid_collision_map_list
         self.room_width_tu: int = room_width_tu
         self.room_height_tu: int = room_height_tu
 
@@ -59,7 +59,7 @@ class Kinematic:
     #################
     # SETTER GETTER #
     #################
-    def set_solid_collision_map_list(self, value: list) -> None:
+    def set_solid_collision_map_list(self, value: list[int | NoneOrBlobSpriteMetadata]) -> None:
         """
         Call when room collision map list updates.
         """
@@ -159,6 +159,7 @@ class Kinematic:
             contact_point = [pg.Vector2(0, 0)]
             contact_normal = [pg.Vector2(0, 0)]
             t_hit_near = [0.0]
+            # This one is to find hits only
             hit = dynamic_rect_vs_rect(
                 input_velocity,
                 self.collider_rect,
@@ -186,6 +187,7 @@ class Kinematic:
             contact_point = [pg.Vector2(0, 0)]
             contact_normal = [pg.Vector2(0, 0)]
             t_hit_near = [0.0]
+            # This one is passed the correct sorted, so returns correct data like t hit near
             hit = dynamic_rect_vs_rect(
                 input_velocity,
                 self.collider_rect,
@@ -195,69 +197,104 @@ class Kinematic:
                 t_hit_near,
                 dt,
             )
-            # Hit?
-            if hit:
-                # RESOLVE VEL
-                resolved_velocity.x += contact_normal[0].x * abs(input_velocity.x) * (1 - t_hit_near[0])
-                resolved_velocity.y += contact_normal[0].y * abs(input_velocity.y) * (1 - t_hit_near[0])
+            # RESOLVE VEL
+            resolved_velocity.x += contact_normal[0].x * abs(input_velocity.x) * (1 - t_hit_near[0])
+            resolved_velocity.y += contact_normal[0].y * abs(input_velocity.y) * (1 - t_hit_near[0])
 
-                # REMOVE IN BUILD
-                # Debug draw
-                if self.game_debug_draw.is_active:
-                    # Draw the test rect green
-                    self.game_debug_draw.add(
-                        {
-                            "type": "rect",
-                            "layer": 4,
-                            "rect": [
-                                self.one_tile_rect.x - self.camera.rect.x,
-                                self.one_tile_rect.y - self.camera.rect.y,
-                                self.one_tile_rect.width,
-                                self.one_tile_rect.height,
-                            ],
-                            "color": "green",
-                            "width": 0,
-                        }
-                    )
-                    # Draw contact point
-                    self.game_debug_draw.add(
-                        {
-                            "type": "circle",
-                            "layer": 4,
-                            "color": "blue",
-                            "center": (
-                                contact_point[0].x - self.camera.rect.x,
-                                contact_point[0].y - self.camera.rect.y,
-                            ),
-                            "radius": 3,
-                        }
-                    )
-                    # Draw normal TODO: Draw this properly not on offset
-                    self.game_debug_draw.add(
-                        {
-                            "type": "line",
-                            "layer": 4,
-                            "start": (
-                                contact_point[0].x - self.camera.rect.x,
-                                contact_point[0].y - self.camera.rect.y,
-                            ),
-                            "end": (
-                                contact_point[0].x + contact_normal[0].x * 16 - self.camera.rect.x,
-                                contact_point[0].y + contact_normal[0].y * 16 - self.camera.rect.y,
-                            ),
-                            "color": "yellow",
-                            "width": 1,
-                        }
-                    )
-                    # Draw name
-                    self.game_debug_draw.add(
-                        {
-                            "type": "text",
-                            "layer": 4,
-                            "x": self.one_tile_rect.x - self.camera.rect.x,
-                            "y": self.one_tile_rect.y - self.camera.rect.y,
-                            "text": (f"type: {cell.type}"),
-                        }
-                    )
+            # REMOVE IN BUILD
+            # Debug draw
+            if self.game_debug_draw.is_active:
+                # Prepare offset to correct expanded rect collision
+                offset_x: float = 0.0
+                offset_y: float = 0.0
+                collider_rect_half_width: float = self.collider_rect.width / 2
+                collider_rect_half_height: float = self.collider_rect.height / 2
+                if contact_normal[0] == (1, 0):
+                    offset_x = -collider_rect_half_width
+                elif contact_normal[0] == (-1, 0):
+                    offset_x = collider_rect_half_width
+                elif contact_normal[0] == (0, 1):
+                    offset_y = -collider_rect_half_height
+                elif contact_normal[0] == (0, -1):
+                    offset_y = collider_rect_half_height
+                # Draw the test rect green
+                self.game_debug_draw.add(
+                    {
+                        "type": "rect",
+                        "layer": 4,
+                        "rect": [
+                            self.one_tile_rect.x - self.camera.rect.x,
+                            self.one_tile_rect.y - self.camera.rect.y,
+                            self.one_tile_rect.width,
+                            self.one_tile_rect.height,
+                        ],
+                        "color": "green",
+                        "width": 0,
+                    }
+                )
+                # Draw contact point
+                self.game_debug_draw.add(
+                    {
+                        "type": "circle",
+                        "layer": 4,
+                        "color": "blue",
+                        "center": (
+                            contact_point[0].x - self.camera.rect.x + offset_x,
+                            contact_point[0].y - self.camera.rect.y + offset_y,
+                        ),
+                        "radius": 3,
+                    }
+                )
+                # Draw normal
+                self.game_debug_draw.add(
+                    {
+                        "type": "line",
+                        "layer": 4,
+                        "start": (
+                            contact_point[0].x - self.camera.rect.x + offset_x,
+                            contact_point[0].y - self.camera.rect.y + offset_y,
+                        ),
+                        "end": (
+                            contact_point[0].x + contact_normal[0].x * 16 - self.camera.rect.x + offset_x,
+                            contact_point[0].y + contact_normal[0].y * 16 - self.camera.rect.y + offset_y,
+                        ),
+                        "color": "yellow",
+                        "width": 1,
+                    }
+                )
+                # Draw tile type
+                self.game_debug_draw.add(
+                    {
+                        "type": "text",
+                        "layer": 4,
+                        "x": self.one_tile_rect.x - self.camera.rect.x,
+                        "y": self.one_tile_rect.y - self.camera.rect.y,
+                        "text": (f"type: {cell.type}"),
+                    }
+                )
 
+        # REMOVE IN BUILD
+        # Debug draw
+        # Draw resolved velocity vector
+        if self.game_debug_draw.is_active:
+            collider_rect_center_world_x = self.collider_rect.centerx - self.camera.rect.x
+            collider_rect_center_world_y = self.collider_rect.centery - self.camera.rect.y
+            self.game_debug_draw.add(
+                {
+                    "type": "line",
+                    "layer": 4,
+                    "start": (
+                        collider_rect_center_world_x,
+                        collider_rect_center_world_y,
+                    ),
+                    "end": (
+                        collider_rect_center_world_x + resolved_velocity.x * 200,
+                        collider_rect_center_world_y + resolved_velocity.y * 200,
+                    ),
+                    "color": "blue",
+                    "width": 1,
+                }
+            )
+
+        # Return the resolved vel
         return resolved_velocity
