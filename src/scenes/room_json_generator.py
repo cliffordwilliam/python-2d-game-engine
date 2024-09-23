@@ -853,20 +853,20 @@ class RoomJsonGenerator:
                 self.combined_world_selected_tile_rect_x_ru = int(self.combined_world_selected_tile_rect.x // WORLD_CELL_SIZE)
                 self.combined_world_selected_tile_rect_y_ru = int(self.combined_world_selected_tile_rect.y // WORLD_CELL_SIZE)
                 found_occupied = False
-                for world_mouse_tu_xi in range(self.combined_world_selected_tile_rect_width_ru):
-                    if found_occupied:
+                # Get region
+                region_with_positions = self.get_region_1d_with_positions(
+                    collision_map_list=self.world_collision_map_list,
+                    room_width_tu=WORLD_WIDTH_RU,
+                    xu=self.world_mouse_tu_x,
+                    yu=self.world_mouse_tu_y,
+                    region_width_tu=self.combined_world_selected_tile_rect_width_ru,
+                    region_height_tu=self.combined_world_selected_tile_rect_height_ru,
+                )
+                for tile, position in region_with_positions:
+                    if tile != 0 and tile != -1:
+                        # At least 1 of them is occupied?
+                        found_occupied = True
                         break
-                    for world_mouse_tu_yi in range(self.combined_world_selected_tile_rect_height_ru):
-                        world_mouse_tu_x = self.combined_world_selected_tile_rect_x_ru + world_mouse_tu_xi
-                        world_mouse_tu_y = self.combined_world_selected_tile_rect_y_ru + world_mouse_tu_yi
-                        found_tile_lmb_pressed = self._get_tile_from_world_collision_map_list(
-                            world_mouse_tu_x,
-                            world_mouse_tu_y,
-                        )
-                        # At least 1 of them is occupied? Exit nested loop, set found occupied true
-                        if found_tile_lmb_pressed != 0 and found_tile_lmb_pressed != -1:
-                            found_occupied = True
-                            break
                 # All cells are empty?
                 if not found_occupied:
                     # Update room metadata dimension and position
@@ -1190,7 +1190,6 @@ class RoomJsonGenerator:
             # Update static actors
             for static_actor_instance in self.sprite_sheet_static_actor_instance_dict.values():
                 static_actor_instance.update(dt)
-
             # Editor mode
             if not self.is_play_test_mode:
                 # Move camera with input
@@ -1368,64 +1367,13 @@ class RoomJsonGenerator:
                         elif self.is_lmb_was_just_pressed:
                             # Lmb just pressed
                             if self.game_event_handler.is_lmb_just_released:
-                                # Iterate size to check all empty
-                                self.combined_room_selected_tile_rect_width_ru = int(
-                                    self.combined_room_selected_tile_rect.width // TILE_SIZE
+                                self.process_second_select(
+                                    selected_background_layer_collision_map,
+                                    selected_sprite_name,
+                                    selected_sprite_x,
+                                    selected_sprite_y,
+                                    selected_sprite_tile_type,
                                 )
-                                self.combined_room_selected_tile_rect_height_ru = int(
-                                    self.combined_room_selected_tile_rect.height // TILE_SIZE
-                                )
-                                self.combined_room_selected_tile_rect_x_ru = int(
-                                    self.combined_room_selected_tile_rect.x // TILE_SIZE
-                                )
-                                self.combined_room_selected_tile_rect_y_ru = int(
-                                    self.combined_room_selected_tile_rect.y // TILE_SIZE
-                                )
-                                for world_tu_xi in range(self.combined_room_selected_tile_rect_width_ru):
-                                    for world_tu_yi in range(self.combined_room_selected_tile_rect_height_ru):
-                                        world_tu_x = self.combined_room_selected_tile_rect_x_ru + world_tu_xi
-                                        world_tu_y = self.combined_room_selected_tile_rect_y_ru + world_tu_yi
-                                        # Get each one in room_collision_map_list
-                                        found_tile = self._get_tile_from_collision_map_list(
-                                            world_tu_x,
-                                            world_tu_y,
-                                            selected_background_layer_collision_map,
-                                        )
-                                        # Find empty cell in combined here
-                                        if found_tile == 0:
-                                            ##################
-                                            # NONE TILE TYPE #
-                                            ##################
-
-                                            if selected_sprite_tile_type == "none":
-                                                self._on_lmb_just_pressed_none_tile_type(
-                                                    # The selected collision map
-                                                    selected_background_layer_collision_map,
-                                                    # Other dynamic data this needs
-                                                    selected_sprite_x,
-                                                    selected_sprite_y,
-                                                    # Then subsequent callbacks are from neighbor pos
-                                                    world_tu_x=world_tu_x,
-                                                    world_tu_y=world_tu_y,
-                                                )
-
-                                            ##################
-                                            # BLOB TILE TYPE #
-                                            ##################
-                                            # Really slow but it works
-                                            elif selected_sprite_tile_type != "none":
-                                                self._on_lmb_just_pressed_blob_tile_type(
-                                                    # The selected collision map
-                                                    selected_background_layer_collision_map,
-                                                    # Other dynamic data this needs
-                                                    selected_sprite_x,
-                                                    selected_sprite_y,
-                                                    selected_sprite_tile_type,
-                                                    selected_sprite_name,
-                                                    # Then subsequent callbacks are from neighbor pos
-                                                    world_tu_x=world_tu_x,
-                                                    world_tu_y=world_tu_y,
-                                                )
                                 # Cleanup exit to enter first state again
                                 # Reset flag
                                 self.is_lmb_was_just_pressed = False
@@ -1589,64 +1537,13 @@ class RoomJsonGenerator:
                         elif self.is_lmb_was_just_pressed:
                             # Lmb just pressed
                             if self.game_event_handler.is_lmb_just_released:
-                                # Iterate size to check all empty
-                                self.combined_room_selected_tile_rect_width_ru = int(
-                                    self.combined_room_selected_tile_rect.width // TILE_SIZE
+                                self.process_second_select(
+                                    self.solid_collision_map_list,
+                                    selected_sprite_name,
+                                    selected_sprite_x,
+                                    selected_sprite_y,
+                                    selected_sprite_tile_type,
                                 )
-                                self.combined_room_selected_tile_rect_height_ru = int(
-                                    self.combined_room_selected_tile_rect.height // TILE_SIZE
-                                )
-                                self.combined_room_selected_tile_rect_x_ru = int(
-                                    self.combined_room_selected_tile_rect.x // TILE_SIZE
-                                )
-                                self.combined_room_selected_tile_rect_y_ru = int(
-                                    self.combined_room_selected_tile_rect.y // TILE_SIZE
-                                )
-                                for world_tu_xi in range(self.combined_room_selected_tile_rect_width_ru):
-                                    for world_tu_yi in range(self.combined_room_selected_tile_rect_height_ru):
-                                        world_tu_x = self.combined_room_selected_tile_rect_x_ru + world_tu_xi
-                                        world_tu_y = self.combined_room_selected_tile_rect_y_ru + world_tu_yi
-                                        # Get each one in room_collision_map_list
-                                        found_tile = self._get_tile_from_collision_map_list(
-                                            world_tu_x,
-                                            world_tu_y,
-                                            self.solid_collision_map_list,
-                                        )
-                                        # Find empty cell in combined here
-                                        if found_tile == 0:
-                                            ##################
-                                            # NONE TILE TYPE #
-                                            ##################
-
-                                            if selected_sprite_tile_type == "none":
-                                                self._on_lmb_just_pressed_none_tile_type(
-                                                    # The selected collision map
-                                                    self.solid_collision_map_list,
-                                                    # Other dynamic data this needs
-                                                    selected_sprite_x,
-                                                    selected_sprite_y,
-                                                    # Then subsequent callbacks are from neighbor pos
-                                                    world_tu_x=world_tu_x,
-                                                    world_tu_y=world_tu_y,
-                                                )
-
-                                            ##################
-                                            # BLOB TILE TYPE #
-                                            ##################
-                                            # Really slow but it works
-                                            elif selected_sprite_tile_type != "none":
-                                                self._on_lmb_just_pressed_blob_tile_type(
-                                                    # The selected collision map
-                                                    self.solid_collision_map_list,
-                                                    # Other dynamic data this needs
-                                                    selected_sprite_x,
-                                                    selected_sprite_y,
-                                                    selected_sprite_tile_type,
-                                                    selected_sprite_name,
-                                                    # Then subsequent callbacks are from neighbor pos
-                                                    world_tu_x=world_tu_x,
-                                                    world_tu_y=world_tu_y,
-                                                )
                                 # Cleanup exit to enter first state again
                                 # Reset flag
                                 self.is_lmb_was_just_pressed = False
@@ -1823,64 +1720,13 @@ class RoomJsonGenerator:
                         elif self.is_lmb_was_just_pressed:
                             # Lmb just pressed
                             if self.game_event_handler.is_lmb_just_released:
-                                # Iterate size to check all empty
-                                self.combined_room_selected_tile_rect_width_ru = int(
-                                    self.combined_room_selected_tile_rect.width // TILE_SIZE
+                                self.process_second_select(
+                                    self.solid_collision_map_list,
+                                    selected_sprite_name,
+                                    selected_sprite_x,
+                                    selected_sprite_y,
+                                    selected_sprite_tile_type,
                                 )
-                                self.combined_room_selected_tile_rect_height_ru = int(
-                                    self.combined_room_selected_tile_rect.height // TILE_SIZE
-                                )
-                                self.combined_room_selected_tile_rect_x_ru = int(
-                                    self.combined_room_selected_tile_rect.x // TILE_SIZE
-                                )
-                                self.combined_room_selected_tile_rect_y_ru = int(
-                                    self.combined_room_selected_tile_rect.y // TILE_SIZE
-                                )
-                                for world_tu_xi in range(self.combined_room_selected_tile_rect_width_ru):
-                                    for world_tu_yi in range(self.combined_room_selected_tile_rect_height_ru):
-                                        world_tu_x = self.combined_room_selected_tile_rect_x_ru + world_tu_xi
-                                        world_tu_y = self.combined_room_selected_tile_rect_y_ru + world_tu_yi
-                                        # Get each one in room_collision_map_list
-                                        found_tile = self._get_tile_from_collision_map_list(
-                                            world_tu_x,
-                                            world_tu_y,
-                                            self.solid_collision_map_list,
-                                        )
-                                        # Find empty cell in combined here
-                                        if found_tile == 0:
-                                            ##################
-                                            # NONE TILE TYPE #
-                                            ##################
-
-                                            if selected_sprite_tile_type == "none":
-                                                self._on_lmb_just_pressed_none_tile_type(
-                                                    # The selected collision map
-                                                    self.solid_collision_map_list,
-                                                    # Other dynamic data this needs
-                                                    selected_sprite_x,
-                                                    selected_sprite_y,
-                                                    # Then subsequent callbacks are from neighbor pos
-                                                    world_tu_x=world_tu_x,
-                                                    world_tu_y=world_tu_y,
-                                                )
-
-                                            ##################
-                                            # BLOB TILE TYPE #
-                                            ##################
-                                            # Really slow but it works
-                                            elif selected_sprite_tile_type != "none":
-                                                self._on_lmb_just_pressed_blob_tile_type(
-                                                    # The selected collision map
-                                                    self.solid_collision_map_list,
-                                                    # Other dynamic data this needs
-                                                    selected_sprite_x,
-                                                    selected_sprite_y,
-                                                    selected_sprite_tile_type,
-                                                    selected_sprite_name,
-                                                    # Then subsequent callbacks are from neighbor pos
-                                                    world_tu_x=world_tu_x,
-                                                    world_tu_y=world_tu_y,
-                                                )
                                 # Cleanup exit to enter first state again
                                 # Reset flag
                                 self.is_lmb_was_just_pressed = False
@@ -2060,64 +1906,13 @@ class RoomJsonGenerator:
                         elif self.is_lmb_was_just_pressed:
                             # Lmb just pressed
                             if self.game_event_handler.is_lmb_just_released:
-                                # Iterate size to check all empty
-                                self.combined_room_selected_tile_rect_width_ru = int(
-                                    self.combined_room_selected_tile_rect.width // TILE_SIZE
+                                self.process_second_select(
+                                    selected_foreground_layer_collision_map,
+                                    selected_sprite_name,
+                                    selected_sprite_x,
+                                    selected_sprite_y,
+                                    selected_sprite_tile_type,
                                 )
-                                self.combined_room_selected_tile_rect_height_ru = int(
-                                    self.combined_room_selected_tile_rect.height // TILE_SIZE
-                                )
-                                self.combined_room_selected_tile_rect_x_ru = int(
-                                    self.combined_room_selected_tile_rect.x // TILE_SIZE
-                                )
-                                self.combined_room_selected_tile_rect_y_ru = int(
-                                    self.combined_room_selected_tile_rect.y // TILE_SIZE
-                                )
-                                for world_tu_xi in range(self.combined_room_selected_tile_rect_width_ru):
-                                    for world_tu_yi in range(self.combined_room_selected_tile_rect_height_ru):
-                                        world_tu_x = self.combined_room_selected_tile_rect_x_ru + world_tu_xi
-                                        world_tu_y = self.combined_room_selected_tile_rect_y_ru + world_tu_yi
-                                        # Get each one in room_collision_map_list
-                                        found_tile = self._get_tile_from_collision_map_list(
-                                            world_tu_x,
-                                            world_tu_y,
-                                            selected_foreground_layer_collision_map,
-                                        )
-                                        # Find empty cell in combined here
-                                        if found_tile == 0:
-                                            ##################
-                                            # NONE TILE TYPE #
-                                            ##################
-
-                                            if selected_sprite_tile_type == "none":
-                                                self._on_lmb_just_pressed_none_tile_type(
-                                                    # The selected collision map
-                                                    selected_foreground_layer_collision_map,
-                                                    # Other dynamic data this needs
-                                                    selected_sprite_x,
-                                                    selected_sprite_y,
-                                                    # Then subsequent callbacks are from neighbor pos
-                                                    world_tu_x=world_tu_x,
-                                                    world_tu_y=world_tu_y,
-                                                )
-
-                                            ##################
-                                            # BLOB TILE TYPE #
-                                            ##################
-                                            # Really slow but it works
-                                            elif selected_sprite_tile_type != "none":
-                                                self._on_lmb_just_pressed_blob_tile_type(
-                                                    # The selected collision map
-                                                    selected_foreground_layer_collision_map,
-                                                    # Other dynamic data this needs
-                                                    selected_sprite_x,
-                                                    selected_sprite_y,
-                                                    selected_sprite_tile_type,
-                                                    selected_sprite_name,
-                                                    # Then subsequent callbacks are from neighbor pos
-                                                    world_tu_x=world_tu_x,
-                                                    world_tu_y=world_tu_y,
-                                                )
                                 # Cleanup exit to enter first state again
                                 # Reset flag
                                 self.is_lmb_was_just_pressed = False
@@ -3722,3 +3517,189 @@ class RoomJsonGenerator:
                         self._set_input_text(new_value)
                         # Play text
                         self.game_sound_manager.play_sound("text_1.ogg", 0, 0, 0)
+
+    def get_region_1d_with_positions(
+        self,
+        collision_map_list: list[int | NoneOrBlobSpriteMetadata | Any],
+        room_width_tu: int,
+        xu: int,
+        yu: int,
+        region_width_tu: int,
+        region_height_tu: int,
+    ) -> list:
+        """
+        Extract a region from the 1D collision map list along with its position in the 2D grid.
+
+        :param collision_map_list: The flattened 1D list representing the grid.
+        :param room_width_tu: The width of the room (number of tiles in a row).
+        :param xu: The top-left xu coordinate of the region.
+        :param yu: The top-left yu coordinate of the region.
+        :param region_width_tu: The width of the region to extract.
+        :param region_height_tu: The height of the region to extract.
+
+        :return: A list of tuples in the form (value, (row, col)) for each element in the region.
+        """
+        region_with_positions = []
+
+        for row in range(region_height_tu):
+            start_index = (yu + row) * room_width_tu + xu  # Calculate the starting index for each row
+
+            # Extract the row values
+            for col in range(region_width_tu):
+                value = collision_map_list[start_index + col]
+                region_with_positions.append((value, (yu + row, xu + col)))  # Append value with its position
+
+        return region_with_positions
+
+    def process_second_select(
+        self,
+        selected_layer_collision_map: list[int | NoneOrBlobSpriteMetadata],
+        selected_sprite_name: str,
+        selected_sprite_x: int,
+        selected_sprite_y: int,
+        selected_sprite_tile_type: str,
+    ) -> None:
+        # Iterate size to check all empty
+        self.combined_room_selected_tile_rect_width_ru = int(self.combined_room_selected_tile_rect.width // TILE_SIZE)
+        self.combined_room_selected_tile_rect_height_ru = int(self.combined_room_selected_tile_rect.height // TILE_SIZE)
+        self.combined_room_selected_tile_rect_x_ru = int(self.combined_room_selected_tile_rect.x // TILE_SIZE)
+        self.combined_room_selected_tile_rect_y_ru = int(self.combined_room_selected_tile_rect.y // TILE_SIZE)
+        # Expanded region size
+        combined_room_selected_tile_rect_expanded_width_tu: int = self.combined_room_selected_tile_rect_width_ru + 2
+        combined_room_selected_tile_rect_expanded_height_tu: int = self.combined_room_selected_tile_rect_height_ru + 2
+        combined_room_selected_tile_rect_expanded_x_tu: int = self.combined_room_selected_tile_rect_x_ru - 1
+        combined_room_selected_tile_rect_expanded_y_tu: int = self.combined_room_selected_tile_rect_y_ru - 1
+        # Get region
+        center_positions = self.get_region_1d_with_positions(
+            collision_map_list=selected_layer_collision_map,
+            room_width_tu=self.room_width_tu,
+            xu=self.combined_room_selected_tile_rect_x_ru,
+            yu=self.combined_room_selected_tile_rect_y_ru,
+            region_width_tu=self.combined_room_selected_tile_rect_width_ru,
+            region_height_tu=self.combined_room_selected_tile_rect_height_ru,
+        )
+
+        ##################
+        # NONE TILE TYPE #
+        ##################
+        if selected_sprite_tile_type == "none":
+            # Loop over center
+            for tile, position in center_positions:
+                # Empty?
+                if tile == 0:
+                    # Fill with metadata instance
+                    world_tu_x = position[1]
+                    world_tu_y = position[0]
+                    world_snapped_x = world_tu_x * TILE_SIZE
+                    world_snapped_y = world_tu_y * TILE_SIZE
+                    new_none_or_blob_sprite_metadata_dict: dict = {
+                        "name": selected_sprite_name,
+                        "type": self.sprite_metadata_instance.sprite_type,
+                        "x": world_snapped_x,
+                        "y": world_snapped_y,
+                        "region_x": selected_sprite_x,
+                        "region_y": selected_sprite_y,
+                    }
+                    # Turn into sprite metadata instance
+                    none_or_blob_sprite_metadata_instance = instance_none_or_blob_sprite_metadata(
+                        new_none_or_blob_sprite_metadata_dict
+                    )
+                    # Fill collision map with sprite name in cursor pos
+                    self._set_tile_from_collision_map_list(
+                        world_tu_x=world_tu_x,
+                        world_tu_y=world_tu_y,
+                        value=none_or_blob_sprite_metadata_instance,
+                        collision_map_list=selected_layer_collision_map,
+                        is_update_pre_render=True,
+                    )
+
+        ##################
+        # BLOB TILE TYPE #
+        ##################
+        elif selected_sprite_tile_type != "none":
+            # Fill center first
+            for tile, position in center_positions:
+                # Empty?
+                if tile == 0:
+                    # Fill with metadata instance
+                    world_tu_x = position[1]
+                    world_tu_y = position[0]
+                    world_snapped_x = world_tu_x * TILE_SIZE
+                    world_snapped_y = world_tu_y * TILE_SIZE
+                    new_none_or_blob_sprite_metadata_dict = {
+                        "name": selected_sprite_name,
+                        "type": self.sprite_metadata_instance.sprite_type,
+                        "x": world_snapped_x,
+                        "y": world_snapped_y,
+                        "region_x": selected_sprite_x,
+                        "region_y": selected_sprite_y,
+                    }
+                    # Turn into sprite metadata instance
+                    none_or_blob_sprite_metadata_instance = instance_none_or_blob_sprite_metadata(
+                        new_none_or_blob_sprite_metadata_dict
+                    )
+                    # Fill collision map with sprite name in cursor pos
+                    self._set_tile_from_collision_map_list(
+                        world_tu_x=world_tu_x,
+                        world_tu_y=world_tu_y,
+                        value=none_or_blob_sprite_metadata_instance,
+                        collision_map_list=selected_layer_collision_map,
+                        is_update_pre_render=True,
+                    )
+            # Get expanded region after fill
+            expanded_values = self.get_region_1d_with_positions(
+                collision_map_list=selected_layer_collision_map,
+                room_width_tu=self.room_width_tu,
+                xu=combined_room_selected_tile_rect_expanded_x_tu,
+                yu=combined_room_selected_tile_rect_expanded_y_tu,
+                region_width_tu=combined_room_selected_tile_rect_expanded_width_tu,
+                region_height_tu=combined_room_selected_tile_rect_expanded_height_tu,
+            )
+            # Then wash expanded region
+            for tile, position in expanded_values:
+                # Skip if empty or out of bound
+                if tile == 0 or tile == -1:
+                    continue
+                # Should be a NoneOrBlobSpriteMetadata
+                if not isinstance(tile, NoneOrBlobSpriteMetadata):
+                    raise ValueError("Invalid none or blob sprite metadata JSON data against schema")
+                # Turn relative to absolute coord
+                world_tu_x = position[1]
+                world_tu_y = position[0]
+                world_snapped_x = world_tu_x * TILE_SIZE
+                world_snapped_y = world_tu_y * TILE_SIZE
+                # Get Sprite metadata
+                sprite_metadata_instance: SpriteMetadata = get_one_target_dict_value(
+                    key=tile.name,
+                    key_type=str,
+                    target_dict=self.sprite_name_to_sprite_metadata,
+                    target_dict_name="self.sprite_name_to_sprite_metadata",
+                )
+                neighbor_sprite_name = sprite_metadata_instance.sprite_name
+                neighbor_sprite_is_tile_mix = sprite_metadata_instance.sprite_is_tile_mix
+                neighbor_sprite_x = sprite_metadata_instance.x
+                neighbor_sprite_y = sprite_metadata_instance.y
+                neighbor_sprite_tile_type = sprite_metadata_instance.sprite_tile_type
+
+                # Neighbor not my kind?
+                if neighbor_sprite_name != self.selected_sprite_name:
+                    # Neighbor not mixed? Do not want to mix with me
+                    if neighbor_sprite_is_tile_mix == 0:
+                        # Skip this neighbor
+                        continue
+
+                # This neighbor wants to mix with me, so update its autotile
+
+                # Draw autotile on surf with proper offset
+                self._draw_autotile_sprite_on_given_pos(
+                    neighbor_sprite_tile_type,
+                    neighbor_sprite_x,
+                    neighbor_sprite_y,
+                    world_tu_x,
+                    world_tu_y,
+                    selected_layer_collision_map,
+                    # surf,
+                    world_snapped_x,
+                    world_snapped_y,
+                    neighbor_sprite_name,
+                )
