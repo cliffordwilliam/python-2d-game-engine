@@ -64,10 +64,9 @@ if TYPE_CHECKING:
 
 @typechecked
 class RoomJsonGenerator:
-    # TODO: Do better algo for the flood fill and rect combined fill, do the auto tile update at the very end after all POST
-    # Add plyaer to collide to room limits first, spawn it like a tree, enter toggle edit to test mode
-    # TODO: Add Enemies, when go back to edit, reset to their initial position
     # TODO: Save and load room, then that is it for now
+    # TODO: Hold enter longer than 5s then it saves, otherwise test mode (copy the other save quit menu)
+    # TODO: Add Enemies, when go back to edit, reset to their initial position
     # TODO: Add twin goddess and door here too, twin goddess are just like goblins, instead attack allow save
     # Make door have 2 states later, open and close, when it closes it uses the gate sprite
     # so add the sprite sheet like thin fire mapped to stage, map gate to all stages
