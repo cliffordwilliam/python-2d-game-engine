@@ -98,6 +98,7 @@ class RoomJsonGenerator:
         FILE_NAME_QUERY: int = auto()
         SPRITE_SHEET_JSON_PATH_QUERY: int = auto()
         EDIT_ROOM: int = auto()
+        SAVE_QUIT_REDO_QUERY: int = auto()
         SPRITE_PALETTE: int = auto()
         CLOSING_SCENE_CURTAIN: int = auto()
         CLOSED_SCENE_CURTAIN: int = auto()
@@ -276,6 +277,7 @@ class RoomJsonGenerator:
         """
         | Entry delay timer with event listener.
         | Exit delay timer with event listener.
+        | Tap to test and hold to save timer debounce.
         """
 
         # Entry delay timer with event listener
@@ -289,6 +291,13 @@ class RoomJsonGenerator:
         self.exit_delay_timer: Timer = Timer(duration=self.SLOW_FADE_DURATION)
         self.exit_delay_timer.add_event_listener(
             callback=self._on_exit_delay_timer_end,
+            event=Timer.END,
+        )
+
+        # Save delay timer with event listener
+        self.save_delay_timer: Timer = Timer(duration=self.SLOW_FADE_DURATION)
+        self.save_delay_timer.add_event_listener(
+            callback=self._on_save_delay_timer_end,
             event=Timer.END,
         )
 
@@ -480,6 +489,7 @@ class RoomJsonGenerator:
                 RoomJsonGenerator.State.FILE_NAME_QUERY: self._FILE_NAME_QUERY,
                 RoomJsonGenerator.State.SPRITE_SHEET_JSON_PATH_QUERY: self._SPRITE_SHEET_JSON_PATH_QUERY,
                 RoomJsonGenerator.State.EDIT_ROOM: self._EDIT_ROOM,
+                RoomJsonGenerator.State.SAVE_QUIT_REDO_QUERY: self._SAVE_QUIT_REDO_QUERY,
                 RoomJsonGenerator.State.SPRITE_PALETTE: self._SPRITE_PALETTE,
                 RoomJsonGenerator.State.CLOSING_SCENE_CURTAIN: self._CLOSING_SCENE_CURTAIN,
                 RoomJsonGenerator.State.CLOSED_SCENE_CURTAIN: self._CLOSED_SCENE_CURTAIN,
@@ -518,6 +528,10 @@ class RoomJsonGenerator:
                     RoomJsonGenerator.State.EDIT_ROOM,
                 ): self._SPRITE_PALETTE_to_EDIT_ROOM,
                 (
+                    RoomJsonGenerator.State.EDIT_ROOM,
+                    RoomJsonGenerator.State.SAVE_QUIT_REDO_QUERY,
+                ): self._EDIT_ROOM_to_SAVE_QUIT_REDO_QUERY,
+                (
                     RoomJsonGenerator.State.CLOSING_SCENE_CURTAIN,
                     RoomJsonGenerator.State.CLOSED_SCENE_CURTAIN,
                 ): self._CLOSING_SCENE_CURTAIN_to_CLOSED_SCENE_CURTAIN,
@@ -539,6 +553,7 @@ class RoomJsonGenerator:
                 RoomJsonGenerator.State.FILE_NAME_QUERY: self._QUERIES,
                 RoomJsonGenerator.State.SPRITE_SHEET_JSON_PATH_QUERY: self._QUERIES,
                 RoomJsonGenerator.State.EDIT_ROOM: self._EDIT_ROOM_DRAW,
+                RoomJsonGenerator.State.SAVE_QUIT_REDO_QUERY: self._QUERIES,
                 RoomJsonGenerator.State.SPRITE_PALETTE: self._SPRITE_PALLETE_DRAW,
                 RoomJsonGenerator.State.CLOSING_SCENE_CURTAIN: self._QUERIES,
                 RoomJsonGenerator.State.CLOSED_SCENE_CURTAIN: self._NOTHING,
@@ -1177,6 +1192,10 @@ class RoomJsonGenerator:
         # Typing logic
         self._handle_query_input(_accept_callback)
 
+        # Update curtain
+        self.curtain.update(dt)
+
+    def _SAVE_QUIT_REDO_QUERY(self, dt: int) -> None:
         # Update curtain
         self.curtain.update(dt)
 
@@ -2057,9 +2076,15 @@ class RoomJsonGenerator:
                 self.camera_anchor_vector.x = self.player.collider_rect.x
                 self.camera_anchor_vector.y = self.player.collider_rect.y
 
-            # Enter just pressed, go to play test state
-            if self.game_event_handler.is_enter_just_pressed:
-                # TODO: Enter a save or test mode later
+            # Enter held?
+            if self.game_event_handler.is_enter_pressed:
+                # Keep counting, when done counting go to save state
+                self.save_delay_timer.update(dt)
+            # Enter just released
+            elif self.game_event_handler.is_enter_just_released:
+                # Reset counter
+                self.save_delay_timer.reset()
+                # Toggle play test or edit mode
                 self.is_play_test_mode = not self.is_play_test_mode
                 if self.is_play_test_mode:
                     self.camera.set_target_vector(self.player.camera_anchor_vector)
@@ -2201,6 +2226,12 @@ class RoomJsonGenerator:
     def _SPRITE_PALETTE_to_EDIT_ROOM(self) -> None:
         self.is_from_pallete_pressed_jump = False
 
+    def _EDIT_ROOM_to_SAVE_QUIT_REDO_QUERY(self) -> None:
+        # Reset the input text
+        self._set_input_text("")
+        # Set my prompt text
+        self._set_prompt_text("save and quit, save and redo, redo, quit (1/2/3/4)?")
+
     def _CLOSING_SCENE_CURTAIN_to_CLOSED_SCENE_CURTAIN(self) -> None:
         NATIVE_SURF.fill("black")
 
@@ -2209,6 +2240,9 @@ class RoomJsonGenerator:
     #############
     def _on_entry_delay_timer_end(self) -> None:
         self._change_update_and_draw_state_machine(RoomJsonGenerator.State.OPENING_SCENE_CURTAIN)
+
+    def _on_save_delay_timer_end(self) -> None:
+        self.curtain.go_to_opaque()
 
     def _on_exit_delay_timer_end(self) -> None:
         # Load title screen music. Played in my set state
@@ -2236,8 +2270,13 @@ class RoomJsonGenerator:
             self._change_update_and_draw_state_machine(RoomJsonGenerator.State.EDIT_ROOM)
             self.curtain.go_to_invisible()
         elif self.state_machine_update.state == RoomJsonGenerator.State.EDIT_ROOM:
+            # Open pallete
             if self.is_from_edit_pressed_jump:
                 self._change_update_and_draw_state_machine(RoomJsonGenerator.State.SPRITE_PALETTE)
+                self.curtain.go_to_invisible()
+            # Open save and quit menu
+            else:
+                self._change_update_and_draw_state_machine(RoomJsonGenerator.State.SAVE_QUIT_REDO_QUERY)
                 self.curtain.go_to_invisible()
         elif self.state_machine_update.state == RoomJsonGenerator.State.SPRITE_PALETTE:
             if self.is_from_pallete_pressed_jump:
