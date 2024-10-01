@@ -853,7 +853,7 @@ class RoomJsonGenerator:
                 self.combined_world_selected_tile_rect_y_ru = int(self.combined_world_selected_tile_rect.y // WORLD_CELL_SIZE)
                 found_occupied = False
                 # Get region
-                region_with_positions = self.get_region_1d_with_positions(
+                region_with_positions = self._get_region_1d_with_positions(
                     collision_map_list=self.world_collision_map_list,
                     room_width_tu=WORLD_WIDTH_RU,
                     xu=self.world_mouse_tu_x,
@@ -1366,7 +1366,7 @@ class RoomJsonGenerator:
                         elif self.is_lmb_was_just_pressed:
                             # Lmb just pressed
                             if self.game_event_handler.is_lmb_just_released:
-                                self.process_second_select(
+                                self._process_second_select(
                                     selected_background_layer_collision_map,
                                     selected_sprite_name,
                                     selected_sprite_x,
@@ -1536,7 +1536,7 @@ class RoomJsonGenerator:
                         elif self.is_lmb_was_just_pressed:
                             # Lmb just pressed
                             if self.game_event_handler.is_lmb_just_released:
-                                self.process_second_select(
+                                self._process_second_select(
                                     self.solid_collision_map_list,
                                     selected_sprite_name,
                                     selected_sprite_x,
@@ -1719,7 +1719,7 @@ class RoomJsonGenerator:
                         elif self.is_lmb_was_just_pressed:
                             # Lmb just pressed
                             if self.game_event_handler.is_lmb_just_released:
-                                self.process_second_select(
+                                self._process_second_select(
                                     self.solid_collision_map_list,
                                     selected_sprite_name,
                                     selected_sprite_x,
@@ -1905,7 +1905,7 @@ class RoomJsonGenerator:
                         elif self.is_lmb_was_just_pressed:
                             # Lmb just pressed
                             if self.game_event_handler.is_lmb_just_released:
-                                self.process_second_select(
+                                self._process_second_select(
                                     selected_foreground_layer_collision_map,
                                     selected_sprite_name,
                                     selected_sprite_x,
@@ -3517,7 +3517,7 @@ class RoomJsonGenerator:
                         # Play text
                         self.game_sound_manager.play_sound("text_1.ogg", 0, 0, 0)
 
-    def get_region_1d_with_positions(
+    def _get_region_1d_with_positions(
         self,
         collision_map_list: list[int | NoneOrBlobSpriteMetadata | Any],
         room_width_tu: int,
@@ -3525,23 +3525,17 @@ class RoomJsonGenerator:
         yu: int,
         region_width_tu: int,
         region_height_tu: int,
-    ) -> list:
+    ) -> list[tuple[(int | NoneOrBlobSpriteMetadata | Any), tuple[int, int]]]:
         """
-        Extract a region from the 1D collision map list along with its position in the 2D grid.
-
-        :param collision_map_list: The flattened 1D list representing the grid.
-        :param room_width_tu: The width of the room (number of tiles in a row).
-        :param xu: The top-left xu coordinate of the region.
-        :param yu: The top-left yu coordinate of the region.
-        :param region_width_tu: The width of the region to extract.
-        :param region_height_tu: The height of the region to extract.
-
-        :return: A list of tuples in the form (value, (row, col)) for each element in the region.
+        | Extract a region list from the 1D collision map list.
+        | Region list is made of tuples.
+        | (Tile value, tuple(x_tu, y_tu)).
         """
-        region_with_positions = []
+
+        region_with_positions: list[tuple[(int | NoneOrBlobSpriteMetadata | Any), tuple[int, int]]] = []
 
         for row in range(region_height_tu):
-            start_index = (yu + row) * room_width_tu + xu  # Calculate the starting index for each row
+            start_index: int = (yu + row) * room_width_tu + xu  # Calculate the starting index for each row
 
             # Extract the row values
             for col in range(region_width_tu):
@@ -3550,7 +3544,7 @@ class RoomJsonGenerator:
 
         return region_with_positions
 
-    def process_second_select(
+    def _process_second_select(
         self,
         selected_layer_collision_map: list[int | NoneOrBlobSpriteMetadata],
         selected_sprite_name: str,
@@ -3558,6 +3552,11 @@ class RoomJsonGenerator:
         selected_sprite_y: int,
         selected_sprite_tile_type: str,
     ) -> None:
+        """
+        | Autotile wash region logic.
+        | For None and Blob tile type.
+        """
+
         # Iterate size to check all empty
         self.combined_room_selected_tile_rect_width_ru = int(self.combined_room_selected_tile_rect.width // TILE_SIZE)
         self.combined_room_selected_tile_rect_height_ru = int(self.combined_room_selected_tile_rect.height // TILE_SIZE)
@@ -3568,8 +3567,8 @@ class RoomJsonGenerator:
         combined_room_selected_tile_rect_expanded_height_tu: int = self.combined_room_selected_tile_rect_height_ru + 2
         combined_room_selected_tile_rect_expanded_x_tu: int = self.combined_room_selected_tile_rect_x_ru - 1
         combined_room_selected_tile_rect_expanded_y_tu: int = self.combined_room_selected_tile_rect_y_ru - 1
-        # Get region
-        center_positions = self.get_region_1d_with_positions(
+        # Get region list of position world tu and values
+        center_region_metadata = self._get_region_1d_with_positions(
             collision_map_list=selected_layer_collision_map,
             room_width_tu=self.room_width_tu,
             xu=self.combined_room_selected_tile_rect_x_ru,
@@ -3582,15 +3581,15 @@ class RoomJsonGenerator:
         # NONE TILE TYPE #
         ##################
         if selected_sprite_tile_type == "none":
-            # Loop over center
-            for tile, position in center_positions:
+            # Iter center region
+            for tile, position in center_region_metadata:
                 # Empty?
                 if tile == 0:
                     # Fill with metadata instance
-                    world_tu_x = position[1]
-                    world_tu_y = position[0]
-                    world_snapped_x = world_tu_x * TILE_SIZE
-                    world_snapped_y = world_tu_y * TILE_SIZE
+                    world_tu_x: int = position[1]
+                    world_tu_y: int = position[0]
+                    world_snapped_x: int = world_tu_x * TILE_SIZE
+                    world_snapped_y: int = world_tu_y * TILE_SIZE
                     new_none_or_blob_sprite_metadata_dict: dict = {
                         "name": selected_sprite_name,
                         "type": self.sprite_metadata_instance.sprite_type,
@@ -3616,8 +3615,8 @@ class RoomJsonGenerator:
         # BLOB TILE TYPE #
         ##################
         elif selected_sprite_tile_type != "none":
-            # Fill center first
-            for tile, position in center_positions:
+            # Fill center first, iter center region
+            for tile, position in center_region_metadata:
                 # Empty?
                 if tile == 0:
                     # Fill with metadata instance
@@ -3646,7 +3645,7 @@ class RoomJsonGenerator:
                         is_update_pre_render=True,
                     )
             # Get expanded region after fill
-            expanded_values = self.get_region_1d_with_positions(
+            expanded_region_metadata = self._get_region_1d_with_positions(
                 collision_map_list=selected_layer_collision_map,
                 room_width_tu=self.room_width_tu,
                 xu=combined_room_selected_tile_rect_expanded_x_tu,
@@ -3655,7 +3654,7 @@ class RoomJsonGenerator:
                 region_height_tu=combined_room_selected_tile_rect_expanded_height_tu,
             )
             # Then wash expanded region
-            for tile, position in expanded_values:
+            for tile, position in expanded_region_metadata:
                 # Skip if empty or out of bound
                 if tile == 0 or tile == -1:
                     continue
@@ -3674,11 +3673,11 @@ class RoomJsonGenerator:
                     target_dict=self.sprite_name_to_sprite_metadata,
                     target_dict_name="self.sprite_name_to_sprite_metadata",
                 )
-                neighbor_sprite_name = sprite_metadata_instance.sprite_name
-                neighbor_sprite_is_tile_mix = sprite_metadata_instance.sprite_is_tile_mix
-                neighbor_sprite_x = sprite_metadata_instance.x
-                neighbor_sprite_y = sprite_metadata_instance.y
-                neighbor_sprite_tile_type = sprite_metadata_instance.sprite_tile_type
+                neighbor_sprite_name: str = sprite_metadata_instance.sprite_name
+                neighbor_sprite_is_tile_mix: int = sprite_metadata_instance.sprite_is_tile_mix
+                neighbor_sprite_x: int = sprite_metadata_instance.x
+                neighbor_sprite_y: int = sprite_metadata_instance.y
+                neighbor_sprite_tile_type: str = sprite_metadata_instance.sprite_tile_type
 
                 # Neighbor not my kind?
                 if neighbor_sprite_name != self.selected_sprite_name:
