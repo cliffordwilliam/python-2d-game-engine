@@ -80,6 +80,22 @@ class Kinematic:
 
         self.room_height_tu = value
 
+    def determine_movement_direction(self, velocity_vector: pg.Vector2) -> tuple[int, int]:
+        # Extract x and y components from the Pygame vector
+        x, y = velocity_vector.x, velocity_vector.y
+
+        # Determine the direction based on the sign of x and y
+        direction_x: int = 0
+        direction_y: int = 0
+
+        if abs(x) > 0.01:
+            direction_x = (x > 0) - (x < 0)  # 1 for right, -1 for left, 0 for none
+
+        if abs(y) > 0.01:
+            direction_y = (y > 0) - (y < 0)  # 1 for down, -1 for up, 0 for none
+
+        return (direction_x, direction_y)
+
     #############
     # ABILITIES #
     #############
@@ -119,16 +135,32 @@ class Kinematic:
         b_tu = int(bottom_point // TILE_SIZE)
 
         # Collect solid tiles in present_future_combined_rect
-        possible_collision_solid_tiles_list: list[NoneOrBlobSpriteMetadata] = []
         combined_rect_width_ru = r_tu - l_tu + 1
         combined_rect_height_ru = b_tu - t_tu + 1
         combined_rect_x_ru = l_tu
         combined_rect_y_ru = t_tu
 
-        for world_tu_xi in range(combined_rect_width_ru):
-            for world_tu_yi in range(combined_rect_height_ru):
-                world_tu_x = combined_rect_x_ru + world_tu_xi
-                world_tu_y = combined_rect_y_ru + world_tu_yi
+        # Get direction
+        direction_x, direction_y = self.determine_movement_direction(input_velocity)
+
+        # Determine x and y iteration ranges based on the direction
+        if direction_x == 1:  # Moving right or no horizontal movement
+            x_range = range(combined_rect_x_ru, combined_rect_x_ru + combined_rect_width_ru)
+        elif direction_x == -1:  # Moving left
+            x_range = range(combined_rect_x_ru + combined_rect_width_ru - 1, combined_rect_x_ru - 1, -1)
+        else:
+            x_range = range(combined_rect_x_ru, combined_rect_x_ru + combined_rect_width_ru)
+
+        if direction_y == 1:  # Moving down or no vertical movement
+            y_range = range(combined_rect_y_ru, combined_rect_y_ru + combined_rect_height_ru)
+        elif direction_y == -1:  # Moving up
+            y_range = range(combined_rect_y_ru + combined_rect_height_ru - 1, combined_rect_y_ru - 1, -1)
+        else:
+            y_range = range(combined_rect_y_ru, combined_rect_y_ru + combined_rect_height_ru)
+
+        # Iterate region candidate
+        for world_tu_x in x_range:
+            for world_tu_y in y_range:
                 # Get each one in solid_collision_map_list
                 cell = get_tile_from_collision_map_list(
                     world_tu_x,
@@ -145,133 +177,98 @@ class Kinematic:
                 if not isinstance(cell, NoneOrBlobSpriteMetadata):
                     raise ValueError("foreground_collision_map_list can only hold int or NoneOrBlobSpriteMetadata")
 
-                # Collect it
-                possible_collision_solid_tiles_list.append(cell)
-
-        # FILTER present_future_combined_rect, GET FUTURE THAT COLLIDED ONLY
-        sorted_possible_collision_indexes_list: list[tuple[int, list[float]]] = []
-        for i in range(len(possible_collision_solid_tiles_list)):
-            # Get cell metadata
-            cell = possible_collision_solid_tiles_list[i]
-            self.one_tile_rect.x = cell.x
-            self.one_tile_rect.y = cell.y
-            # Collision query with test rect
-            contact_point = [pg.Vector2(0, 0)]
-            contact_normal = [pg.Vector2(0, 0)]
-            t_hit_near = [0.0]
-            # This one is to find hits only
-            hit = dynamic_rect_vs_rect(
-                input_velocity,
-                self.collider_rect,
-                self.one_tile_rect,
-                contact_point,
-                contact_normal,
-                t_hit_near,
-                dt,
-            )
-            # Hit?
-            if hit:
-                # Collect
-                sorted_possible_collision_indexes_list.append((i, t_hit_near))
-
-        # SORT FUTURE COLLIDED ASC PROXIMITY
-        sorted_possible_collision_indexes_list.sort(key=lambda x: x[1][0])
-
-        # Iter sorted future collided
-        for j in range(len(sorted_possible_collision_indexes_list)):
-            index = sorted_possible_collision_indexes_list[j][0]
-            cell = possible_collision_solid_tiles_list[index]
-            self.one_tile_rect.x = cell.x
-            self.one_tile_rect.y = cell.y
-            # Collision query with test rect
-            contact_point = [pg.Vector2(0, 0)]
-            contact_normal = [pg.Vector2(0, 0)]
-            t_hit_near = [0.0]
-            # This one is passed the correct sorted, so returns correct data like t hit near
-            hit = dynamic_rect_vs_rect(
-                input_velocity,
-                self.collider_rect,
-                self.one_tile_rect,
-                contact_point,
-                contact_normal,
-                t_hit_near,
-                dt,
-            )
-            # RESOLVE VEL
-            resolved_velocity.x += contact_normal[0].x * abs(input_velocity.x) * (1 - t_hit_near[0])
-            resolved_velocity.y += contact_normal[0].y * abs(input_velocity.y) * (1 - t_hit_near[0])
-
-            # REMOVE IN BUILD
-            # Debug draw
-            if self.game_debug_draw.is_active:
-                # Prepare offset to correct expanded rect collision
-                offset_x: float = 0.0
-                offset_y: float = 0.0
-                collider_rect_half_width: float = self.collider_rect.width / 2
-                collider_rect_half_height: float = self.collider_rect.height / 2
-                if contact_normal[0] == (1, 0):
-                    offset_x = -collider_rect_half_width
-                elif contact_normal[0] == (-1, 0):
-                    offset_x = collider_rect_half_width
-                elif contact_normal[0] == (0, 1):
-                    offset_y = -collider_rect_half_height
-                elif contact_normal[0] == (0, -1):
-                    offset_y = collider_rect_half_height
-                # Draw the test rect green
-                self.game_debug_draw.add(
-                    {
-                        "type": "rect",
-                        "layer": 4,
-                        "rect": [
-                            self.one_tile_rect.x - self.camera.rect.x,
-                            self.one_tile_rect.y - self.camera.rect.y,
-                            self.one_tile_rect.width,
-                            self.one_tile_rect.height,
-                        ],
-                        "color": "green",
-                        "width": 0,
-                    }
+                self.one_tile_rect.x = cell.x
+                self.one_tile_rect.y = cell.y
+                # Collision query with test rect
+                contact_point = [pg.Vector2(0, 0)]
+                contact_normal = [pg.Vector2(0, 0)]
+                t_hit_near = [0.0]
+                # This one is passed the correct sorted, so returns correct data like t hit near
+                hit = dynamic_rect_vs_rect(
+                    input_velocity,
+                    self.collider_rect,
+                    self.one_tile_rect,
+                    contact_point,
+                    contact_normal,
+                    t_hit_near,
+                    dt,
                 )
-                # Draw contact point
-                self.game_debug_draw.add(
-                    {
-                        "type": "circle",
-                        "layer": 4,
-                        "color": "blue",
-                        "center": (
-                            contact_point[0].x - self.camera.rect.x + offset_x,
-                            contact_point[0].y - self.camera.rect.y + offset_y,
-                        ),
-                        "radius": 3,
-                    }
-                )
-                # Draw normal
-                self.game_debug_draw.add(
-                    {
-                        "type": "line",
-                        "layer": 4,
-                        "start": (
-                            contact_point[0].x - self.camera.rect.x + offset_x,
-                            contact_point[0].y - self.camera.rect.y + offset_y,
-                        ),
-                        "end": (
-                            contact_point[0].x + contact_normal[0].x * 16 - self.camera.rect.x + offset_x,
-                            contact_point[0].y + contact_normal[0].y * 16 - self.camera.rect.y + offset_y,
-                        ),
-                        "color": "yellow",
-                        "width": 1,
-                    }
-                )
-                # Draw tile type
-                self.game_debug_draw.add(
-                    {
-                        "type": "text",
-                        "layer": 4,
-                        "x": self.one_tile_rect.x - self.camera.rect.x,
-                        "y": self.one_tile_rect.y - self.camera.rect.y,
-                        "text": (f"type: {cell.type}"),
-                    }
-                )
+                if hit:
+                    # RESOLVE VEL
+                    resolved_velocity.x += contact_normal[0].x * abs(input_velocity.x) * (1 - t_hit_near[0])
+                    resolved_velocity.y += contact_normal[0].y * abs(input_velocity.y) * (1 - t_hit_near[0])
+
+                # REMOVE IN BUILD
+                # Debug draw
+                if self.game_debug_draw.is_active:
+                    # Prepare offset to correct expanded rect collision
+                    offset_x: float = 0.0
+                    offset_y: float = 0.0
+                    collider_rect_half_width: float = self.collider_rect.width / 2
+                    collider_rect_half_height: float = self.collider_rect.height / 2
+                    if contact_normal[0] == (1, 0):
+                        offset_x = -collider_rect_half_width
+                    elif contact_normal[0] == (-1, 0):
+                        offset_x = collider_rect_half_width
+                    elif contact_normal[0] == (0, 1):
+                        offset_y = -collider_rect_half_height
+                    elif contact_normal[0] == (0, -1):
+                        offset_y = collider_rect_half_height
+                    # Draw the test rect green
+                    self.game_debug_draw.add(
+                        {
+                            "type": "rect",
+                            "layer": 4,
+                            "rect": [
+                                self.one_tile_rect.x - self.camera.rect.x,
+                                self.one_tile_rect.y - self.camera.rect.y,
+                                self.one_tile_rect.width,
+                                self.one_tile_rect.height,
+                            ],
+                            "color": "green",
+                            "width": 0,
+                        }
+                    )
+                    # Draw contact point
+                    self.game_debug_draw.add(
+                        {
+                            "type": "circle",
+                            "layer": 4,
+                            "color": "blue",
+                            "center": (
+                                contact_point[0].x - self.camera.rect.x + offset_x,
+                                contact_point[0].y - self.camera.rect.y + offset_y,
+                            ),
+                            "radius": 3,
+                        }
+                    )
+                    # Draw normal
+                    self.game_debug_draw.add(
+                        {
+                            "type": "line",
+                            "layer": 4,
+                            "start": (
+                                contact_point[0].x - self.camera.rect.x + offset_x,
+                                contact_point[0].y - self.camera.rect.y + offset_y,
+                            ),
+                            "end": (
+                                contact_point[0].x + contact_normal[0].x * 16 - self.camera.rect.x + offset_x,
+                                contact_point[0].y + contact_normal[0].y * 16 - self.camera.rect.y + offset_y,
+                            ),
+                            "color": "yellow",
+                            "width": 1,
+                        }
+                    )
+                    # Draw tile type
+                    self.game_debug_draw.add(
+                        {
+                            "type": "text",
+                            "layer": 4,
+                            "x": self.one_tile_rect.x - self.camera.rect.x,
+                            "y": self.one_tile_rect.y - self.camera.rect.y,
+                            "text": (f"type: {cell.type}"),
+                        }
+                    )
 
         # REMOVE IN BUILD
         # Debug draw
