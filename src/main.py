@@ -41,13 +41,7 @@ while 1:
                 game.debug_draw.draw()
 
             # REMOVE IN BUILD
-            # Get CPU usage
-            cpu_percent = process.cpu_percent()
-            # REMOVE IN BUILD
-            # Get memory info (RAM)
-            memory_info = process.memory_info()
-            memory_percent = process.memory_percent()
-            pg.display.set_caption(f"FPS: NAN | CPU: {cpu_percent}% | RAM: {memory_percent:.2f}%")
+            pg.display.set_caption("FPS: NAN | CPU: NAN | RAM: NAN")
 
             pg.transform.scale(NATIVE_SURF, (game.window_width, game.window_height), game.window_surf)
 
