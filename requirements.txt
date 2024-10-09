@@ -19,6 +19,7 @@ packaging==24.0
 platformdirs==4.2.1
 pre-commit==3.7.1
 prompt-toolkit==3.0.36
+psutil==6.0.0
 pygame-ce==2.4.1
 pyrsistent==0.20.0
 PyYAML==6.0.1
@@ -30,6 +31,7 @@ termcolor==2.4.0
 tomlkit==0.12.5
 typeguard==4.2.1
 types-jsonschema==4.23.0.20240813
+types-psutil==6.0.0.20240901
 typing_extensions==4.11.0
 virtualenv==20.26.1
 wcwidth==0.2.13

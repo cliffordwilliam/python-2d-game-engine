@@ -1,3 +1,4 @@
+import psutil
 from constants import CLOCK
 from constants import EVENTS
 from constants import FPS
@@ -10,6 +11,11 @@ from nodes.options_menu import OptionsMenu
 game: Game = Game("CreatedBySplashScreen")
 options_menu: OptionsMenu = OptionsMenu(game)
 game.debug_draw.is_active = not game.debug_draw.is_active
+
+# REMOVE IN BUILD
+process = psutil.Process()
+counter = 0
+cpu_percent: float = 0.0
 
 while 1:
     # REMOVE IN BUILD
@@ -34,7 +40,14 @@ while 1:
             if game.debug_draw.is_active:
                 game.debug_draw.draw()
 
-            pg.display.set_caption("FPS: NAN")
+            # REMOVE IN BUILD
+            # Get CPU usage
+            cpu_percent = process.cpu_percent()
+            # REMOVE IN BUILD
+            # Get memory info (RAM)
+            memory_info = process.memory_info()
+            memory_percent = process.memory_percent()
+            pg.display.set_caption(f"FPS: NAN | CPU: {cpu_percent}% | RAM: {memory_percent:.2f}%")
 
             pg.transform.scale(NATIVE_SURF, (game.window_width, game.window_height), game.window_surf)
 
@@ -75,7 +88,16 @@ while 1:
             game.debug_draw.draw()
 
         # REMOVE IN BUILD
-        pg.display.set_caption(f"FPS: {CLOCK.get_fps():.0f}")
+        # Get CPU usage
+        counter += dt
+        if counter > 1020:
+            counter = 0
+            cpu_percent = process.cpu_percent()
+        # REMOVE IN BUILD
+        # Get memory info (RAM)
+        memory_info = process.memory_info()
+        memory_percent = process.memory_percent()
+        pg.display.set_caption(f"FPS: {CLOCK.get_fps():.0f} | CPU: {cpu_percent}% | RAM: {memory_percent:.2f}%")
 
         # Scale native surf to window surf
         pg.transform.scale(NATIVE_SURF, (game.window_width, game.window_height), game.window_surf)
